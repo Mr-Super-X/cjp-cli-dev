@@ -1,6 +1,6 @@
 {
   "name": "@cjp-cli-dev/core",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "cjp-cli-dev utils",
   "author": "v_jpch <v_jpch.digitalgd.com>",
   "homepage": "",
@@ -14,7 +14,7 @@
     "lib"
   ],
   "publishConfig": {
-    "registry": "https://registry.npmmirror.com/"
+    "registry": "https://registry.npmjs.org/"
   },
   "repository": {
     "type": "git",
@@ -22,5 +22,6 @@
   },
   "scripts": {
     "test": "node ./__tests__/core.test.js"
-  }
+  },
+  "gitHead": "18677ad7667abb61fbd24eec195832dcae39c518"
 }
