@@ -16,6 +16,7 @@
   "publishConfig": {
     "registry": "https://registry.npmmirror.com/"
   },
+  "access": "public",
   "scripts": {
     "test": "node ./__tests__/core.test.js"
   },
