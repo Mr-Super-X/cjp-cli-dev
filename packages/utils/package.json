@@ -16,7 +16,10 @@
   "publishConfig": {
     "registry": "https://registry.npmmirror.com/"
   },
-  "access": "public",
+  "repository": {
+    "type": "git",
+    "url": "git@gitee.com:Mr_Mikey/cjp-cli-dev.git"
+  },
   "scripts": {
     "test": "node ./__tests__/utils.test.js"
   }

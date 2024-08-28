@@ -1,7 +1,7 @@
 {
   "name": "@cjp-cli-dev/core",
   "version": "1.0.0",
-  "description": "cjp-cli-dev core",
+  "description": "cjp-cli-dev utils",
   "author": "v_jpch <v_jpch.digitalgd.com>",
   "homepage": "",
   "license": "ISC",
@@ -16,11 +16,11 @@
   "publishConfig": {
     "registry": "https://registry.npmmirror.com/"
   },
-  "access": "public",
+  "repository": {
+    "type": "git",
+    "url": "git@gitee.com:Mr_Mikey/cjp-cli-dev.git"
+  },
   "scripts": {
     "test": "node ./__tests__/core.test.js"
-  },
-  "dependencies": {
-    "@cjp-cli-dev/utils": "file:../utils"
   }
 }
