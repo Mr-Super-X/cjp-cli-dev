@@ -24,5 +24,8 @@
   "scripts": {
     "test": "node ./__tests__/utils.test.js"
   },
+  "dependencies": {
+
+  },
   "gitHead": "b67c081a8c62b824b50db061b9e25c272c72db09"
 }
