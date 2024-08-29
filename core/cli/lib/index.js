@@ -8,16 +8,19 @@ const { exec } = require("child_process");
 const semver = require("semver"); // 用于比对各种版本号
 const colors = require("colors/safe"); // 用于给log信息添加颜色
 const dotenv = require("dotenv"); // 用于将环境变量从 .env 文件加载到 process.env 中
+const commander = require("commander"); // 用于解析输入命令和参数
 const minimist = require("minimist"); // 用于解析输入参数
 const pathExists = require("path-exists").sync; // 用于检查路径是否存在
 // 自建库
+const log = require("@cjp-cli-dev/log"); // 用于给log信息添加各种自定义风格
+const init = require("@cjp-cli-dev/init"); // 用于初始化项目
+const { getNpmSemverVersion } = require("@cjp-cli-dev/get-npm-info"); // 用于获取npm包信息
 const pkg = require("../package.json");
 const constant = require("./const");
-const log = require("@cjp-cli-dev/log"); // 用于给log信息添加各种自定义风格
-const { getNpmSemverVersion } = require("@cjp-cli-dev/get-npm-info"); // 用于获取npm包信息
 
 // 全局变量
 const homedir = os.homedir(); // 用户主目录
+const program = new commander.Command();
 
 module.exports = core;
 
@@ -32,15 +35,64 @@ async function core() {
     // 4. 检查用户主目录
     checkUserHome();
     // 5. 检查输入参数
-    checkInputArgs();
+    // checkInputArgs();
     // 6. 检查环境变量
     checkEnv();
     // 7. 检查是否有全局更新
     await checkGlobalUpdate();
+    // 8. 注册commander命令
+    registerCommander();
     // log.verbose('debug', '测试debug')
   } catch (e) {
     log.error(e.message);
   }
+}
+
+// commander文档：https://www.npmjs.com/package/commander
+function registerCommander() {
+  program
+    .name(Object.keys(pkg.bin)[0])
+    .usage("<command> [options]")
+    .version(pkg.version)
+    .option("-d, --debug", "是否开启调试模式", false);
+
+  program
+    .command("init [projectName]")
+    .option("-f, --force", "是否强制初始化项目")
+    .action(init);
+
+  // 高级功能：监听debug事件，开启debug模式
+  program.on("option:debug", function () {
+    // 获取所有的参数
+    const options = program.opts();
+    if (options.debug) {
+      process.env.LOG_LEVEL = "verbose";
+    } else {
+      process.env.LOG_LEVEL = "info";
+    }
+    log.level = process.env.LOG_LEVEL;
+  });
+
+  // 高级功能：对未知命令进行监听
+  program.on("command:*", function (cmdObj) {
+    const availableCommands = program.commands.map((cmd) => cmd.name());
+    log.error(colors.red("未知命令：" + cmdObj[0]));
+    if (availableCommands.length > 0) {
+      log.error(
+        colors.red("请使用以下可用命令：\n" + availableCommands.join("\n"))
+      );
+    }
+  });
+
+  // 解析输出参数
+  program.parse(process.argv);
+
+  // 没有输入参数的时候输出帮助文档（注意：需要parse之后调用，否则program.args拿不到输入内容）
+  // if (program.args && program.args.length < 1) {
+  //   program.outputHelp();
+  //   // 美化，输出一行空格
+  //   console.log();
+  // }
 }
 
 async function checkGlobalUpdate() {
@@ -50,9 +102,14 @@ async function checkGlobalUpdate() {
   // 2. 调用npm API，获取所有版本号（过程封装在@cjp-cli-dev/get-npm-info中）
   // 3. 找到最新的版本号，并与当前版本号进行对比
   // 4. 如果有新版本，则提示用户更新
-  const lastVersion = await getNpmSemverVersion(currentVersion, npmName)
-  if(lastVersion && semver.gt(lastVersion, currentVersion)) {
-    log.warn("更新提示", colors.yellow(`检测到npm包 ${npmName} 有新版本，当前安装版本为：${lastVersion}，最新版本为：${lastVersion}，请在终端手动输入 npm install ${npmName} -g 命令进行更新`))
+  const lastVersion = await getNpmSemverVersion(currentVersion, npmName);
+  if (lastVersion && semver.gt(lastVersion, currentVersion)) {
+    log.warn(
+      "更新提示",
+      colors.yellow(
+        `检测到npm包 ${npmName} 有新版本，当前安装版本为：${lastVersion}，最新版本为：${lastVersion}，请在终端手动输入 npm install ${npmName} -g 命令进行更新`
+      )
+    );
   }
 }
 
