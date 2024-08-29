@@ -28,9 +28,16 @@
     "test": "node ./__tests__/core.test.js"
   },
   "dependencies": {
+    "@cjp-cli-dev/get-npm-info": "file:../../utils/get-npm-info",
     "@cjp-cli-dev/log": "file:../../utils/log",
+    "colors": "^1.4.0",
+    "dotenv": "^16.4.5",
     "import-local": "^3.2.0",
-    "npmlog": "^7.0.1"
+    "minimist": "^1.2.8",
+    "npmlog": "^7.0.1",
+    "path-exists": "^4.0.0",
+    "root-check": "^1.0.0",
+    "semver": "^7.6.3"
   },
   "gitHead": "b67c081a8c62b824b50db061b9e25c272c72db09"
 }
