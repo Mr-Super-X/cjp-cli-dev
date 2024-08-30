@@ -53,7 +53,7 @@ function getSemverVersions(baseVersion, versions) {
     versions
       .filter((version) => semver.satisfies(version, `^${baseVersion}`))
       // 排序，从大到小，防止数据没有按预期顺序返回
-      .sort((a, b) => semver.gt(b, a))
+      .sort((a, b) => semver.compare(b, a))
   );
 }
 
@@ -63,13 +63,27 @@ async function getNpmSemverVersion(baseVersion, npmName, registry) {
   // 获取符合semver的版本号
   const semverVersions = getSemverVersions(baseVersion, versions);
   // 取出第一个符合semver的版本号
-  if(semverVersions && semverVersions.length > 0) {
+  if (semverVersions && semverVersions.length > 0) {
     return semverVersions[0];
   }
+  return null;
+}
+
+async function getNpmLatestVersion(npmName, registry) {
+  // 获取npm包所有版本号
+  const versions = await getNpmVersions(npmName, registry);
+  // 取出第一个符合semver的版本号
+  if (versions && versions.length > 0) {
+    // 排序，从大到小，防止数据没有按预期顺序返回
+    return versions.sort((a, b) => semver.compare(b, a))[0];
+  }
+  return null;
 }
 
 module.exports = {
   getNpmInfo,
   getNpmVersions,
   getNpmSemverVersion,
+  getDefaultRegistry,
+  getNpmLatestVersion,
 };

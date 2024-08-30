@@ -1,7 +1,7 @@
 const LOWEST_NODE_VERSION = '16.0.0';
-const DEFAULT_CLI = '.cjp-cli'
+const DEFAULT_CLI_HOME = '.cjp-cli-dev'
 
 module.exports = {
   LOWEST_NODE_VERSION,
-  DEFAULT_CLI,
+  DEFAULT_CLI_HOME,
 }

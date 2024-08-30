@@ -31,6 +31,10 @@ async function core() {
     // log.verbose('debug', '测试debug')
   } catch (e) {
     log.error(e.message);
+    // debug模式下打印执行栈
+    if(process.env.LOG_LEVEL === 'verbose') {
+      console.log(e)
+    }
   }
 }
 
