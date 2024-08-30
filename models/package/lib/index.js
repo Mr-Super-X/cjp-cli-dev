@@ -128,21 +128,29 @@ class Package {
 
   // 获取入口文件路径
   getRootFilePath() {
-    // 1. 获取package.json所在路径 -> pkg-dir
-    const dir = pkgDir(this.targetPath);
+    function _getRootFile(targetPath) {
+      // 1. 获取package.json所在路径 -> pkg-dir
+      const dir = pkgDir(targetPath);
 
-    if (dir) {
-      // 2. 读取package.json -> require
-      const pkgFile = require(path.resolve(dir, "package.json"));
-      // 3. 找到main/lib -> 输出成path
-      if (pkgFile && (pkgFile.main || pkgFile.lib)) {
-        // 4. 路径兼容（MacOS/Windows）
-        return formatPath(path.resolve(dir, pkgFile.main || pkgFile.lib));
+      if (dir) {
+        // 2. 读取package.json -> require
+        const pkgFile = require(path.resolve(dir, "package.json"));
+        // 3. 找到main/lib -> 输出成path
+        if (pkgFile && (pkgFile.main || pkgFile.lib)) {
+          // 4. 路径兼容（MacOS/Windows）
+          return formatPath(path.resolve(dir, pkgFile.main || pkgFile.lib));
+        }
       }
-    }
 
-    log.warn("没有找到入口文件路径");
-    return null;
+      log.warn("没有找到入口文件路径");
+      return null;
+    }
+    // 判断是否使用缓存
+    if (this.storeDir) {
+      return _getRootFile(this.cacheFilePath)
+    } else {
+      return _getRootFile(this.targetPath)
+    }
   }
 }
 

@@ -9,8 +9,7 @@ const log = require("@cjp-cli-dev/log");
 // 全局变量
 const SETTINGS = {
   // 配置表
-  // init: "@cjp-cli-dev/init",
-  init: "@imooc-cli/init",
+  init: "@cjp-cli-dev/init",
 };
 const CACHE_DIR = "dependencies"; // 缓存路径
 
@@ -31,8 +30,7 @@ async function exec() {
   // 获取命令对应的包名（可以放在服务端通过接口获取，这样可以扩展动态配置）
   const packageName = SETTINGS[cmdName];
   // 获取版本号，默认获取最新版本
-  // const packageVersion = "latest";
-  const packageVersion = "1.1.0";
+  const packageVersion = "latest";
 
   if (!targetPath) {
     // 生成缓存路径
@@ -48,7 +46,6 @@ async function exec() {
       packageVersion,
     });
 
-    console.log(await pkg.exists())
     if (await pkg.exists()) {
       // 更新
       await pkg.update();
@@ -63,11 +60,15 @@ async function exec() {
       packageVersion,
     });
   }
-  // console.log(await pkg.exists())
-  // 执行方法
+
+  // 找到入口执行文件并执行
   const rootFile = pkg.getRootFilePath();
   if (rootFile) {
+    // 在当前进程中调用
     require(rootFile).apply(null, arguments);
+    // 在node子进程中调用，提升性能
+    // spawn：适合耗时任务（比如npm install），持续输出日志
+    // exec/execFile：适合开销小的任务，整个任务执行完毕后输出日志
   }
 }
 
