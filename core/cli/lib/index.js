@@ -3,17 +3,16 @@
 // 内置库
 const os = require("os"); // 用于获取系统信息
 const path = require("path"); // 用于获取路径
-const { exec } = require("child_process");
 // 第三方库
 const semver = require("semver"); // 用于比对各种版本号
 const colors = require("colors/safe"); // 用于给log信息添加颜色
 const dotenv = require("dotenv"); // 用于将环境变量从 .env 文件加载到 process.env 中
 const commander = require("commander"); // 用于解析输入命令和参数
-const minimist = require("minimist"); // 用于解析输入参数
 const pathExists = require("path-exists").sync; // 用于检查路径是否存在
 // 自建库
 const log = require("@cjp-cli-dev/log"); // 用于给log信息添加各种自定义风格
 const init = require("@cjp-cli-dev/init"); // 用于初始化项目
+const exec = require("@cjp-cli-dev/exec"); // 用于执行动态初始化命令
 const { getNpmSemverVersion } = require("@cjp-cli-dev/get-npm-info"); // 用于获取npm包信息
 const pkg = require("../package.json");
 const constant = require("./const");
@@ -26,20 +25,7 @@ module.exports = core;
 
 async function core() {
   try {
-    // 1. 检查包版本
-    checkPkgVersion();
-    // 2. 检查node版本
-    checkNodeVersion();
-    // 3. 检查root用户，如果是root用户则尝试切换为普通用户，解决因权限提示带来的各种问题
-    checkRoot();
-    // 4. 检查用户主目录
-    checkUserHome();
-    // 5. 检查输入参数
-    // checkInputArgs();
-    // 6. 检查环境变量
-    checkEnv();
-    // 7. 检查是否有全局更新
-    await checkGlobalUpdate();
+    await prepare();
     // 8. 注册commander命令
     registerCommander();
     // log.verbose('debug', '测试debug')
@@ -54,12 +40,14 @@ function registerCommander() {
     .name(Object.keys(pkg.bin)[0])
     .usage("<command> [options]")
     .version(pkg.version)
-    .option("-d, --debug", "是否开启调试模式", false);
+    // option方法参数说明，1：参数简写和全写，2：参数描述，3：默认值
+    .option("-d, --debug", "是否开启调试模式", false)
+    .option("-tp, --targetPath <targetPath>", '是否指定本地调试文件路径', '')
 
-  program
+    program
     .command("init [projectName]")
     .option("-f, --force", "是否强制初始化项目")
-    .action(init);
+    .action(exec);
 
   // 高级功能：监听debug事件，开启debug模式
   program.on("option:debug", function () {
@@ -72,6 +60,17 @@ function registerCommander() {
     }
     log.level = process.env.LOG_LEVEL;
   });
+
+  // 指定全局targetPath
+  program.on('option:targetPath', function () {
+    // 获取所有的参数
+    const options = program.opts();
+    if (options.targetPath) {
+      process.env.CLI_TARGET_PATH = options.targetPath;
+    } else {
+      process.env.CLI_TARGET_PATH = "";
+    }
+  })
 
   // 高级功能：对未知命令进行监听
   program.on("command:*", function (cmdObj) {
@@ -86,6 +85,7 @@ function registerCommander() {
 
   // 解析输出参数
   program.parse(process.argv);
+  // console.log(program.opts())
 
   // 没有输入参数的时候输出帮助文档（注意：需要parse之后调用，否则program.args拿不到输入内容）
   // if (program.args && program.args.length < 1) {
@@ -93,6 +93,22 @@ function registerCommander() {
   //   // 美化，输出一行空格
   //   console.log();
   // }
+}
+
+async function prepare() {
+  // 1. 检查包版本
+  checkPkgVersion();
+  // 2. 检查node版本
+  checkNodeVersion();
+  // 3. 检查root用户，如果是root用户则尝试切换为普通用户，解决因权限提示带来的各种问题
+  checkRoot();
+  // 4. 检查用户主目录
+  checkUserHome();
+  // 5. 检查输入参数
+  // 6. 检查环境变量
+  checkEnv();
+  // 7. 检查是否有全局更新
+  await checkGlobalUpdate();
 }
 
 async function checkGlobalUpdate() {
@@ -119,26 +135,21 @@ function checkEnv() {
     const config = dotenv.config({
       path: dotenvPath,
     });
-    log.verbose("当前环境变量：", config);
   }
+  createDefaultConfig();
 }
 
-function checkInputArgs() {
-  // 只要第二个之后的参数，如：node xxx.js --debug，只拿--debug，返回值为一个对象
-  const args = minimist(process.argv.slice(2));
-  // 解析参数
-  checkArgs(args);
-}
-
-// 解析参数，如果开启debug则输出调试信息，如：cjp-cli-dev --debug
-function checkArgs(args) {
-  if (args.debug) {
-    process.env.LOG_LEVEL = "verbose";
-  } else {
-    process.env.LOG_LEVEL = "info";
+function createDefaultConfig() {
+  const cliConfig = {
+    home: homedir,
   }
-  // 动态修改level，这一步必须要有，否则由于执行顺序问题，应该要将checkInputArgs()调用放在const log = require("@cjp-cli-dev/log")之前才会生效
-  log.level = process.env.LOG_LEVEL;
+  if(process.env.CLI_HOME) {
+    cliConfig['cliHome'] = path.join(homedir, process.env.CLI_HOME)
+  }else {
+    cliConfig['cliHome'] = path.join(homedir, constant.DEFAULT_CLI_HOME)
+  }
+
+  process.env.CLI_HOME_PATH = cliConfig.cliHome
 }
 
 function checkUserHome() {
@@ -153,24 +164,6 @@ function checkRoot() {
   // 如果是root用户，会自动降级为普通用户
   const rootCheck = require("root-check");
   rootCheck();
-
-  // 使用whoami命令获取当前用户
-  // exec("whoami", (error, stdout, stderr) => {
-  //   if (error) {
-  //     log.error(`exec error: ${error}`);
-  //     return;
-  //   }
-  //   if (stderr) {
-  //     log.error(`stderr: ${stderr}`);
-  //     return;
-  //   }
-  //   // 检查stdout是否包含'root'
-  //   if (stdout.trim() === "root") {
-  //     log.info("Running as root user.");
-  //   } else {
-  //     log.info(`Running as ${stdout.trim()} user.`);
-  //   }
-  // });
 }
 
 function checkNodeVersion() {
