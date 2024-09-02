@@ -23,5 +23,9 @@
   },
   "scripts": {
     "test": "node ./__tests__/@cjp-cli-dev/init.test.js"
+  },
+  "dependencies": {
+    "@cjp-cli-dev/command": "file:../../models/command",
+    "@cjp-cli-dev/log": "file:../../utils/log"
   }
 }

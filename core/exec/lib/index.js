@@ -2,6 +2,7 @@
 
 // 内置库
 const path = require("path");
+const cp = require("child_process");
 // 自建库
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
@@ -26,7 +27,7 @@ async function exec() {
   // 获取命令名称
   const cmdName = cmdObj.name();
   // 获取命令参数
-  // const cmdOpts = cmdObj.opts();
+  const cmdOpts = cmdObj.opts();
   // 获取命令对应的包名（可以放在服务端通过接口获取，这样可以扩展动态配置）
   const packageName = SETTINGS[cmdName];
   // 获取版本号，默认获取最新版本
@@ -64,12 +65,55 @@ async function exec() {
   // 找到入口执行文件并执行
   const rootFile = pkg.getRootFilePath();
   if (rootFile) {
-    // 在当前进程中调用
-    require(rootFile).apply(null, arguments);
-    // 在node子进程中调用，提升性能
-    // spawn：适合耗时任务（比如npm install），持续输出日志
-    // exec/execFile：适合开销小的任务，整个任务执行完毕后输出日志
+    // 捕获异步throw err
+    try {
+      // 在当前进程中调用
+      // require(rootFile).call(null, Array.from(arguments));
+
+      // 在node子进程中调用，提升性能
+      // spawn：适合耗时任务（比如npm install），持续输出日志
+      // exec/execFile：适合开销小的任务，整个任务执行完毕后输出日志
+
+      // 简化参数
+      const args = Array.from(arguments)
+      const cmd = args[args.length - 1]
+      const o = Object.create(null)
+      Object.keys(cmd).forEach(key => {
+        if(cmd.hasOwnProperty(key) && !key.startsWith('_') && key !== 'parent') {
+          o[key] = cmd[key]
+        }
+      })
+      args[args.length - 1] = o
+
+      // 子进程中执行代码
+      // 将require转成动态字符串代码，再通过 node -e 来执行代码
+      const code = `require('${rootFile}').call(null, ${JSON.stringify(args)})`
+      const child = spawn('node', ['-e', code], {
+        cwd: process.cwd(),
+        stdio: 'inherit', // 将输出流交给父进程，可以看到执行动画和打印内容
+      })
+      child.on('error', e => {
+        log.error('命令执行失败：', e.message)
+        process.exit(e.code)
+      })
+      child.on('exit', e => {
+        log.verbose('命令执行成功：', e)
+        process.exit(e)
+      })
+    } catch (err) {
+      log.error(err.message)
+    }
   }
+}
+
+// 兼容windows和MacOS
+function spawn(command, args, options) {
+  const win32 = process.platform === 'win32'
+
+  const cmd = win32 ? 'cmd' : command
+  const cmdArgs = win32 ? ['/c'].concat(command, args) : args
+
+  return cp.spawn(cmd, cmdArgs, options || {})
 }
 
 module.exports = exec;

@@ -11,7 +11,6 @@ const commander = require("commander"); // 用于解析输入命令和参数
 const pathExists = require("path-exists").sync; // 用于检查路径是否存在
 // 自建库
 const log = require("@cjp-cli-dev/log"); // 用于给log信息添加各种自定义风格
-const init = require("@cjp-cli-dev/init"); // 用于初始化项目
 const exec = require("@cjp-cli-dev/exec"); // 用于执行动态初始化命令
 const { getNpmSemverVersion } = require("@cjp-cli-dev/get-npm-info"); // 用于获取npm包信息
 const pkg = require("../package.json");
@@ -102,8 +101,8 @@ function registerCommander() {
 async function prepare() {
   // 1. 检查包版本
   checkPkgVersion();
-  // 2. 检查node版本
-  checkNodeVersion();
+  // 2. 检查node版本（放到models/command中）
+  // checkNodeVersion();
   // 3. 检查root用户，如果是root用户则尝试切换为普通用户，解决因权限提示带来的各种问题
   checkRoot();
   // 4. 检查用户主目录
@@ -147,6 +146,7 @@ function createDefaultConfig() {
   const cliConfig = {
     home: homedir,
   }
+  // process.env.CLI_HOME读的是用户主目录下的.env文件
   if(process.env.CLI_HOME) {
     cliConfig['cliHome'] = path.join(homedir, process.env.CLI_HOME)
   }else {
@@ -168,19 +168,6 @@ function checkRoot() {
   // 如果是root用户，会自动降级为普通用户
   const rootCheck = require("root-check");
   rootCheck();
-}
-
-function checkNodeVersion() {
-  // 1. 获取当前node版本号
-  const currentVersion = process.version;
-  // 2. 比对最低版本号
-  const lowestVersion = constant.LOWEST_NODE_VERSION;
-
-  if (!semver.gte(currentVersion, lowestVersion)) {
-    throw new Error(
-      colors.red(`cjp-cli 需要安装 v${lowestVersion} 以上版本的 Node.js`)
-    );
-  }
 }
 
 function checkPkgVersion() {
