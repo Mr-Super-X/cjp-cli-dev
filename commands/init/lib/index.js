@@ -157,7 +157,7 @@ class InitCommand extends Command {
             type: "input",
             name: "projectVersion",
             default: "1.0.0",
-            message: "请输入项目版本号",
+            message: "请输入项目版本号：",
             validate: function (v) {
               const done = this.async();
 
@@ -176,6 +176,12 @@ class InitCommand extends Command {
               return semver.valid(v) || v;
             },
           },
+          {
+            type: 'list',
+            name: 'projectTemplate',
+            message: '请选择所需的项目模板：',
+            choices: this.createTemplateChoices()
+          }
         ]);
         projectInfo = {
           type,
@@ -195,6 +201,13 @@ class InitCommand extends Command {
 
     // 返回项目基本信息
     return projectInfo;
+  }
+
+  createTemplateChoices() {
+    return this.template.map(item => ({
+      value: item.npmName,
+      name: item.name,
+    }))
   }
 
   ifDirIsEmpty(localPath) {
