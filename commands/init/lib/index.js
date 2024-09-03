@@ -63,6 +63,7 @@ class InitCommand extends Command {
     this.template = template;
 
     const localPath = process.cwd();
+
     // 1. 当前目录是否为空
     if (!this.ifDirIsEmpty(localPath)) {
       let ifContinue = true;
@@ -217,8 +218,9 @@ class InitCommand extends Command {
     files = files.filter(
       (file) => !file.startsWith(".") && !["node_modules"].includes(file)
     );
+
     // 如果没有文件，返回true，表示目录为空
-    return !files && files.length === 0;
+    return files && files.length === 0;
   }
 }
 
