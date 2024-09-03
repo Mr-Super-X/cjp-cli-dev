@@ -9,6 +9,7 @@ const fs = require("fs");
 // 自建库
 const Command = require("@cjp-cli-dev/command");
 const log = require("@cjp-cli-dev/log");
+const getProjectTemplate = require("./getProjectTemplate");
 
 // 全局变量
 const TYPE_PROJECT = "project";
@@ -30,9 +31,11 @@ class InitCommand extends Command {
       // 准备阶段完成结果为true才继续执行后续
       if (projectInfo) {
         // debug模式输出调试信息
-        log.verbose('projectInfo', projectInfo)
+        log.verbose("projectInfo", projectInfo);
+        // 将项目信息保存到class中
+        this.projectInfo = projectInfo;
         // 2. 下载模板
-        this.downloadTemplate()
+        this.downloadTemplate();
         // 3. 安装模板
       }
     } catch (err) {
@@ -49,6 +52,16 @@ class InitCommand extends Command {
   }
 
   async prepare() {
+    // 请求接口，判断项目模板是否存在，没有则中断执行
+    const template = await getProjectTemplate();
+
+    if (!template || template.length === 0) {
+      throw new Error("项目模板不存在");
+    }
+
+    // 将模板保存到class中
+    this.template = template;
+
     const localPath = process.cwd();
     // 1. 当前目录是否为空
     if (!this.ifDirIsEmpty(localPath)) {
@@ -80,10 +93,11 @@ class InitCommand extends Command {
           default: false,
           message: "是否确认清空当前目录下的所有文件？",
         });
-        if (confirmClean) {
-          // 清空当前目录
-          fse.emptyDirSync(localPath);
-        }
+        // 用户选择不确认，中断执行
+        if (!confirmClean) return;
+
+        // 用户选择确认，清空当前目录并继续
+        fse.emptyDirSync(localPath);
       }
     }
     return this.getProjectInfo();
@@ -193,7 +207,6 @@ class InitCommand extends Command {
     // 如果没有文件，返回true，表示目录为空
     return !files && files.length === 0;
   }
-
 }
 
 function init(args) {
