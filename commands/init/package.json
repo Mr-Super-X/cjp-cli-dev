@@ -26,7 +26,9 @@
   },
   "dependencies": {
     "@cjp-cli-dev/command": "file:../../models/command",
+    "@cjp-cli-dev/package": "file:../../models/package",
     "@cjp-cli-dev/request": "file:../../utils/request",
+    "@cjp-cli-dev/utils": "file:../../utils/utils",
     "@cjp-cli-dev/log": "file:../../utils/log",
     "fs-extra": "^11.2.0",
     "inquirer": "^8.2.4",
