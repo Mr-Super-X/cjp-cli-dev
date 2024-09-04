@@ -25,6 +25,7 @@
     "test": "node ./__tests__/get-npm-info.test.js"
   },
   "dependencies": {
+    "@cjp-cli-dev/log": "file:../../utils/log",
     "axios": "^1.7.5",
     "semver": "^7.6.3",
     "url-join": "^4.0.1"

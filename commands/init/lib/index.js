@@ -4,6 +4,7 @@
 const inquirer = require("inquirer"); // 用于终端交互
 const fse = require("fs-extra"); // 用于清空文件夹
 const semver = require("semver"); // 用于判断版本号
+const kebabCase = require("kebab-case"); // 用于将驼峰命名转为kebab-case
 // 内置库
 const fs = require("fs");
 const os = require("os");
@@ -16,7 +17,7 @@ const { spinners, spawnAsync } = require("@cjp-cli-dev/utils");
 const getProjectTemplate = require("./getProjectTemplate");
 
 // 白名单命令，不在此白名单中的命令都需要确认是否执行，防止用户插入风险操作，如：rm -rf等
-const COMMAND_WHITELIST = require('./commandWhitelist')
+const COMMAND_WHITELIST = require("./commandWhitelist");
 
 // 全局变量
 const TYPE_PROJECT = "project";
@@ -122,7 +123,7 @@ class InitCommand extends Command {
     // 执行安装命令
     const installResult = await this.parsingCommandExec(
       installCommand,
-      'installCommand',
+      "installCommand",
       `检测到installCommand存在，执行：${installCommand}`
     );
 
@@ -136,19 +137,21 @@ class InitCommand extends Command {
     // 执行启动命令
     await this.parsingCommandExec(
       startCommand,
-      'startCommand',
+      "startCommand",
       `检测到startCommand存在，执行：${startCommand}`
     );
   }
 
   // 检查命令是否在白名单
   checkCommandInWhitelist(command) {
-    if(!COMMAND_WHITELIST.includes(command)) {
+    if (!COMMAND_WHITELIST.includes(command)) {
       // 如果命令不在白名单
-      throw new Error(`命令 ${command} 不在白名单中，可能存在风险，已阻止程序运行`)
+      throw new Error(
+        `命令 ${command} 不在白名单中，可能存在风险，已阻止程序运行`
+      );
     }
 
-    return command
+    return command;
   }
 
   /**
@@ -160,10 +163,10 @@ class InitCommand extends Command {
    */
   async parsingCommandExec(command, field, logInfo) {
     // 命令不存在直接return
-    if(!command) {
+    if (!command) {
       // debug模式下输出提示
-      log.verbose(`${field} 不存在，请查看数据库是否存在该配置`)
-      return
+      log.verbose(`${field} 不存在，请查看数据库是否存在该配置`);
+      return;
     }
     // 打印提示信息
     log.info(logInfo);
@@ -396,6 +399,17 @@ class InitCommand extends Command {
 
     // 分发执行策略
     await typeStrategies[type]();
+
+    // 处理用户输入的项目名称和版本，通过ejs动态渲染模板内容
+    const { projectName } = projectInfo;
+    if (projectName) {
+      // kebabCase方法返回在开头多一个-，需要去除
+      projectInfo.projectName = kebabCase(projectName).replace(/^-/, "");
+      log.verbose(
+        "项目名称kebab-case",
+        `输入：${projectName} 输出：${projectInfo.projectName}`
+      );
+    }
 
     // 返回项目基本信息
     return projectInfo;
