@@ -12,8 +12,9 @@ const path = require("path");
 const Command = require("@cjp-cli-dev/command");
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spinners } = require("@cjp-cli-dev/utils");
+const { spinners, spawnAsync } = require("@cjp-cli-dev/utils");
 const getProjectTemplate = require("./getProjectTemplate");
+const { cwd } = require("process");
 
 // 全局变量
 const TYPE_PROJECT = "project";
@@ -112,6 +113,39 @@ class InitCommand extends Command {
       // 结束spinner
       spinner.stop(true);
     }
+
+    // 模板安装完成后执行安装和启动模板
+    const { installCommand, startCommand } = this.templateInfo;
+    // 如果安装命令存在，则执行自动安装
+    if (installCommand) {
+      const result = await this.parsingCommandExec(installCommand, `检测到installCommand存在，执行${installCommand}`)
+
+      if (result === 0) {
+        log.success("依赖安装成功");
+      } else {
+        // 抛出错误，阻断后面执行
+        throw new Error("依赖安装失败");
+      }
+    }
+
+    if (startCommand) {
+      await this.parsingCommandExec(startCommand, `检测到startCommand存在，执行${startCommand}`)
+    }
+  }
+
+  async parsingCommandExec(command, logInfo) {
+    // 打印提示信息
+    log.info(logInfo);
+    // 解析命令并执行
+    const cmds = command.split(" ");
+    const cmd = cmds[0];
+    const args = cmds.slice(1); // 从索引1开始到数组结束的所有元素
+    const result = await spawnAsync(cmd, args, {
+      stdio: "inherit",
+      cwd: process.cwd(),
+    });
+
+    return result
   }
 
   // 安装自定义模板，例如安装自己创建的项目模板
