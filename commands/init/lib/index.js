@@ -93,7 +93,6 @@ class InitCommand extends Command {
     log.verbose("安装标准模板");
     const spinner = spinners("正在安装模板...");
     try {
-      console.log('H啊哈哈哈', this.npmPackage)
       // 拷贝模板代码到当前目录
       const templatePath = path.resolve(
         this.npmPackage.cacheFilePath,
@@ -101,13 +100,11 @@ class InitCommand extends Command {
       );
       // 当前目录路径
       const targetPath = process.cwd();
-      console.log(templatePath, targetPath)
       // 确保这两个目录都存在，如果不存在会自动创建
       fse.ensureDirSync(templatePath);
       fse.ensureDirSync(targetPath);
       // 拷贝模板代码到当前目录
       fse.copySync(templatePath, targetPath);
-      log.success('模板安装成功')
     } catch (err) {
       // 如果报错，抛出错误
       throw err;
@@ -144,7 +141,7 @@ class InitCommand extends Command {
       userHome,
       ".cjp-cli-dev",
       "template",
-      "node_modules",
+      "node_modules"
     );
     const { npmName: packageName, version: packageVersion } = templateInfo;
 
@@ -262,7 +259,7 @@ class InitCommand extends Command {
           {
             type: "input",
             name: "projectName",
-            default: "",
+            default: "vue-project",
             message: "请输入项目名称：",
             validate: function (v) {
               const done = this.async();
