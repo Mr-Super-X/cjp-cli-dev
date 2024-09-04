@@ -118,28 +118,27 @@ class InitCommand extends Command {
 
     // 模板安装完成后执行安装和启动模板
     const { installCommand, startCommand } = this.templateInfo;
-    // 如果安装命令存在，则执行自动安装
-    if (installCommand) {
-      const result = await this.parsingCommandExec(
-        installCommand,
-        `检测到installCommand存在，执行：${installCommand}`
-      );
 
-      if (result === 0) {
-        log.success("依赖安装成功");
-      } else {
-        // 抛出错误，阻断后面执行
-        throw new Error("依赖安装失败");
-      }
+    // 执行安装命令
+    const installResult = await this.parsingCommandExec(
+      installCommand,
+      'installCommand',
+      `检测到installCommand存在，执行：${installCommand}`
+    );
+
+    if (installResult === 0) {
+      log.success("依赖安装成功");
+    } else {
+      // 抛出错误，阻断后面执行
+      throw new Error("依赖安装失败");
     }
 
-    // 如果启动命令存在
-    if (startCommand) {
-      await this.parsingCommandExec(
-        startCommand,
-        `检测到startCommand存在，执行：${startCommand}`
-      );
-    }
+    // 执行启动命令
+    await this.parsingCommandExec(
+      startCommand,
+      'startCommand',
+      `检测到startCommand存在，执行：${startCommand}`
+    );
   }
 
   // 检查命令是否在白名单
@@ -152,8 +151,20 @@ class InitCommand extends Command {
     return command
   }
 
-  // 解析并执行命令
-  async parsingCommandExec(command, logInfo) {
+  /**
+   * 解析并执行命令
+   * @param {*} command 命令内容，如npm install、npm run dev
+   * @param {*} field 接口数据中配置命令的字段名，如installCommand、startCommand
+   * @param {*} logInfo 提示信息
+   * @returns
+   */
+  async parsingCommandExec(command, field, logInfo) {
+    // 命令不存在直接return
+    if(!command) {
+      // debug模式下输出提示
+      log.verbose(`${field} 不存在，请查看数据库是否存在该配置`)
+      return
+    }
     // 打印提示信息
     log.info(logInfo);
     // 解析命令并执行
