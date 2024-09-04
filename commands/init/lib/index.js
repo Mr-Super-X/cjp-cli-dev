@@ -14,7 +14,9 @@ const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
 const { spinners, spawnAsync } = require("@cjp-cli-dev/utils");
 const getProjectTemplate = require("./getProjectTemplate");
-const { cwd } = require("process");
+
+// 白名单命令，不在此白名单中的命令都需要确认是否执行，防止用户插入风险操作，如：rm -rf等
+const COMMAND_WHITELIST = require('./commandWhitelist')
 
 // 全局变量
 const TYPE_PROJECT = "project";
@@ -118,7 +120,10 @@ class InitCommand extends Command {
     const { installCommand, startCommand } = this.templateInfo;
     // 如果安装命令存在，则执行自动安装
     if (installCommand) {
-      const result = await this.parsingCommandExec(installCommand, `检测到installCommand存在，执行${installCommand}`)
+      const result = await this.parsingCommandExec(
+        installCommand,
+        `检测到installCommand存在，执行：${installCommand}`
+      );
 
       if (result === 0) {
         log.success("依赖安装成功");
@@ -128,24 +133,39 @@ class InitCommand extends Command {
       }
     }
 
+    // 如果启动命令存在
     if (startCommand) {
-      await this.parsingCommandExec(startCommand, `检测到startCommand存在，执行${startCommand}`)
+      await this.parsingCommandExec(
+        startCommand,
+        `检测到startCommand存在，执行：${startCommand}`
+      );
     }
   }
 
+  // 检查命令是否在白名单
+  checkCommandInWhitelist(command) {
+    if(!COMMAND_WHITELIST.includes(command)) {
+      // 如果命令不在白名单
+      throw new Error(`命令 ${command} 不在白名单中，可能存在风险，已阻止程序运行`)
+    }
+
+    return command
+  }
+
+  // 解析并执行命令
   async parsingCommandExec(command, logInfo) {
     // 打印提示信息
     log.info(logInfo);
     // 解析命令并执行
     const cmds = command.split(" ");
-    const cmd = cmds[0];
+    const cmd = this.checkCommandInWhitelist(cmds[0]);
     const args = cmds.slice(1); // 从索引1开始到数组结束的所有元素
     const result = await spawnAsync(cmd, args, {
       stdio: "inherit",
       cwd: process.cwd(),
     });
 
-    return result
+    return result;
   }
 
   // 安装自定义模板，例如安装自己创建的项目模板
