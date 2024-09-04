@@ -32,7 +32,7 @@ class Package {
     this.packageName = options.packageName;
     // package版本
     this.packageVersion = options.packageVersion;
-    // package缓存目录前缀 node16.x、npm8.x执行npm i会将缓存放在node_modules/.store中，名称为：@组织+包名@版本号
+    // npminstall会将缓存放在node_modules/.store/@组织+包名@版本号/node_modules中
     this.cacheFilePathPrefix = this.packageName.replace("/", "+");
   }
 
@@ -50,21 +50,25 @@ class Package {
 
   // 在class中使用get关键字可以动态生成属性，之后允许通过this.xx获得（自动调用）
   get cacheFilePath() {
-    // node16.x、npm8.x执行npm i会将缓存放在node_modules/.store中，名称为：@组织+包名@版本号
+    // npminstall会将缓存放在node_modules/.store/@组织+包名@版本号/node_modules中
     return path.resolve(
       this.storeDir,
-      ".store",
-      `${this.cacheFilePathPrefix}@${this.packageVersion}`
+      '.store',
+      `${this.cacheFilePathPrefix}@${this.packageVersion}`,
+      'node_modules',
+      this.packageName,
     );
   }
 
   // 获取缓存文件中版本路径
   getSpecificCacheFilePath(version) {
-    // node16.x、npm8.x执行npm i会将缓存放在node_modules/.store中，名称为：@组织+包名@版本号
+    // npminstall会将缓存放在node_modules/.store/@组织+包名@版本号/node_modules中
     return path.resolve(
       this.storeDir,
-      ".store",
-      `${this.cacheFilePathPrefix}@${version}`
+      '.store',
+      `${this.cacheFilePathPrefix}@${version}`,
+      'node_modules',
+      this.packageName,
     );
   }
 
@@ -82,10 +86,9 @@ class Package {
 
   // 安装package，依赖npminstall：https://www.npmjs.com/package/npminstall
   async install() {
-    log.verbose("install", "进入install流程");
+    log.verbose("install参数：", "进入install流程");
     await this.prepare();
-    // npminstall方法返回值为promise
-    await npminstall({
+    const installOptions = {
       root: this.targetPath,
       storeDir: this.storeDir,
       registry: getDefaultRegistry(),
@@ -95,7 +98,10 @@ class Package {
           version: this.packageVersion,
         },
       ],
-    });
+    }
+    log.verbose('安装参数：', installOptions)
+    // npminstall方法返回值为promise
+    await npminstall(installOptions);
   }
 
   // 更新package
@@ -108,7 +114,7 @@ class Package {
     const latestFilePath = this.getSpecificCacheFilePath(latestVersion);
     // 3. 如果不存在直接安装最新版本
     if (!pathExists(latestFilePath)) {
-      await npminstall({
+      const installOptions = {
         root: this.targetPath,
         storeDir: this.storeDir,
         registry: getDefaultRegistry(),
@@ -118,7 +124,9 @@ class Package {
             version: latestVersion,
           },
         ],
-      });
+      }
+      log.verbose('install参数：', installOptions)
+      await npminstall(installOptions);
       // 4. 装完包后更新packageVersion
       this.packageVersion = latestVersion;
     } else {
@@ -147,8 +155,10 @@ class Package {
     }
     // 判断是否使用缓存
     if (this.storeDir) {
+      log.verbose('缓存路径存在，storeDir：', this.storeDir)
       return _getRootFile(this.cacheFilePath)
     } else {
+      log.verbose('缓存路径不存在')
       return _getRootFile(this.targetPath)
     }
   }

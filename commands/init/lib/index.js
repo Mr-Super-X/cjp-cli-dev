@@ -19,6 +19,9 @@ const getProjectTemplate = require("./getProjectTemplate");
 const TYPE_PROJECT = "project";
 const TYPE_COMPONENT = "component";
 
+const TEMPLATE_TYPE_NORMAL = "normal";
+const TEMPLATE_TYPE_CUSTOM = "custom";
+
 const userHome = os.homedir(); // 用户主目录
 
 class InitCommand extends Command {
@@ -44,9 +47,79 @@ class InitCommand extends Command {
       // 2. 下载模板
       await this.downloadTemplate();
       // 3. 安装模板
+      await this.installTemplate();
     } catch (err) {
       log.error(err.message);
     }
+  }
+
+  async installTemplate() {
+    // debug模式下输出模板信息
+    log.verbose("templateInfo", this.templateInfo);
+    log.verbose("npmPackage", this.npmPackage);
+
+    if (!this.templateInfo) {
+      throw new Error("模板信息不存在！");
+    }
+
+    // type不存在则默认给normal
+    if (!this.templateInfo.type) {
+      this.templateInfo.type = TEMPLATE_TYPE_NORMAL;
+    }
+
+    // 分发type策略
+    const typeStrategies = {
+      // 标准安装
+      [TEMPLATE_TYPE_NORMAL]: async () => {
+        await this.installNormalTemplate();
+      },
+      // 自定义安装
+      [TEMPLATE_TYPE_CUSTOM]: async () => {
+        await this.installCustomTemplate();
+      },
+    };
+
+    // 若type不存在，则抛出错误信息并终止
+    if (!typeStrategies[this.templateInfo.type]) {
+      throw new Error("无法识别模板类型！");
+    }
+
+    // 分发执行策略
+    await typeStrategies[this.templateInfo.type]();
+  }
+
+  // 安装标准模板，例如安装vue-cli创建项目模板
+  async installNormalTemplate() {
+    log.verbose("安装标准模板");
+    const spinner = spinners("正在安装模板...");
+    try {
+      console.log('H啊哈哈哈', this.npmPackage)
+      // 拷贝模板代码到当前目录
+      const templatePath = path.resolve(
+        this.npmPackage.cacheFilePath,
+        "template"
+      );
+      // 当前目录路径
+      const targetPath = process.cwd();
+      console.log(templatePath, targetPath)
+      // 确保这两个目录都存在，如果不存在会自动创建
+      fse.ensureDirSync(templatePath);
+      fse.ensureDirSync(targetPath);
+      // 拷贝模板代码到当前目录
+      fse.copySync(templatePath, targetPath);
+      log.success('模板安装成功')
+    } catch (err) {
+      // 如果报错，抛出错误
+      throw err;
+    } finally {
+      // 结束spinner
+      spinner.stop(true);
+    }
+  }
+
+  // 安装自定义模板，例如安装自己创建的项目模板
+  async installCustomTemplate() {
+    log.verbose("安装自定义模板");
   }
 
   async downloadTemplate() {
@@ -62,13 +135,16 @@ class InitCommand extends Command {
       (item) => item.npmName === projectTemplate
     );
 
+    // 将模板信息存到this中
+    this.templateInfo = templateInfo;
+
     // 生成包安装路径信息
     const targetPath = path.resolve(userHome, ".cjp-cli-dev", "template");
     const storeDir = path.resolve(
       userHome,
       ".cjp-cli-dev",
       "template",
-      "node_modules"
+      "node_modules",
     );
     const { npmName: packageName, version: packageVersion } = templateInfo;
 
@@ -101,8 +177,13 @@ class InitCommand extends Command {
     } finally {
       // 只要完成就停止加载动画
       spinner.stop(true);
-      // 有成功信息就输出
-      successMsg && log.success(successMsg);
+      // 完成后下载文件存在且有成功信息
+      if ((await npmPackage.exists()) && successMsg) {
+        // 输出成功信息
+        log.success(successMsg);
+        // 将包信息存入this
+        this.npmPackage = npmPackage;
+      }
     }
   }
 
