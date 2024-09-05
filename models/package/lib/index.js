@@ -86,7 +86,6 @@ class Package {
 
   // 安装package，依赖npminstall：https://www.npmjs.com/package/npminstall
   async install() {
-    log.verbose("进入install流程");
     await this.prepare();
     const installOptions = {
       root: this.targetPath,
@@ -99,18 +98,16 @@ class Package {
         },
       ],
     };
-    log.verbose("安装参数：", installOptions);
+    log.verbose("install安装参数：", installOptions);
     // npminstall方法返回值为promise
     await npminstall(installOptions);
   }
 
   // 更新package
   async update() {
-    log.verbose("进入update流程");
     await this.prepare();
     // 1. 获取npm包最新版本号
     const latestVersion = await getNpmLatestVersion(this.packageName);
-    log.verbose(`${this.packageName}当前最新版本：${latestVersion}`);
     // 2. 查询最新版本号对应的缓存路径是否存在
     const latestFilePath = this.getSpecificCacheFilePath(latestVersion);
     // 3. 如果缓存路径中不存在最新版本直接安装最新版本
@@ -126,13 +123,15 @@ class Package {
           },
         ],
       };
-      log.verbose("安装参数：", installOptions);
+      log.verbose("update安装参数：", installOptions);
       await npminstall(installOptions);
-      // 4. 装完包后更新packageVersion
-      this.packageVersion = latestVersion;
+      log.info(`【${this.packageName}】已从 ${this.packageVersion} 升级到最新版本：${latestVersion}，缓存路径为：\n${latestFilePath}`);
     } else {
-      log.verbose(`当前缓存中已存在最新版本 ${latestVersion}，不执行安装程序，缓存路径为：\n${latestFilePath}`);
+      log.verbose(`当前缓存中已存在最新版本 ${latestVersion}，无需再次安装，缓存路径为：\n${latestFilePath}`);
     }
+
+    // 4. 更新packageVersion，每次都获取最新版本
+    this.packageVersion = latestVersion;
   }
 
   // 获取入口文件路径

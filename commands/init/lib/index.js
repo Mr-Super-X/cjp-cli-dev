@@ -5,6 +5,8 @@ const inquirer = require("inquirer"); // 用于终端交互
 const fse = require("fs-extra"); // 用于清空文件夹
 const semver = require("semver"); // 用于判断版本号
 const kebabCase = require("kebab-case"); // 用于将驼峰命名转为kebab-case
+const ejs = require("ejs"); // 用于渲染ejs模板
+const { glob } = require("glob"); // 用于shell模式匹配文件
 // 内置库
 const fs = require("fs");
 const os = require("os");
@@ -54,6 +56,11 @@ class InitCommand extends Command {
       await this.installTemplate();
     } catch (err) {
       log.error(err.message);
+
+      // debug模式下打印执行栈，便于调试
+      if (process.env.LOG_LEVEL === "verbose") {
+        console.log(err);
+      }
     }
   }
 
@@ -117,6 +124,10 @@ class InitCommand extends Command {
       spinner.stop(true);
     }
 
+    // 模板安装完成后进行ejs渲染，替换掉ejs变量
+    const ignore = ["node_modules/**", "public/**"];
+    await this.ejsRender({ ignore });
+
     // 模板安装完成后执行安装和启动模板
     const { installCommand, startCommand } = this.templateInfo;
 
@@ -140,6 +151,44 @@ class InitCommand extends Command {
       "startCommand",
       `检测到startCommand存在，执行：${startCommand}`
     );
+  }
+
+  // 使用ejs渲染模板
+  async ejsRender(options = {}) {
+    const cwd = process.cwd();
+    const projectInfo = this.projectInfo;
+
+    try {
+      // 获取匹配的文件
+      const files = await glob("**", {
+        cwd,
+        ignore: options.ignore || "node_modules/**", // 忽略内容
+        nodir: true, // 不要文件夹
+        dot: true, // 包含隐藏文件
+      });
+
+      if (!files || files.length === 0) {
+        throw new Error("glob没有匹配到文件");
+      }
+
+      // 遍历文件并渲染 EJS 模板
+      await Promise.all(
+        files.map(async (file) => {
+          const filePath = path.join(cwd, file);
+          try {
+            const result = await ejs.renderFile(filePath, projectInfo, {});
+            // 写入渲染后的结果
+            fse.writeFileSync(filePath, result);
+          } catch (err) {
+            throw new Error(`EJS 渲染文件 ${filePath} 出错: ${err.message}`);
+          }
+        })
+      );
+    } catch (err) {
+      // 捕获并处理所有错误
+      log.error("ejsRender 执行出错：", err.message);
+      throw err; // 抛出错误，以便外部调用处理
+    }
   }
 
   // 检查命令是否在白名单

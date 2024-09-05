@@ -30,7 +30,9 @@
     "@cjp-cli-dev/package": "file:../../models/package",
     "@cjp-cli-dev/request": "file:../../utils/request",
     "@cjp-cli-dev/utils": "file:../../utils/utils",
+    "ejs": "^3.1.10",
     "fs-extra": "^11.2.0",
+    "glob": "^10.4.5",
     "inquirer": "^8.2.4",
     "kebab-case": "^1.0.2",
     "semver": "^7.6.3"
