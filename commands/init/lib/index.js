@@ -356,6 +356,16 @@ class InitCommand extends Command {
 
   async getProjectInfo() {
     let projectInfo = {};
+    let isProjectNameValid = false;
+
+    // 检查用户输入的项目名是否合法
+    if (isValidName(this.projectName)) {
+      isProjectNameValid = true;
+      projectInfo.projectName = this.projectName; // 更新合法项目名称
+    } else {
+      log.warn("项目名称不合法，请继续流程，稍后会提示重新输入");
+    }
+
     // 3. 选择创建项目或组件
     const { type } = await inquirer.prompt({
       type: "list",
@@ -369,40 +379,34 @@ class InitCommand extends Command {
     });
     // debug模式下输出
     log.verbose("创建项目的类型：", type);
+
     // 4. 获取项目基本信息
+    const projectNamePrompt = {
+      type: "input",
+      name: "projectName",
+      default: "vue-project",
+      message: "请输入项目名称：",
+      validate: function (v) {
+        const done = this.async();
+
+        setTimeout(() => {
+          if (!isValidName(v)) {
+            done(
+              `请输入合法的项目名称，要求如下：\n 1. 第一个字符必须是字母 \n 2. 输入的内容不少于2个字符，不超过64个字符 \n 3. 可以用横杠和下划线作为连接符`
+            );
+            return;
+          }
+
+          done(null, true);
+        }, 0);
+      },
+      filter: function (v) {
+        return v;
+      },
+    };
     const typeStrategies = {
       [TYPE_PROJECT]: async () => {
-        const project = await inquirer.prompt([
-          {
-            type: "input",
-            name: "projectName",
-            default: "vue-project",
-            message: "请输入项目名称：",
-            validate: function (v) {
-              const done = this.async();
-
-              // 正则表达式说明：
-              // [a-zA-Z] - 第一个字符必须是字母
-              // [a-zA-Z0-9_-]{0,62} - 后面可以跟0到62个字母、数字、下划线或短横线
-              // $        - 字符串结束
-              // 注意：因为我们已经要求第一个字符不能是数字或短横线，所以这里{0,62}确保总长度不超过64个字符
-              const regex = /^[a-zA-Z][a-zA-Z0-9_-]{0,62}$/;
-
-              setTimeout(() => {
-                if (!(regex.test(v) && v.length >= 2 && v.length <= 64)) {
-                  done(
-                    `请输入合法的项目名称，要求如下：\n 1. 第一个字符必须是字母 \n 2. 输入的内容不少于2个字符，不超过64个字符 \n 3. 可以用横杠和下划线作为连接符`
-                  );
-                  return;
-                }
-
-                done(null, true);
-              }, 0);
-            },
-            filter: function (v) {
-              return v;
-            },
-          },
+        const projectPrompts = [
           {
             type: "input",
             name: "projectVersion",
@@ -432,8 +436,18 @@ class InitCommand extends Command {
             message: "请选择所需的项目模板：",
             choices: this.createTemplateChoices(),
           },
-        ]);
+        ];
+        // 如果用户输入的项目名称不合法，增加项目名称输入环节prompt
+        if (!isProjectNameValid) {
+          projectPrompts.unshift(projectNamePrompt);
+        }
+
+        // 获取用户输入结果
+        const project = await inquirer.prompt(projectPrompts);
+
+        // 更新项目信息
         projectInfo = {
+          ...projectInfo,
           type,
           ...project,
         };
@@ -482,6 +496,17 @@ class InitCommand extends Command {
     // 如果没有文件，返回true，表示目录为空
     return files && files.length === 0;
   }
+}
+
+function isValidName(v) {
+  // 正则表达式说明：
+  // [a-zA-Z] - 第一个字符必须是字母
+  // [a-zA-Z0-9_-]{0,62} - 后面可以跟0到62个字母、数字、下划线或短横线
+  // $        - 字符串结束
+  // 注意：因为我们已经要求第一个字符不能是数字或短横线，所以这里{0,62}确保总长度不超过64个字符
+  const regex = /^[a-zA-Z][a-zA-Z0-9_-]{0,62}$/;
+
+  return regex.test(v) && v.length >= 2 && v.length <= 64;
 }
 
 function init(args) {
