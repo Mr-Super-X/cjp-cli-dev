@@ -154,6 +154,106 @@ class InitCommand extends Command {
     );
   }
 
+  // 安装自定义模板，例如安装自己创建的项目模板
+  async installCustomTemplate() {
+    // 查询自定义模板入口文件
+    if(await this.npmPackage.exists()) {
+      const rootFile = this.npmPackage.getRootFilePath()
+      if(fs.existsSync(rootFile)) {
+        log.notice('开始执行自定义模板安装')
+        const templatePath = path.resolve(this.npmPackage.cacheFilePath, 'template')
+
+        const options = {
+          templateInfo: this.templateInfo, // 模板信息
+          projectInfo: this.projectInfo, // 项目信息
+          sourcePath: templatePath, // 模板来源路径
+          targetPath: process.cwd(), // 目标路径
+        }
+
+        // 动态引入代码
+        const code = `require('${rootFile}')(${JSON.stringify(options)})`
+        // 调试模式输出
+        log.verbose('code', code)
+        // 子进程中执行代码，并将stdout、stderr打印到控制台中
+        const result = await spawnAsync('node', ['-e', code], {
+          stdio: "inherit",
+          cwd: process.cwd(),
+        })
+
+        if(result === 0) {
+          log.success('自定义模板安装成功')
+        }
+      }else {
+        throw new Error('自定义模板入口文件不存在！')
+      }
+    }
+  }
+
+  async downloadTemplate() {
+    // 1. 通过项目模板API获取项目模板信息
+    // 1.1. 通过eggjs搭建后端
+    // 1.2. 通过npm存储项目模板
+    // 1.3. 将项目模板存储到MongoDB
+    // 1.4. 通过egg.js获取MongoDB中的模板数据并通过API返回模板
+
+    // 读取模板
+    const { projectTemplate } = this.projectInfo;
+    const templateInfo = this.template.find(
+      (item) => item.npmName === projectTemplate
+    );
+
+    // 将模板信息存到this中
+    this.templateInfo = templateInfo;
+
+    // 生成包安装路径信息
+    const targetPath = path.resolve(userHome, ".cjp-cli-dev", "template");
+    const storeDir = path.resolve(
+      userHome,
+      ".cjp-cli-dev",
+      "template",
+      "node_modules"
+    );
+    const { npmName: packageName, version: packageVersion } = templateInfo;
+
+    // 创建npm包实例
+    const npmPackage = new Package({
+      targetPath,
+      storeDir,
+      packageName,
+      packageVersion,
+    });
+
+    let spinner; // 加载动画
+    let successMsg; // 成功信息
+
+    // 捕获下载或更新的报错，将错误抛出，防止程序异常
+    try {
+      // 如果npm包不存在，则执行npm install，否则更新
+      if (!(await npmPackage.exists())) {
+        spinner = spinners("正在下载模板...");
+        await npmPackage.install();
+        successMsg = "下载模板成功";
+      } else {
+        spinner = spinners("正在更新模板...");
+        await npmPackage.update();
+        successMsg = "更新模板成功";
+      }
+    } catch (err) {
+      // 如果执行报错，抛出错误
+      throw err;
+    } finally {
+      // 只要完成就停止加载动画
+      spinner.stop(true);
+      // 完成后下载文件存在且有成功信息
+      if ((await npmPackage.exists()) && successMsg) {
+        // 输出成功信息
+        log.success(successMsg);
+        // 将包信息存入this
+        this.npmPackage = npmPackage;
+      }
+    }
+  }
+
   // 使用ejs渲染模板
   async ejsRender(options = {}) {
     const cwd = process.cwd();
@@ -230,76 +330,6 @@ class InitCommand extends Command {
     });
 
     return result;
-  }
-
-  // 安装自定义模板，例如安装自己创建的项目模板
-  async installCustomTemplate() {
-    log.verbose("安装自定义模板");
-  }
-
-  async downloadTemplate() {
-    // 1. 通过项目模板API获取项目模板信息
-    // 1.1. 通过eggjs搭建后端
-    // 1.2. 通过npm存储项目模板
-    // 1.3. 将项目模板存储到MongoDB
-    // 1.4. 通过egg.js获取MongoDB中的模板数据并通过API返回模板
-
-    // 读取模板
-    const { projectTemplate } = this.projectInfo;
-    const templateInfo = this.template.find(
-      (item) => item.npmName === projectTemplate
-    );
-
-    // 将模板信息存到this中
-    this.templateInfo = templateInfo;
-
-    // 生成包安装路径信息
-    const targetPath = path.resolve(userHome, ".cjp-cli-dev", "template");
-    const storeDir = path.resolve(
-      userHome,
-      ".cjp-cli-dev",
-      "template",
-      "node_modules"
-    );
-    const { npmName: packageName, version: packageVersion } = templateInfo;
-
-    // 创建npm包实例
-    const npmPackage = new Package({
-      targetPath,
-      storeDir,
-      packageName,
-      packageVersion,
-    });
-
-    let spinner; // 加载动画
-    let successMsg; // 成功信息
-
-    // 捕获下载或更新的报错，将错误抛出，防止程序异常
-    try {
-      // 如果npm包不存在，则执行npm install，否则更新
-      if (!(await npmPackage.exists())) {
-        spinner = spinners("正在下载模板...");
-        await npmPackage.install();
-        successMsg = "下载模板成功";
-      } else {
-        spinner = spinners("正在更新模板...");
-        await npmPackage.update();
-        successMsg = "更新模板成功";
-      }
-    } catch (err) {
-      // 如果执行报错，抛出错误
-      throw err;
-    } finally {
-      // 只要完成就停止加载动画
-      spinner.stop(true);
-      // 完成后下载文件存在且有成功信息
-      if ((await npmPackage.exists()) && successMsg) {
-        // 输出成功信息
-        log.success(successMsg);
-        // 将包信息存入this
-        this.npmPackage = npmPackage;
-      }
-    }
   }
 
   async prepare() {
