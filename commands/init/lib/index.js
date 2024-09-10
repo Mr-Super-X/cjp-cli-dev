@@ -101,8 +101,7 @@ class InitCommand extends Command {
 
   // 安装标准模板，例如安装vue-cli创建项目模板
   async installNormalTemplate() {
-    log.verbose("安装标准模板");
-    const spinner = spinners("正在安装模板...");
+    const spinner = spinners("正在安装标准模板...");
     try {
       // 拷贝模板代码到当前目录
       const templatePath = path.resolve(
@@ -124,8 +123,10 @@ class InitCommand extends Command {
       spinner.stop(true);
     }
 
+    // ejs忽略文件夹，默认node_modules，可在数据库中配置ignore属性（数组）
+    const templateIgnore = this.templateInfo.ignore || [];
+    const ignore = ["**/node_modules/**", ...templateIgnore];
     // 模板安装完成后进行ejs渲染，替换掉ejs变量
-    const ignore = ["node_modules/**", "public/**"];
     await this.ejsRender({ ignore });
 
     // 模板安装完成后执行安装和启动模板
@@ -379,13 +380,17 @@ class InitCommand extends Command {
     });
     // debug模式下输出
     log.verbose("创建项目的类型：", type);
+    // 基于用户选择的类型对template进行拆分
+    this.template = this.template.filter((item) => item.tag.includes(type));
+    log.verbose(`筛选${type}模板数据：`, this.template);
 
     // 4. 获取项目基本信息
+    const promptTitle = type === TYPE_PROJECT ? '项目' : '组件'
     const projectNamePrompt = {
       type: "input",
       name: "projectName",
       default: "vue-project",
-      message: "请输入项目名称：",
+      message: `请输入${promptTitle}名称：`,
       validate: function (v) {
         const done = this.async();
 
@@ -404,44 +409,47 @@ class InitCommand extends Command {
         return v;
       },
     };
+
+    // 定义终端询问用户交互
+    const projectPrompts = [
+      {
+        type: "input",
+        name: "projectVersion",
+        default: "1.0.0",
+        message: `请输入${promptTitle}版本号：`,
+        validate: function (v) {
+          const done = this.async();
+
+          setTimeout(() => {
+            if (!!!semver.valid(v)) {
+              done(
+                `请输入合法的语义化版本号，如1.0.0、v1.0.0，可查阅：https://semver.org/lang/zh-CN/`
+              );
+              return;
+            }
+
+            done(null, true);
+          }, 0);
+        },
+        filter: function (v) {
+          return semver.valid(v) || v;
+        },
+      },
+      {
+        type: "list",
+        name: "projectTemplate",
+        message: `请选择所需的${promptTitle}模板：`,
+        choices: this.createTemplateChoices(),
+      },
+    ];
+    // 如果用户输入的项目名称不合法，增加项目名称输入环节prompt
+    if (!isProjectNameValid) {
+      projectPrompts.unshift(projectNamePrompt);
+    }
+
+    // 分发策略
     const typeStrategies = {
       [TYPE_PROJECT]: async () => {
-        const projectPrompts = [
-          {
-            type: "input",
-            name: "projectVersion",
-            default: "1.0.0",
-            message: "请输入项目版本号：",
-            validate: function (v) {
-              const done = this.async();
-
-              setTimeout(() => {
-                if (!!!semver.valid(v)) {
-                  done(
-                    `请输入合法的语义化版本号，如1.0.0、v1.0.0，可查阅：https://semver.org/lang/zh-CN/`
-                  );
-                  return;
-                }
-
-                done(null, true);
-              }, 0);
-            },
-            filter: function (v) {
-              return semver.valid(v) || v;
-            },
-          },
-          {
-            type: "list",
-            name: "projectTemplate",
-            message: "请选择所需的项目模板：",
-            choices: this.createTemplateChoices(),
-          },
-        ];
-        // 如果用户输入的项目名称不合法，增加项目名称输入环节prompt
-        if (!isProjectNameValid) {
-          projectPrompts.unshift(projectNamePrompt);
-        }
-
         // 获取用户输入结果
         const project = await inquirer.prompt(projectPrompts);
 
@@ -452,7 +460,39 @@ class InitCommand extends Command {
           ...project,
         };
       },
-      [TYPE_COMPONENT]: async () => {},
+      [TYPE_COMPONENT]: async () => {
+        // 组件需要额外增加描述信息填写
+        const descriptionPrompt = {
+          type: "input",
+          name: "componentDescription",
+          default: "",
+          message: "请输入组件描述：",
+          validate: function (v) {
+            const done = this.async();
+
+            setTimeout(() => {
+              if (!v) {
+                done(`请输入组件描述信息`);
+                return;
+              }
+
+              done(null, true);
+            }, 0);
+          },
+        };
+
+        projectPrompts.push(descriptionPrompt);
+
+        // 获取用户输入结果
+        const component = await inquirer.prompt(projectPrompts);
+
+        // 更新项目信息
+        projectInfo = {
+          ...projectInfo,
+          type,
+          ...component,
+        };
+      },
     };
 
     if (!typeStrategies[type]) {
@@ -463,8 +503,8 @@ class InitCommand extends Command {
     // 分发执行策略
     await typeStrategies[type]();
 
-    // 处理用户输入的项目名称和版本，通过ejs动态渲染模板内容
-    const { projectName } = projectInfo;
+    // 处理用户输入的项目名称，通过ejs动态渲染模板内容
+    const { projectName, componentDescription } = projectInfo;
     if (projectName) {
       // kebabCase方法返回在开头多一个-，需要去除
       projectInfo.projectName = kebabCase(projectName).replace(/^-/, "");
