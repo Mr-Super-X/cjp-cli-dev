@@ -534,7 +534,7 @@ class InitCommand extends Command {
     await typeStrategies[type]();
 
     // 处理用户输入的项目名称，通过ejs动态渲染模板内容
-    const { projectName, componentDescription } = projectInfo;
+    const { projectName } = projectInfo;
     if (projectName) {
       // kebabCase方法返回在开头多一个-，需要去除
       projectInfo.projectName = kebabCase(projectName).replace(/^-/, "");
