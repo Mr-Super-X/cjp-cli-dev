@@ -1,6 +1,6 @@
 {
   "name": "@cjp-cli-dev/exec",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "cjp-cli-dev exec",
   "author": "v_jpch <v_jpch.digitalgd.com>",
   "homepage": "",
@@ -25,8 +25,8 @@
     "test": "node ./__tests__/@cjp-cli-dev/exec.test.js"
   },
   "dependencies": {
+    "@cjp-cli-dev/log": "file:../../utils/log",
     "@cjp-cli-dev/package": "file:../../models/package",
-    "@cjp-cli-dev/utils": "file:../../utils/utils",
-    "@cjp-cli-dev/log": "file:../../utils/log"
+    "@cjp-cli-dev/utils": "file:../../utils/utils"
   }
 }
