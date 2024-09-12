@@ -56,7 +56,7 @@ function registerCommander() {
   // 发布项目
   program
     .command("publish")
-    .option("-rgs, --refreshGitServer", "强制更新远端Git仓库类型")
+    .option("-rgs, --refreshGitServer", "强制更换Git托管平台")
     .action(exec);
 
   // 高级功能：监听debug事件，开启debug模式

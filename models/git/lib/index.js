@@ -11,6 +11,8 @@ const fs = require("fs");
 // 自建库
 const log = require("@cjp-cli-dev/log");
 const { readFile, writeFile } = require("@cjp-cli-dev/utils");
+const Github = require("./Github");
+const Gitee = require("./Gitee");
 
 const DEFAULT_CLI_HOME = ".cjp-cli-dev";
 const GIT_ROOT_DIR = ".git";
@@ -83,26 +85,30 @@ class Git {
     }
 
     // 生成gitServer实例
-    this.gitServer = this.createGitServer(gitServer)
-    // 获取用户远端仓库类型
-    // this.gitServer = await this.git.remote('get', 'origin').then(origin => {
-    //   const match = origin.match(/(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-.\/]*)?(\?[\w-.\/]*)?#?/);
-    //   if(match && match[2]) {
-    //     return match[2];
-    //   }
-    //   return null;
-    // }).catch(() => {
-    //   return null;
-    // });
-    // log.verbose('gitServer', this.gitServer)
+    this.gitServer = this.createGitServer(gitServer);
 
-    // if(!this.gitServer) {
-    //   throw new Error('获取远端仓库类型失败！');
-    // }
+    // 如果gitServer为空，就抛出错误
+    if(!this.gitServer) {
+      throw new Error("GitServer初始化失败！");
+    }
   }
 
   createGitServer(gitServer) {
+    // 创建策略模式，支持扩展更多选项
+    const gitServerStrategy = {
+      [GITHUB]: Github,
+      [GETEE]: Gitee,
+    }
 
+    const GitServer = gitServerStrategy[gitServer]
+
+    if(!GitServer) {
+      log.error("gitServer不存在！")
+      return null
+    };
+
+    // 返回实例
+    return new GitServer()
   }
 
   createPath(file) {
