@@ -27,9 +27,9 @@ class Gitee extends GitServer {
     });
   }
 
-  // 获取 SSH key URL
-  getSSHKeysHelpUrl() {
-    return "https://gitee.com/profile/sshkeys";
+  // 返回生成Token的url
+  getTokenUrl() {
+    return "https://gitee.com/personal_access_tokens"
   }
 
   // 返回生成token帮助文档链接

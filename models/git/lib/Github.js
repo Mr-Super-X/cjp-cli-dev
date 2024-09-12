@@ -1,14 +1,34 @@
 const GitServer = require("./GitServer");
+const GithubRequest = require("./GithubRequest");
 
 class Github extends GitServer {
   constructor() {
     // 调用父类构造函数 super
     super("github");
+    this.request = null; // 私有属性，Git 服务器的 HTTP 请求类
   }
 
-  // 获取 SSH key URL
-  getSSHKeysHelpUrl() {
-    return "https://github.com/settings/keys";
+  setToken(token) {
+    super.setToken(token);
+    this.request = new GithubRequest(token);
+  }
+
+  // https://docs.github.com/zh/rest/users/users
+  getUser() {
+    return this.request.get("/user");
+  }
+
+  // https://docs.github.com/zh/rest/orgs/orgs?apiVersion=2022-11-28#list-organizations-for-a-user
+  getOrg(username) {
+    return this.request.get(`/users/${username}/orgs`, {
+      page: 1,
+      per_page: 100, // 最大值100，不方便翻页，尽可能多的加载数据
+    });
+  }
+
+  // 返回生成Token的url
+  getTokenUrl() {
+    return "https://github.com/settings/tokens";
   }
 
   // 返回生成token帮助文档链接

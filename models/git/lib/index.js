@@ -114,8 +114,8 @@ class Git {
     if (!token || this.refreshGitToken) {
       log.warn(
         `${this.gitServer.type} token未生成，请先生成token。${terminalLink(
-          "帮助文档链接：\n",
-          this.gitServer.getTokenHelpUrl()
+          "链接：\n",
+          this.gitServer.getTokenUrl()
         )}`
       );
       // 让用户输入token
@@ -146,10 +146,14 @@ class Git {
     if(!this.user) {
       throw new Error('用户信息获取失败！')
     }
+    log.verbose('用户信息：', this.user);
+
     this.orgs = await this.gitServer.getOrg(this.user.login);
     if(!this.orgs) {
       throw new Error('组织信息获取失败！')
     }
+    log.verbose('用户所在组织信息：', this.orgs);
+
     log.success(`获取 ${this.gitServer.type} 用户和组织信息成功`);
   }
 

@@ -39,8 +39,8 @@ class GitServer {
     error("getOrg");
   }
 
-  // 获取 SSH key URL
-  getSSHKeysHelpUrl() {
+  // 返回生成Token的url
+  getTokenUrl() {
     error('getSSHKeysHelpUrl')
   }
 
