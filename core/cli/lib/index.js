@@ -47,9 +47,15 @@ function registerCommander() {
     .option("-d, --debug", "是否开启调试模式", false)
     .option("-tp, --targetPath <targetPath>", '是否指定本地调试文件路径', '')
 
-    program
+  // 初始化项目
+  program
     .command("init [projectName]")
     .option("-f, --force", "是否强制初始化项目")
+    .action(exec);
+
+  // 发布项目
+  program
+    .command("publish")
     .action(exec);
 
   // 高级功能：监听debug事件，开启debug模式

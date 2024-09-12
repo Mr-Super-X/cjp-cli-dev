@@ -12,7 +12,9 @@ const { spawn } = require("@cjp-cli-dev/utils");
 const SETTINGS = {
   // 配置表
   init: "@cjp-cli-dev/init",
+  publish: "@cjp-cli-dev/publish",
 };
+
 const CACHE_DIR = "dependencies"; // 缓存路径
 
 async function exec() {
