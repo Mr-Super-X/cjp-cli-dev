@@ -38,6 +38,18 @@ class GiteeRequest {
       method: 'get'
     })
   }
+
+  post(url, data, headers) {
+    return this.service({
+      url,
+      params: {
+        access_token: this.token,
+      },
+      data,
+      headers,
+      method: 'post'
+    })
+  }
 }
 
 module.exports = GiteeRequest;

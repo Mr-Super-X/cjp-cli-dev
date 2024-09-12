@@ -14,17 +14,41 @@ class Gitee extends GitServer {
     this.request = new GiteeRequest(token);
   }
 
+  // 获取用户信息
   // https://gitee.com/api/v5/swagger/#/getV5User
   getUser() {
     return this.request.get("/user");
   }
 
+  // 获取组织
   // https://gitee.com/api/v5/swagger/#/getV5UsersUsernameOrgs
   getOrg(username) {
     return this.request.get(`/users/${username}/orgs`, {
       page: 1,
       per_page: 100, // 最大值100，不方便翻页，尽可能多的加载数据
     });
+  }
+
+  // 获取远端仓库
+  // https://gitee.com/api/v5/swagger/#/getV5ReposOwnerRepo
+  getRepo(login, name) {
+    return this.request.get(`/repos/${login}/${name}`).then(res => {
+      return res
+    });
+  }
+
+  // 创建个人用户仓库
+  // https://gitee.com/api/v5/swagger/#/postV5UserRepos
+  createRepo(name) {
+    return this.request.post('/user/repos', {
+      name
+    })
+  }
+
+  // 创建组织仓库
+  // https://gitee.com/api/v5/swagger/#/postV5OrgsOrgRepos
+  createOrgRepo() {
+
   }
 
   // 返回生成Token的url

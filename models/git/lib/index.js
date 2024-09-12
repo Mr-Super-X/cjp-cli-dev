@@ -11,7 +11,7 @@ const os = require("os");
 const fs = require("fs");
 // 自建库
 const log = require("@cjp-cli-dev/log");
-const { readFile, writeFile } = require("@cjp-cli-dev/utils");
+const { readFile, writeFile, spinners } = require("@cjp-cli-dev/utils");
 const Github = require("./Github");
 const Gitee = require("./Gitee");
 
@@ -62,7 +62,11 @@ const GIT_OWNER_TYPE_ONLY_CHOICES = [
 class Git {
   constructor(
     { name, version, dir },
-    { refreshGitServer = false, refreshGitToken = false, refreshGitOwner = false }
+    {
+      refreshGitServer = false,
+      refreshGitToken = false,
+      refreshGitOwner = false,
+    }
   ) {
     // 将当前类使用到的属性都定义出来，可读性更高
     this.name = name; // 项目名称
@@ -75,6 +79,7 @@ class Git {
     this.orgs = null; // 组织信息
     this.owner = null; // 登录类型是个人还是组织
     this.login = null; // 登录名
+    this.repo = null; // 远程仓库信息
     this.refreshGitServer = refreshGitServer; // 是否强制更新git托管平台
     this.refreshGitToken = refreshGitToken; // 是否强制更新git token
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
@@ -86,10 +91,11 @@ class Git {
     await this.checkGitToken(); // 检查远端仓库token
     await this.getUserAndOrgs(); // 获取远端仓库用户和组织信息
     await this.checkGitOwner(); // 确认远端仓库登录类型是组织还是个人
+    await this.checkRepo(); // 检查并创建远程仓库
   }
 
   // 检查用户主目录
-  checkHomePath() {
+  async checkHomePath() {
     // 设置用户主目录
     if (!this.homePath) {
       this.homePath =
@@ -214,12 +220,47 @@ class Git {
       log.success("owner写入成功：", `${owner}  =>  ${ownerPath}`);
       log.success("login写入成功：", `${login}  =>  ${loginPath}`);
     } else {
-      log.success("owner读取成功：", owner);
+      const userChinese = GIT_OWNER_TYPE_CHOICES.find(
+        (item) => item.value === owner
+      ).name;
+      log.success("owner读取成功：", `${owner}（${userChinese}用户）`);
       log.success("login读取成功：", login);
     }
 
     this.owner = owner;
     this.login = login;
+  }
+
+  // 检查并创建远程仓库
+  async checkRepo() {
+    let repo = await this.gitServer.getRepo(this.login, this.name);
+    log.verbose("repository", repo);
+
+    if (!repo) {
+      const spinner = spinners("开始创建远程仓库...");
+      try {
+        if (this.owner === REPO_OWNER_USER) {
+          repo = await this.gitServer.createRepo(this.name);
+        } else {
+          this.gitServer.createOrgRepo(this.name, this.login);
+        }
+      } catch (error) {
+        throw error;
+      } finally {
+        spinner.stop(true);
+
+        if (!repo) {
+          throw new Error("创建远程仓库失败！");
+        } else {
+          log.success("创建远程仓库成功：", `${this.login}/${this.name}`);
+        }
+      }
+    } else {
+      log.success("获取远程仓库成功：", `${this.login}/${this.name}`);
+    }
+
+    // 将值保存到this中
+    this.repo = repo;
   }
 
   // 获取远端仓库用户和组织信息
