@@ -12,13 +12,17 @@ const log = require("@cjp-cli-dev/log");
 
 class PublishCommand extends Command {
   init() {
-    log.verbose('publish', this._args, this._cmd)
+    log.verbose("publish", this._args, this._cmd);
+
+    const { refreshGitServer, refreshGitToken, refreshGitOwner } =
+      this._args[0];
 
     // 保存用户输入的参数
     this.options = {
-      refreshGitServer: this._args[0].refreshGitServer || false,
-      refreshGitToken: this._args[0].refreshGitToken || false,
-    }
+      refreshGitServer: refreshGitServer || false,
+      refreshGitToken: refreshGitToken || false,
+      refreshGitOwner: refreshGitOwner || false,
+    };
   }
 
   async exec() {
@@ -60,9 +64,11 @@ class PublishCommand extends Command {
     // 2. 确认是否包含name、version、build命令
     const pkg = fse.readJsonSync(pkgPath);
     const { name, version, scripts } = pkg;
-    log.verbose("package.json：", name, version, scripts)
-    if(!name || !version || !scripts || !scripts.build) {
-      throw new Error("package.json信息不全，请检查是否存在name、version、scripts（需提供build命令）！");
+    log.verbose("package.json：", name, version, scripts);
+    if (!name || !version || !scripts || !scripts.build) {
+      throw new Error(
+        "package.json信息不全，请检查是否存在name、version、scripts（需提供build命令）！"
+      );
     }
 
     // 将项目信息缓存起来
@@ -70,7 +76,7 @@ class PublishCommand extends Command {
       name,
       version,
       dir: projectPath,
-    }
+    };
   }
 }
 

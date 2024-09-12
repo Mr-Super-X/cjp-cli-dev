@@ -19,8 +19,13 @@ const DEFAULT_CLI_HOME = ".cjp-cli-dev"; // 默认缓存路径
 const GIT_ROOT_DIR = ".git"; // git根目录
 const GIT_SERVER_FILE = ".git_server"; // git托管服务缓存文件
 const GIT_TOKEN_FILE = ".git_token"; // git token缓存文件
+const GIT_OWNER_FILE = ".git_owner"; // git owner登录类型缓存文件
+const GIT_LOGIN_FILE = ".git_login"; // git login缓存文件
+
 const GITHUB = "github";
 const GETEE = "gitee";
+const REPO_OWNER_USER = "user";
+const REPO_OWNER_ORG = "org";
 
 // 创建远端仓库类型选项
 const GIT_SERVER_TYPE_CHOICES = [
@@ -34,22 +39,45 @@ const GIT_SERVER_TYPE_CHOICES = [
   },
 ];
 
+// 创建远端仓库登录选项
+const GIT_OWNER_TYPE_CHOICES = [
+  {
+    name: "个人",
+    value: REPO_OWNER_USER,
+  },
+  {
+    name: "组织",
+    value: REPO_OWNER_ORG,
+  },
+];
+
+// 登录类型唯一选项
+const GIT_OWNER_TYPE_ONLY_CHOICES = [
+  {
+    name: "个人",
+    value: REPO_OWNER_USER,
+  },
+];
+
 class Git {
   constructor(
     { name, version, dir },
-    { refreshGitServer = false, refreshGitToken = false }
+    { refreshGitServer = false, refreshGitToken = false, refreshGitOwner = false }
   ) {
     // 将当前类使用到的属性都定义出来，可读性更高
-    this.name = name;
-    this.version = version;
-    this.dir = dir;
-    this.git = simpleGit(dir);
-    this.gitServer = null;
-    this.homePath = null;
-    this.user = null;
-    this.orgs = null;
-    this.refreshGitServer = refreshGitServer;
-    this.refreshGitToken = refreshGitToken;
+    this.name = name; // 项目名称
+    this.version = version; // 项目版本
+    this.dir = dir; // 源码路径
+    this.git = simpleGit(dir); // 运行git实例
+    this.gitServer = null; // 托管平台实例 github/gitee
+    this.homePath = null; // 用户主目录
+    this.user = null; // 用户信息
+    this.orgs = null; // 组织信息
+    this.owner = null; // 登录类型是个人还是组织
+    this.login = null; // 登录名
+    this.refreshGitServer = refreshGitServer; // 是否强制更新git托管平台
+    this.refreshGitToken = refreshGitToken; // 是否强制更新git token
+    this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
   }
 
   async prepare() {
@@ -57,6 +85,7 @@ class Git {
     await this.checkGitServer(); // 检查用户远端仓库类型，github/gitee/...
     await this.checkGitToken(); // 检查远端仓库token
     await this.getUserAndOrgs(); // 获取远端仓库用户和组织信息
+    await this.checkGitOwner(); // 确认远端仓库登录类型是组织还是个人
   }
 
   // 检查用户主目录
@@ -92,9 +121,9 @@ class Git {
         })
       ).gitServer;
       writeFile(gitServerPath, gitServer);
-      log.success("git server写入成功", `${gitServer}  =>  ${gitServerPath}`);
+      log.success("git server写入成功：", `${gitServer}  =>  ${gitServerPath}`);
     } else {
-      log.success("git server读取成功", `${gitServer}  =>  ${gitServerPath}`);
+      log.success("git server读取成功：", gitServer);
     }
 
     // 生成gitServer实例
@@ -130,9 +159,9 @@ class Git {
 
       // 写入token到本地
       writeFile(tokenPath, token);
-      log.success(`token写入成功`, `${token}  =>  ${tokenPath}`);
+      log.success(`token写入成功：`, `${token}  =>  ${tokenPath}`);
     } else {
-      log.success(`token读取成功`, `读取路径 => ${tokenPath}`);
+      log.success(`token读取成功`);
     }
 
     // 缓存token并更新
@@ -140,21 +169,76 @@ class Git {
     this.gitServer.setToken(token);
   }
 
+  // 确认远端仓库登录类型是组织还是个人
+  async checkGitOwner() {
+    const ownerPath = this.createPath(GIT_OWNER_FILE);
+    const loginPath = this.createPath(GIT_LOGIN_FILE);
+    let owner = readFile(ownerPath);
+    let login = readFile(loginPath);
+    // 如果两个任意一个不存在，提示用户输入
+    if (!owner || !login || this.refreshGitOwner) {
+      owner = (
+        await inquirer.prompt({
+          type: "list",
+          name: "owner",
+          message: "请选择远端仓库登录类型：",
+          default: REPO_OWNER_USER, // 默认个人
+          choices:
+            this.orgs.length > 0
+              ? GIT_OWNER_TYPE_CHOICES
+              : GIT_OWNER_TYPE_ONLY_CHOICES,
+        })
+      ).owner;
+
+      // 如果是组织，让用户进行选择
+      if (owner === REPO_OWNER_USER) {
+        login = this.user.login;
+      } else {
+        login = (
+          await inquirer.prompt({
+            type: "list",
+            name: "login",
+            message: "请选择组织：",
+            default: "",
+            choices: this.orgs.map((item) => ({
+              name: item.login,
+              value: item.login,
+            })),
+          })
+        ).login;
+      }
+
+      // 写入缓存
+      writeFile(ownerPath, owner);
+      writeFile(loginPath, login);
+      log.success("owner写入成功：", `${owner}  =>  ${ownerPath}`);
+      log.success("login写入成功：", `${login}  =>  ${loginPath}`);
+    } else {
+      log.success("owner读取成功：", owner);
+      log.success("login读取成功：", login);
+    }
+
+    this.owner = owner;
+    this.login = login;
+  }
+
   // 获取远端仓库用户和组织信息
   async getUserAndOrgs() {
     this.user = await this.gitServer.getUser();
-    if(!this.user) {
-      throw new Error('用户信息获取失败！')
+    if (!this.user) {
+      throw new Error("用户信息获取失败！");
     }
-    log.verbose('用户信息：', this.user);
+    log.verbose("用户信息：", this.user);
 
     this.orgs = await this.gitServer.getOrg(this.user.login);
-    if(!this.orgs) {
-      throw new Error('组织信息获取失败！')
+    if (!this.orgs) {
+      throw new Error("组织信息获取失败！");
     }
-    log.verbose('用户所在组织信息：', this.orgs);
+    log.verbose("用户所在组织信息：", this.orgs);
 
-    log.success(`获取 ${this.gitServer.type} 用户和组织信息成功`);
+    log.success(
+      `获取 ${this.gitServer.type} 用户和组织信息成功，当前用户：${this.user.name}`
+    );
   }
 
   createGitServer(gitServer) {

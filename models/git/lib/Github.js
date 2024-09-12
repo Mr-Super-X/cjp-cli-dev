@@ -18,7 +18,8 @@ class Github extends GitServer {
     return this.request.get("/user");
   }
 
-  // https://docs.github.com/zh/rest/orgs/orgs?apiVersion=2022-11-28#list-organizations-for-a-user
+  // 仅列出公有组织：https://docs.github.com/zh/rest/orgs/orgs?apiVersion=2022-11-28#list-organizations-for-a-user
+  // 需要公有和私有组织可替换这个API：https://docs.github.com/en/rest/orgs/orgs?apiVersion=2022-11-28#list-organizations-for-the-authenticated-user
   getOrg(username) {
     return this.request.get(`/users/${username}/orgs`, {
       page: 1,
