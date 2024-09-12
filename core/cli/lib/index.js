@@ -57,6 +57,7 @@ function registerCommander() {
   program
     .command("publish")
     .option("-rgs, --refreshGitServer", "强制更换Git托管平台")
+    .option("-rgt, --refreshGitToken", "强制更换Git托管平台token")
     .action(exec);
 
   // 高级功能：监听debug事件，开启debug模式

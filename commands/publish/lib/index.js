@@ -17,6 +17,7 @@ class PublishCommand extends Command {
     // 保存用户输入的参数
     this.options = {
       refreshGitServer: this._args[0].refreshGitServer || false,
+      refreshGitToken: this._args[0].refreshGitToken || false,
     }
   }
 

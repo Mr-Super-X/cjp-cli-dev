@@ -25,10 +25,11 @@
     "test": "node ./__tests__/@cjp-cli-dev/git.test.js"
   },
   "dependencies": {
-    "@cjp-cli-dev/utils": "file:../../utils/utils",
     "@cjp-cli-dev/log": "file:../../utils/log",
+    "@cjp-cli-dev/utils": "file:../../utils/utils",
     "fs-extra": "^11.2.0",
     "inquirer": "^8.2.4",
-    "simple-git": "^3.26.0"
+    "simple-git": "^3.26.0",
+    "terminal-link": "^2.1.1"
   }
 }

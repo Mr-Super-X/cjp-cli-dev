@@ -4,6 +4,7 @@
 const simpleGit = require("simple-git"); // 用于在node程序中运行git
 const inquirer = require("inquirer"); // 用于终端交互
 const fse = require("fs-extra"); // 用于文件操作
+const terminalLink = require("terminal-link"); // 用于生成终端可点击链接
 // 内置库
 const path = require("path");
 const os = require("os");
@@ -14,9 +15,10 @@ const { readFile, writeFile } = require("@cjp-cli-dev/utils");
 const Github = require("./Github");
 const Gitee = require("./Gitee");
 
-const DEFAULT_CLI_HOME = ".cjp-cli-dev";
-const GIT_ROOT_DIR = ".git";
-const GIT_SERVER_FILE = ".git_server";
+const DEFAULT_CLI_HOME = ".cjp-cli-dev"; // 默认缓存路径
+const GIT_ROOT_DIR = ".git"; // git根目录
+const GIT_SERVER_FILE = ".git_server"; // git托管服务缓存文件
+const GIT_TOKEN_FILE = ".git_token"; // git token缓存文件
 const GITHUB = "github";
 const GETEE = "gitee";
 
@@ -33,7 +35,7 @@ const GIT_SERVER_TYPE_CHOICES = [
 ];
 
 class Git {
-  constructor({ name, version, dir }, { refreshGitServer = false }) {
+  constructor({ name, version, dir }, { refreshGitServer = false, refreshGitToken = false }) {
     this.name = name;
     this.version = version;
     this.dir = dir;
@@ -41,13 +43,16 @@ class Git {
     this.gitServer = null;
     this.homePath = null;
     this.refreshGitServer = refreshGitServer;
+    this.refreshGitToken = refreshGitToken;
   }
 
   async prepare() {
     this.checkHomePath(); // 检查缓存主目录
     await this.checkGitServer(); // 检查用户远端仓库类型，github/gitee/......
+    await this.checkGitToken(); // 检查远端仓库token
   }
 
+  // 检查用户主目录
   checkHomePath() {
     // 设置用户主目录
     if (!this.homePath) {
@@ -64,6 +69,7 @@ class Git {
     }
   }
 
+  // 检查git托管平台服务
   async checkGitServer() {
     const gitServerPath = this.createPath(GIT_SERVER_FILE);
     let gitServer = readFile(gitServerPath);
@@ -88,9 +94,41 @@ class Git {
     this.gitServer = this.createGitServer(gitServer);
 
     // 如果gitServer为空，就抛出错误
-    if(!this.gitServer) {
+    if (!this.gitServer) {
       throw new Error("GitServer初始化失败！");
     }
+  }
+
+  // 检查git token
+  async checkGitToken() {
+    const tokenPath = this.createPath(GIT_TOKEN_FILE);
+    let token = readFile(tokenPath);
+    // 如果没有找到token，或者用户输入强制更换token指令，就让用户输入
+    if (!token || this.refreshGitToken) {
+      log.warn(
+        `${this.gitServer.type} token未生成，请先生成token。${terminalLink(
+          "帮助文档链接：\n",
+          this.gitServer.getTokenHelpUrl()
+        )}`
+      );
+      // 让用户输入token
+      token = (await inquirer.prompt({
+        type: 'password',
+        name: 'token',
+        message: `请将 ${this.gitServer.type} token粘贴到这里：`,
+        default: '',
+      })).token
+
+      // 写入token到本地
+      writeFile(tokenPath, token);
+      log.success(`token写入成功`, `${token}  =>  ${tokenPath}`);
+    }else {
+      log.success(`token读取成功`, `读取路径 => ${tokenPath}`);
+    }
+
+    // 缓存token并更新
+    this.token = token;
+    this.gitServer.setToken(token)
   }
 
   createGitServer(gitServer) {
@@ -98,17 +136,17 @@ class Git {
     const gitServerStrategy = {
       [GITHUB]: Github,
       [GETEE]: Gitee,
-    }
-
-    const GitServer = gitServerStrategy[gitServer]
-
-    if(!GitServer) {
-      log.error("gitServer不存在！")
-      return null
     };
 
+    const GitServer = gitServerStrategy[gitServer];
+
+    if (!GitServer) {
+      log.error("gitServer不存在！");
+      return null;
+    }
+
     // 返回实例
-    return new GitServer()
+    return new GitServer();
   }
 
   createPath(file) {
