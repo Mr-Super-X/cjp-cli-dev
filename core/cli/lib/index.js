@@ -31,8 +31,8 @@ async function core() {
   } catch (e) {
     log.error(e.message);
     // debug模式下打印执行栈
-    if(process.env.LOG_LEVEL === 'verbose') {
-      console.log(e)
+    if (process.env.LOG_LEVEL === "verbose") {
+      console.log(e);
     }
   }
 }
@@ -45,7 +45,7 @@ function registerCommander() {
     .version(pkg.version)
     // option方法参数说明，1：参数简写和全写，2：参数描述，3：默认值
     .option("-d, --debug", "是否开启调试模式", false)
-    .option("-tp, --targetPath <targetPath>", '是否指定本地调试文件路径', '')
+    .option("-tp, --targetPath <targetPath>", "是否指定本地调试文件路径", "");
 
   // 初始化项目
   program
@@ -56,6 +56,7 @@ function registerCommander() {
   // 发布项目
   program
     .command("publish")
+    .option("-rgs, --refreshGitServer", "强制更新远端Git仓库类型")
     .action(exec);
 
   // 高级功能：监听debug事件，开启debug模式
@@ -71,7 +72,7 @@ function registerCommander() {
   });
 
   // 指定全局targetPath
-  program.on('option:targetPath', function () {
+  program.on("option:targetPath", function () {
     // 获取所有的参数
     const options = program.opts();
     if (options.targetPath) {
@@ -79,7 +80,7 @@ function registerCommander() {
     } else {
       process.env.CLI_TARGET_PATH = "";
     }
-  })
+  });
 
   // 高级功能：对未知命令进行监听
   program.on("command:*", function (cmdObj) {
@@ -151,15 +152,15 @@ function checkEnv() {
 function createDefaultConfig() {
   const cliConfig = {
     home: homedir,
-  }
+  };
   // process.env.CLI_HOME读的是用户主目录下的.env文件
-  if(process.env.CLI_HOME) {
-    cliConfig['cliHome'] = path.join(homedir, process.env.CLI_HOME)
-  }else {
-    cliConfig['cliHome'] = path.join(homedir, constant.DEFAULT_CLI_HOME)
+  if (process.env.CLI_HOME) {
+    cliConfig["cliHome"] = path.join(homedir, process.env.CLI_HOME);
+  } else {
+    cliConfig["cliHome"] = path.join(homedir, constant.DEFAULT_CLI_HOME);
   }
 
-  process.env.CLI_HOME_PATH = cliConfig.cliHome
+  process.env.CLI_HOME_PATH = cliConfig.cliHome;
 }
 
 function checkUserHome() {

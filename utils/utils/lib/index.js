@@ -4,6 +4,7 @@
 const Spinner = require("cli-spinner").Spinner;
 // 内置库
 const cp = require("child_process");
+const fs = require("fs");
 
 function isObject(o) {
   return Object.prototype.toString.call(o) === "[object Object]";
@@ -43,11 +44,40 @@ function spawn(command, args, options) {
 
 function spawnAsync(command, args, options) {
   return new Promise((resolve, reject) => {
-    const p = spawn(command, args, options)
+    const p = spawn(command, args, options);
 
-    p.on('error', reject)
-    p.on('exit', resolve)
+    p.on("error", reject);
+    p.on("exit", resolve);
   });
+}
+
+function readFile(path, options = {}) {
+  if (fs.existsSync(path)) {
+    const buffer = fs.readFileSync(path);
+    if (buffer) {
+      if (options.toJson) {
+        return buffer.toJson();
+      } else {
+        return buffer.toString();
+      }
+    }
+  }
+
+  return null;
+}
+
+function writeFile(path, data, { rewrite = true } = {}) {
+  if (fs.existsSync(path)) {
+    if (rewrite) {
+      fs.writeFileSync(path, data);
+      return true;
+    }
+
+    return false;
+  } else {
+    fs.writeFileSync(path, data);
+    return true;
+  }
 }
 
 module.exports = {
@@ -55,5 +85,7 @@ module.exports = {
   spinners,
   sleep,
   spawn,
-  spawnAsync
+  spawnAsync,
+  readFile,
+  writeFile,
 };

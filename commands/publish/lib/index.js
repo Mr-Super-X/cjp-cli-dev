@@ -1,17 +1,23 @@
 "use strict";
 
 // 第三方库
-const fse = require("fs-extra"); // 用于清空文件夹
+const fse = require("fs-extra"); // 用于文件操作
 // 内置库
 const path = require("path");
 const fs = require("fs");
 // 自建库
 const Command = require("@cjp-cli-dev/command");
+const Git = require("@cjp-cli-dev/git");
 const log = require("@cjp-cli-dev/log");
 
 class PublishCommand extends Command {
   init() {
-    log.verbose('init', this._args)
+    log.verbose('publish', this._args, this._cmd)
+
+    // 保存用户输入的参数
+    this.options = {
+      refreshGitServer: this._args[0].refreshGitServer || false,
+    }
   }
 
   async exec() {
@@ -20,6 +26,15 @@ class PublishCommand extends Command {
       // 1. 初始化检查
       this.prepare();
       // 2. git flow 自动化
+      const git = new Git(this.projectInfo, this.options);
+      await git.prepare();
+      // await git.checkout("develop");
+      // await git.pull();
+      // await git.checkout("master");
+      // await git.pull();
+      // await git.checkout("feature/publish");
+      // // 3. 构建和发布
+      // await this.buildAndPublish();
       // 3. 云构建和云发布
       const endTime = new Date().getTime();
       log.info("本次发布耗时：", Math.floor(endTime - startTime) / 1000 + "秒");
