@@ -35,21 +35,28 @@ const GIT_SERVER_TYPE_CHOICES = [
 ];
 
 class Git {
-  constructor({ name, version, dir }, { refreshGitServer = false, refreshGitToken = false }) {
+  constructor(
+    { name, version, dir },
+    { refreshGitServer = false, refreshGitToken = false }
+  ) {
+    // 将当前类使用到的属性都定义出来，可读性更高
     this.name = name;
     this.version = version;
     this.dir = dir;
     this.git = simpleGit(dir);
     this.gitServer = null;
     this.homePath = null;
+    this.user = null;
+    this.orgs = null;
     this.refreshGitServer = refreshGitServer;
     this.refreshGitToken = refreshGitToken;
   }
 
   async prepare() {
-    this.checkHomePath(); // 检查缓存主目录
-    await this.checkGitServer(); // 检查用户远端仓库类型，github/gitee/......
+    await this.checkHomePath(); // 检查缓存主目录
+    await this.checkGitServer(); // 检查用户远端仓库类型，github/gitee/...
     await this.checkGitToken(); // 检查远端仓库token
+    await this.getUserAndOrgs(); // 获取远端仓库用户和组织信息
   }
 
   // 检查用户主目录
@@ -112,23 +119,38 @@ class Git {
         )}`
       );
       // 让用户输入token
-      token = (await inquirer.prompt({
-        type: 'password',
-        name: 'token',
-        message: `请将 ${this.gitServer.type} token粘贴到这里：`,
-        default: '',
-      })).token
+      token = (
+        await inquirer.prompt({
+          type: "password",
+          name: "token",
+          message: `请将 ${this.gitServer.type} token粘贴到这里：`,
+          default: "",
+        })
+      ).token;
 
       // 写入token到本地
       writeFile(tokenPath, token);
       log.success(`token写入成功`, `${token}  =>  ${tokenPath}`);
-    }else {
+    } else {
       log.success(`token读取成功`, `读取路径 => ${tokenPath}`);
     }
 
     // 缓存token并更新
     this.token = token;
-    this.gitServer.setToken(token)
+    this.gitServer.setToken(token);
+  }
+
+  // 获取远端仓库用户和组织信息
+  async getUserAndOrgs() {
+    this.user = await this.gitServer.getUser();
+    if(!this.user) {
+      throw new Error('用户信息获取失败！')
+    }
+    this.orgs = await this.gitServer.getOrg(this.user.login);
+    if(!this.orgs) {
+      throw new Error('组织信息获取失败！')
+    }
+    log.success(`获取 ${this.gitServer.type} 用户和组织信息成功`);
   }
 
   createGitServer(gitServer) {

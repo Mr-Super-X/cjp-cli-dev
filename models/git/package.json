@@ -27,6 +27,7 @@
   "dependencies": {
     "@cjp-cli-dev/log": "file:../../utils/log",
     "@cjp-cli-dev/utils": "file:../../utils/utils",
+    "axios": "^1.7.7",
     "fs-extra": "^11.2.0",
     "inquirer": "^8.2.4",
     "simple-git": "^3.26.0",

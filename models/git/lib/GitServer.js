@@ -2,6 +2,7 @@ function error(methodName) {
   throw new Error(`${methodName} 方法必须实现！`);
 }
 
+// 设置必要方法必须实现
 // 基类定义规范，子类实现方法
 class GitServer {
   constructor(type, token) {
@@ -9,9 +10,8 @@ class GitServer {
     this.token = token;
   }
 
-  // 设置必要方法必须实现
-  setToken() {
-    error("setToken");
+  setToken(token) {
+    this.token = token;
   }
 
   // 创建普通仓库
