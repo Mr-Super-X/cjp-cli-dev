@@ -32,7 +32,7 @@ const REPO_OWNER_ORG = "org"; // 登录类型：组织
 const RELEASE_VERSION = "release"; // 发布分支
 const DEVELOP_VERSION = "develop"; // 开发分支
 
-// 创建远端仓库类型选项
+// 创建远程仓库类型选项
 const GIT_SERVER_TYPE_CHOICES = [
   {
     name: "GitHub",
@@ -44,7 +44,7 @@ const GIT_SERVER_TYPE_CHOICES = [
   },
 ];
 
-// 创建远端仓库登录选项
+// 创建远程仓库登录选项
 const GIT_OWNER_TYPE_CHOICES = [
   {
     name: "个人",
@@ -94,10 +94,10 @@ class Git {
 
   async prepare() {
     await this.checkHomePath(); // 检查缓存主目录
-    await this.checkGitServer(); // 检查用户远端仓库类型，github/gitee/...
-    await this.checkGitToken(); // 检查远端仓库token
-    await this.getUserAndOrgs(); // 获取远端仓库用户和组织信息
-    await this.checkGitOwner(); // 确认远端仓库登录类型是组织还是个人
+    await this.checkGitServer(); // 检查用户远程仓库类型，github/gitee/...
+    await this.checkGitToken(); // 检查远程仓库token
+    await this.getUserAndOrgs(); // 获取远程仓库用户和组织信息
+    await this.checkGitOwner(); // 确认远程仓库登录类型是组织还是个人
     await this.checkRepo(); // 检查并创建远程仓库
     await this.checkGitIgnore(); // 检查并创建.gitignore
     await this.init(); // 完成本地git仓库初始化
@@ -184,7 +184,7 @@ class Git {
     this.gitServer.setToken(token);
   }
 
-  // 确认远端仓库登录类型是组织还是个人
+  // 确认远程仓库登录类型是组织还是个人
   async checkGitOwner() {
     const ownerPath = this.createPath(GIT_OWNER_FILE);
     const loginPath = this.createPath(GIT_LOGIN_FILE);
@@ -196,7 +196,7 @@ class Git {
         await inquirer.prompt({
           type: "list",
           name: "owner",
-          message: "请选择远端仓库登录类型：",
+          message: "请选择远程仓库登录类型：",
           default: REPO_OWNER_USER, // 默认个人
           choices:
             this.orgs.length > 0
@@ -296,38 +296,47 @@ class Git {
   async commit() {
     // 1. 生成开发分支
     await this.getCorrectVersion();
-    // 2. 在开发分支上提交代码
-    // 3. 合并远程开发分支
-    // 4. 推送开发分支代码
+    // 2. 检查stash区
+    await this.checkStash();
+    // 3. 检查代码冲突
+    await this.checkConflicted();
+    // 4. 切换开发分支
+    await this.checkoutLocalBranch(this.branch);
+    // 5. 合并远程master分支到本地开发分支
+    await this.pullRemoteMasterBranch();
+    // 6. 检查未提交的代码进行提交
+    await this.checkNotCommitted();
+    // 7. 推送开发分支到远程仓库
+    await this.pushRemoteRepo(this.branch);
   }
 
-  async getCorrectVersion(type) {
+  async getCorrectVersion() {
     // 1. 获取远程分支列表
     // 分支规范：
     //    远程分支：release/x.y.z
     //    开发分支：develop/x.y.z
     // 版本规范：
     //    major/minor/patch
-    log.notice("获取远端代码分支信息");
+    log.notice("获取远程代码分支信息");
     const remoteBranchList = await this.getRemoteBranchList(RELEASE_VERSION);
     let releaseVersion = null;
     if (remoteBranchList && remoteBranchList.length > 0) {
       releaseVersion = remoteBranchList[0]; // 拿到最新的版本号
     }
-    log.verbose("远端仓库最新版本号：", releaseVersion);
+    log.verbose("远程仓库最新版本号：", releaseVersion);
     // 2. 判断远程最新发布版本号是否存在，不存在生成本地默认开发分支，存在判断本地是否小于远程最新版本号，小于则升级本地版本号
     const devVersion = this.version;
     if (!releaseVersion) {
       this.branch = `${DEVELOP_VERSION}/${devVersion}`;
     } else if (semver.gte(this.version, releaseVersion)) {
       log.notice(
-        "当前本地版本大于等于远端最新版本",
+        "当前本地版本大于等于远程最新版本",
         `${devVersion} >= ${releaseVersion}`
       );
       this.branch = `${DEVELOP_VERSION}/${devVersion}`;
     } else {
       log.notice(
-        "当前本地版本落后于远端最新版本",
+        "当前本地版本落后于远程最新版本",
         `${devVersion} < ${releaseVersion}`
       );
       const incType = (
@@ -375,6 +384,60 @@ class Git {
     this.writeVersionToPackageSync();
   }
 
+  // 检查stash区，如果和本地变更有冲突，需要手动将本地代码进行提交，再手动执行git stash pop取出
+  async checkStash() {
+    log.notice("检查stash记录");
+    const stashList = await this.git.stashList();
+    log.verbose("stash", stashList.all);
+    // 如果stash中有内容则弹出内容
+    if (stashList.all.length > 0) {
+      log.notice("检测到stash区中有内容，将自动取出stash");
+      await this.git.stash(["pop"]);
+      log.success("自动执行git stash pop成功");
+    } else {
+      log.notice("stash区未检测到内容");
+    }
+  }
+
+  // 切换开发分支
+  async checkoutLocalBranch(branchName) {
+    const localBranchList = await this.git.branchLocal();
+
+    // 如果本地存在该分支，直接切换，否则创建一个本地分支
+    if (localBranchList.all.includes(branchName)) {
+      log.notice(`本地分支 ${branchName} 存在，将自动切换到该分支`);
+      await this.git.checkout(branchName);
+      log.success(`自动切换到 ${branchName} 分支成功`);
+    } else {
+      log.notice(`本地分支 ${branchName} 不存在，将自动创建该分支`);
+      await this.git.checkoutLocalBranch(branchName); // 创建并切换到该分支
+      log.success(`自动创建 ${branchName} 分支成功`);
+    }
+  }
+
+  async pullRemoteMasterBranch() {
+    log.notice(`自动合并远程 master => ${this.branch}`);
+    await this.pullRemoteRepo("master");
+    log.success("合并远程 master 分支代码成功");
+
+    // 合并代码后检查冲突
+    await this.checkConflicted();
+    log.notice("检查远程开发分支");
+    const remoteBranchList = await this.getRemoteBranchList();
+    if (remoteBranchList.includes(this.version)) {
+      log.notice(
+        `存在远程分支 ${this.branch}，自动合并远程 ${this.branch} => ${this.branch}`
+      );
+      await this.pullRemoteRepo(this.branch);
+      log.success(`合并远程 ${this.branch} 分支代码成功`);
+
+      // 合并完检查冲突
+      await this.checkConflicted();
+    } else {
+      log.warn(`不存在远程分支 ${this.branch}`);
+    }
+  }
+
   // 同步写入版本到package.json
   async writeVersionToPackageSync() {
     const pkgPath = `${this.dir}/package.json`;
@@ -387,10 +450,10 @@ class Git {
     }
   }
 
-  // 获取远端分支列表
+  // 获取远程分支列表
   async getRemoteBranchList(type) {
     const remotes = await this.git.listRemote(["--refs"]);
-    if (!remotes) throw new Error("远端分支列表不存在！");
+    if (!remotes) throw new Error("远程分支列表不存在！");
 
     let reg;
     if (type === RELEASE_VERSION) {
@@ -401,7 +464,7 @@ class Git {
       // reg = /.+?refs\/tags\/release\/(\d+\.\d+\.\d+)/g
     } else {
       reg = new RegExp(
-        `.+?refs/tags/${DEVELOP_VERSION}/(\\d+\\.\\d+\\.\\d+)`,
+        `.+?refs/heads/${DEVELOP_VERSION}/(\\d+\\.\\d+\\.\\d+)`,
         "g"
       );
     }
@@ -428,13 +491,13 @@ class Git {
 
     // 如果远程master已存在，则拉取代码到本地进行合并
     if (await this.checkRemoteMaster()) {
-      log.notice("当前远端仓库已存在 master 分支");
+      log.notice("当前远程仓库已存在 master 分支");
       await this.pullRemoteRepo("master", {
         // 强制让没有关系的两个分支代码进行合并，防止不在一条代码线上的情况
         "--allow-unrelated-histories": true,
       });
     } else {
-      log.notice("远端仓库 master 分支不存在");
+      log.notice("远程仓库 master 分支不存在");
       await this.pushRemoteRepo("master");
     }
   }
@@ -513,28 +576,31 @@ class Git {
     return refs.includes("refs/heads/master");
   }
 
-  // 推送到远端分支
+  // 推送到远程分支
   async pushRemoteRepo(branchName) {
-    log.notice(`推送代码至远端仓库 ${branchName} 分支`);
+    log.notice(`推送代码至远程仓库 ${branchName} 分支`);
     await this.git.push("origin", branchName);
     log.success("推送代码成功");
   }
 
   async pullRemoteRepo(branchName, options) {
-    log.notice(`拉取远端仓库 ${branchName} 分支代码`);
+    log.notice(`同步远程仓库 ${branchName} 分支代码`);
     await this.git.pull("origin", branchName, options);
-    log.success("拉取代码成功");
+    log.success("代码同步成功");
   }
 
   // 获取远程仓库地址
   async getRemote() {
+    log.notice(`检查${GIT_ROOT_DIR}目录是否存在`);
     const gitPath = path.resolve(this.dir, GIT_ROOT_DIR);
     // 将remote缓存到this中
     this.remote = this.gitServer.getRemote(this.login, this.name);
 
     if (fs.existsSync(gitPath)) {
-      log.info(`${GIT_ROOT_DIR}目录已存在`);
+      log.notice(`${GIT_ROOT_DIR}目录已存在`);
       return true;
+    } else {
+      log.warn(`${GIT_ROOT_DIR}目录不存在，将自动创建该目录`);
     }
   }
 
@@ -553,7 +619,7 @@ class Git {
     }
   }
 
-  // 获取远端仓库用户和组织信息
+  // 获取远程仓库用户和组织信息
   async getUserAndOrgs() {
     this.user = await this.gitServer.getUser();
     if (!this.user) {
