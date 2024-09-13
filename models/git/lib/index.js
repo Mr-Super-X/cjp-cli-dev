@@ -4,6 +4,7 @@
 const simpleGit = require("simple-git"); // 用于在node程序中运行git
 const inquirer = require("inquirer"); // 用于终端交互
 const fse = require("fs-extra"); // 用于文件操作
+const semver = require("semver"); // 用于比对版本号
 const terminalLink = require("terminal-link"); // 用于生成终端可点击链接
 // 内置库
 const path = require("path");
@@ -26,8 +27,10 @@ const GIT_IGNORE_FILE = ".gitignore"; // .gitignore缓存文件
 
 const GITHUB = "github";
 const GETEE = "gitee";
-const REPO_OWNER_USER = "user";
-const REPO_OWNER_ORG = "org";
+const REPO_OWNER_USER = "user"; // 登录类型：个人
+const REPO_OWNER_ORG = "org"; // 登录类型：组织
+const RELEASE_VERSION = "release"; // 发布分支
+const DEVELOP_VERSION = "develop"; // 开发分支
 
 // 创建远端仓库类型选项
 const GIT_SERVER_TYPE_CHOICES = [
@@ -284,8 +287,69 @@ class Git {
     if (await this.getRemote()) {
       return;
     }
-    await this.initAndAddRemote();
-    await this.initCommit();
+    await this.initAndAddRemote(); // 初始化git并添加远程地址
+    await this.initCommit(); // 初始化提交
+  }
+
+  // 代码自动化提交
+  async commit() {
+    // 1. 生成开发分支
+    await this.getCorrectVersion();
+    // 2. 在开发分支上提交代码
+    // 3. 合并远程开发分支
+    // 4. 推送开发分支代码
+  }
+
+  async getCorrectVersion(type) {
+    // 1. 获取远程分支列表
+    // 分支规范：
+    //    远程分支：release/x.y.z
+    //    开发分支：develop/x.y.z
+    // 版本规范：
+    //    major/minor/patch
+    log.notice("获取远端代码分支");
+    const remoteBranchList = await this.getRemoteBranchList(RELEASE_VERSION);
+    let releaseVersion = null;
+    if (remoteBranchList && remoteBranchList.length > 0) {
+      releaseVersion = remoteBranchList[0]; // 拿到最新的版本号
+    }
+    log.info("远端仓库最新版本号：", releaseVersion);
+    // 2. 获取远程最新发布版本号
+    // 3. 判断远程最新发布版本号是否存在，不存在生成本地默认开发分支，存在判断本地是否小于远程最新版本号，小于则升级本地版本号
+  }
+
+  // 获取远端分支列表
+  async getRemoteBranchList(type) {
+    const remotes = await this.git.listRemote(["--refs"]);
+    if (!remotes) throw new Error("远端分支列表不存在！");
+
+    let reg;
+    if (type === RELEASE_VERSION) {
+      reg = new RegExp(
+        `.+?refs/tags/${RELEASE_VERSION}/(\\d+\\.\\d+\\.\\d+)`,
+        "g"
+      );
+      // reg = /.+?refs\/tags\/release\/(\d+\.\d+\.\d+)/g
+    } else {
+      reg = new RegExp(
+        `.+?refs/tags/${DEVELOP_VERSION}/(\\d+\\.\\d+\\.\\d+)`,
+        "g"
+      );
+    }
+
+    // 对返回版本列表进行处理
+    return remotes
+      .split("\n")
+      .map((remote) => {
+        const match = reg.exec(remote);
+        reg.lastIndex = 0; // 有多个版本的情况下置为0才会重新进行匹配
+
+        if (match && semver.valid(match[1])) {
+          return match[1];
+        }
+      })
+      .filter((_) => _) // 过滤结果为true的数据
+      .sort((a, b) => semver.compare(b, a)); // 排序，从大到小，防止数据没有按预期顺序返回
   }
 
   // 项目初始化提交

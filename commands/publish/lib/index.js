@@ -32,14 +32,8 @@ class PublishCommand extends Command {
       this.prepare();
       // 2. git flow 自动化
       const git = new Git(this.projectInfo, this.options);
-      await git.prepare();
-      // await git.checkout("develop");
-      // await git.pull();
-      // await git.checkout("master");
-      // await git.pull();
-      // await git.checkout("feature/publish");
-      // // 3. 构建和发布
-      // await this.buildAndPublish();
+      await git.prepare(); // 自动化提交准备和代码仓库初始化
+      await git.commit(); // 代码自动化提交
       // 3. 云构建和云发布
       const endTime = new Date().getTime();
       log.info("本次发布耗时：", Math.floor(endTime - startTime) / 1000 + "秒");
