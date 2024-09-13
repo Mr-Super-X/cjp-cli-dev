@@ -82,6 +82,7 @@ class Git {
     this.owner = null; // 登录类型是个人还是组织
     this.login = null; // 登录名
     this.repo = null; // 远程仓库信息
+    this.remote = null; // 远程地址
     this.refreshGitServer = refreshGitServer; // 是否强制更新git托管平台
     this.refreshGitToken = refreshGitToken; // 是否强制更新git token
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
@@ -95,6 +96,7 @@ class Git {
     await this.checkGitOwner(); // 确认远端仓库登录类型是组织还是个人
     await this.checkRepo(); // 检查并创建远程仓库
     await this.checkGitIgnore(); // 检查并创建.gitignore
+    await this.init(); // 完成本地git仓库初始化
   }
 
   // 检查用户主目录
@@ -276,6 +278,42 @@ class Git {
     }
   }
 
+  // 完成本地git仓库初始化
+  async init() {
+    const hasRemote = await this.getRemote();
+    // 不存在则初始化
+    if (!hasRemote) {
+      await this.initAndAddRemote();
+    }
+  }
+
+  // 获取远程仓库地址
+  async getRemote() {
+    const gitPath = path.resolve(this.dir, GIT_ROOT_DIR);
+    // 将remote缓存到this中
+    this.remote = this.gitServer.getRemote(this.login, this.name);
+
+    if (fs.existsSync(gitPath)) {
+      log.info("git init已完成，无需再次init");
+      return true;
+    }
+  }
+
+  // 初始化并添加远程仓库
+  async initAndAddRemote() {
+    log.notice("执行git init");
+    await this.git.init(this.dir);
+    log.success("git init初始化成功");
+    log.notice("添加git remote");
+    const remotes = await this.git.getRemotes();
+    log.success("git remote添加成功");
+    log.verbose("git remote：", remotes);
+
+    if (!remotes.find((item) => item.name === "origin")) {
+      await this.git.addRemote("origin", this.remote);
+    }
+  }
+
   // 获取远端仓库用户和组织信息
   async getUserAndOrgs() {
     this.user = await this.gitServer.getUser();
@@ -322,8 +360,6 @@ class Git {
     fse.ensureDirSync(rootDir);
     return filePath;
   }
-
-  init() {}
 }
 
 module.exports = Git;

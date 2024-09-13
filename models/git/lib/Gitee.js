@@ -53,6 +53,11 @@ class Gitee extends GitServer {
     })
   }
 
+  // 获取远程地址
+  getRemote(login, name) {
+    return `git@gitee.com:${login}/${name}.git`;
+  }
+
   // 返回生成Token的url
   getTokenUrl() {
     return "https://gitee.com/personal_access_tokens";

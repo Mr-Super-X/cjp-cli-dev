@@ -52,6 +52,11 @@ class Github extends GitServer {
     });
   }
 
+  // 获取远程地址
+  getRemote(login, name) {
+    return `git@github.com:${login}/${name}.git`;
+  }
+
   // 返回生成Token的url
   getTokenUrl() {
     return "https://github.com/settings/tokens";
