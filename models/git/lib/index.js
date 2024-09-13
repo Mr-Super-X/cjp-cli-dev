@@ -86,6 +86,7 @@ class Git {
     this.login = null; // 登录名
     this.repo = null; // 远程仓库信息
     this.remote = null; // 远程地址
+    this.branch = null; // 本地开发分支
     this.refreshGitServer = refreshGitServer; // 是否强制更新git托管平台
     this.refreshGitToken = refreshGitToken; // 是否强制更新git token
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
@@ -307,15 +308,83 @@ class Git {
     //    开发分支：develop/x.y.z
     // 版本规范：
     //    major/minor/patch
-    log.notice("获取远端代码分支");
+    log.notice("获取远端代码分支信息");
     const remoteBranchList = await this.getRemoteBranchList(RELEASE_VERSION);
     let releaseVersion = null;
     if (remoteBranchList && remoteBranchList.length > 0) {
       releaseVersion = remoteBranchList[0]; // 拿到最新的版本号
     }
-    log.info("远端仓库最新版本号：", releaseVersion);
-    // 2. 获取远程最新发布版本号
-    // 3. 判断远程最新发布版本号是否存在，不存在生成本地默认开发分支，存在判断本地是否小于远程最新版本号，小于则升级本地版本号
+    log.verbose("远端仓库最新版本号：", releaseVersion);
+    // 2. 判断远程最新发布版本号是否存在，不存在生成本地默认开发分支，存在判断本地是否小于远程最新版本号，小于则升级本地版本号
+    const devVersion = this.version;
+    if (!releaseVersion) {
+      this.branch = `${DEVELOP_VERSION}/${devVersion}`;
+    } else if (semver.gte(this.version, releaseVersion)) {
+      log.notice(
+        "当前本地版本大于等于远端最新版本",
+        `${devVersion} >= ${releaseVersion}`
+      );
+      this.branch = `${DEVELOP_VERSION}/${devVersion}`;
+    } else {
+      log.notice(
+        "当前本地版本落后于远端最新版本",
+        `${devVersion} < ${releaseVersion}`
+      );
+      const incType = (
+        await inquirer.prompt({
+          type: "list",
+          name: "incType",
+          message: "自动升级版本，请选择版本号升级类型：",
+          default: "patch",
+          choices: [
+            // semver.inc方法能自动帮我们计算要升级的版本号
+            {
+              name: `patch：${devVersion} => ${semver.inc(
+                devVersion,
+                "patch"
+              )}（小版本，如修复bug或小改进，不破坏兼容性）`,
+              value: "patch",
+            },
+            {
+              name: `minor：${devVersion} => ${semver.inc(
+                devVersion,
+                "minor"
+              )}（中版本，如新增功能或改进功能，不破坏兼容性）`,
+              value: "minor",
+            },
+            {
+              name: `major：${devVersion} => ${semver.inc(
+                devVersion,
+                "major"
+              )}（大版本，如重大更新或废弃旧功能，会破坏兼容性）`,
+              value: "major",
+            },
+          ],
+        })
+      ).incType;
+
+      // 调用inc传入用户选择结果生成最终要升级的版本号
+      const incVersion = semver.inc(devVersion, incType);
+      // 更新信息
+      this.branch = `${DEVELOP_VERSION}/${incVersion}`;
+      this.version = incVersion;
+    }
+    log.verbose("本地开发分支：", this.branch);
+
+    // 3. 同步写入版本到package.json
+    this.writeVersionToPackageSync();
+  }
+
+  // 同步写入版本到package.json
+  async writeVersionToPackageSync() {
+    const pkgPath = `${this.dir}/package.json`;
+    const pkg = fse.readJsonSync(pkgPath);
+    if (pkg && pkg.version && pkg.version !== this.version) {
+      pkg.version = this.version;
+
+      // 写入package.json并给两个字符的缩进
+      fse.writeJSONSync(pkgPath, pkg, { spaces: 2 });
+    }
   }
 
   // 获取远端分支列表
