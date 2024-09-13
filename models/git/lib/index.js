@@ -280,11 +280,117 @@ class Git {
 
   // 完成本地git仓库初始化
   async init() {
-    const hasRemote = await this.getRemote();
-    // 不存在则初始化
-    if (!hasRemote) {
-      await this.initAndAddRemote();
+    // 如果仓库存在，就不需要执行后续了
+    if (await this.getRemote()) {
+      return;
     }
+    await this.initAndAddRemote();
+    await this.initCommit();
+  }
+
+  // 项目初始化提交
+  async initCommit() {
+    await this.checkConflicted(); // 检查代码冲突
+    await this.checkNotCommitted(); // 检查未提交的代码
+
+    // 如果远程master已存在，则拉取代码到本地进行合并
+    if (await this.checkRemoteMaster()) {
+      log.notice("当前远端仓库已存在 master 分支");
+      await this.pullRemoteRepo("master", {
+        // 强制让没有关系的两个分支代码进行合并，防止不在一条代码线上的情况
+        "--allow-unrelated-histories": true,
+      });
+    } else {
+      log.notice("远端仓库 master 分支不存在");
+      await this.pushRemoteRepo("master");
+    }
+  }
+
+  // 检查代码冲突
+  async checkConflicted() {
+    log.notice("检查代码冲突");
+    const status = await this.git.status();
+    if (status.conflicted.length > 0) {
+      throw new Error(
+        "当前代码存在冲突，请手动处理合并后再试！冲突文件：",
+        status.conflicted
+      );
+    }
+
+    log.success("代码冲突检查通过");
+    return true;
+  }
+
+  // 检查未提交的代码
+  async checkNotCommitted() {
+    log.notice("检查未提交代码");
+    const status = await this.git.status();
+
+    const { not_added, created, deleted, modified, renamed } = status;
+
+    if (
+      // 未提交的
+      not_added.length > 0 ||
+      // 新创建的
+      created.length > 0 ||
+      // 已删除的
+      deleted.length > 0 ||
+      // 已修改的
+      modified.length > 0 ||
+      // 重命名的
+      renamed.length > 0
+    ) {
+      log.verbose("当前git状态", status);
+      log.warn(`存在已变更但未提交的代码`);
+
+      log.notice("自动执行git add操作");
+      // 将可能产生变更的所有文件都添加到git暂存区，然后让用户输入commit信息
+      await this.git.add(not_added);
+      await this.git.add(created);
+      await this.git.add(deleted);
+      await this.git.add(modified);
+      await this.git.add(renamed);
+      log.success("git add命令执行成功");
+
+      log.notice("自动执行git commit操作");
+      let message;
+
+      // 持续提示用户输入内容
+      while (!message) {
+        message = (
+          await inquirer.prompt({
+            type: "text",
+            name: "message",
+            default: "",
+            message: "请输入commit信息：",
+          })
+        ).message;
+      }
+
+      await this.git.commit(message);
+      log.success("本次commit提交成功：", message);
+    }
+  }
+
+  // 检查是否存在master分支
+  async checkRemoteMaster() {
+    const refs = await this.git.listRemote(["--refs"]);
+    if (!refs) return false;
+    // 当--refs中存在refs/heads/master，我们认为master分支存在
+    return refs.includes("refs/heads/master");
+  }
+
+  // 推送到远端分支
+  async pushRemoteRepo(branchName) {
+    log.notice(`推送代码至远端仓库 ${branchName} 分支`);
+    await this.git.push("origin", branchName);
+    log.success("推送代码成功");
+  }
+
+  async pullRemoteRepo(branchName, options) {
+    log.notice(`拉取远端仓库 ${branchName} 分支代码`);
+    await this.git.pull("origin", branchName, options);
+    log.success("拉取代码成功");
   }
 
   // 获取远程仓库地址
@@ -294,7 +400,7 @@ class Git {
     this.remote = this.gitServer.getRemote(this.login, this.name);
 
     if (fs.existsSync(gitPath)) {
-      log.info("git init已完成，无需再次init");
+      log.info(`${GIT_ROOT_DIR}目录已存在`);
       return true;
     }
   }
