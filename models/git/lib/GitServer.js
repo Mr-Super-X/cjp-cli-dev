@@ -54,13 +54,17 @@ class GitServer {
     error("getTokenHelpUrl");
   }
 
+  // 判断是否http返回
   isHttpResponse(response) {
-    return response && response.status;
+    if(response && response.status && response.headers && response.config && response.request) {
+      return true;
+    }
+    return false;
   }
 
-  // 处理错误的请求返回数据
+  // 处理正确返回状态
   handleResponse(response) {
-    if (this.isHttpResponse(response) && response !== 200) {
+    if (this.isHttpResponse(response) && response.status !== 200) {
       return null;
     } else {
       return response;

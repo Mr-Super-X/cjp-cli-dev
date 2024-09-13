@@ -242,7 +242,7 @@ class Git {
         if (this.owner === REPO_OWNER_USER) {
           repo = await this.gitServer.createRepo(this.name);
         } else {
-          this.gitServer.createOrgRepo(this.name, this.login);
+          repo = await this.gitServer.createOrgRepo(this.name, this.login);
         }
       } catch (error) {
         throw error;

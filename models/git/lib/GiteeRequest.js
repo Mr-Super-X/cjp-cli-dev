@@ -20,9 +20,8 @@ class GiteeRequest {
       (error) => {
         if (error.response && error.response.data) {
           return error.response;
-        } else {
-          return Promise.reject(error);
         }
+        return Promise.reject(error);
       }
     );
   }

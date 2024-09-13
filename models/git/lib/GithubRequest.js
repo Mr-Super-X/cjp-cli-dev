@@ -16,7 +16,8 @@ class GithubRequest {
     // 请求拦截
     this.service.interceptors.request.use(
       (config) => {
-        config.headers["Authorization"] = "token " + this.token;
+        config.headers["Authorization"] = "token " + this.token; // 必要参数
+        config.headers["Accept"] = "application/vnd.github+json"; // github推荐参数，不传也行，传了更好
         return config;
       },
       (error) => {
@@ -32,9 +33,9 @@ class GithubRequest {
       (error) => {
         if (error.response && error.response.data) {
           return error.response;
-        } else {
-          return Promise.reject(error);
         }
+
+        return Promise.reject(error);
       }
     );
   }

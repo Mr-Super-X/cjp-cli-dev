@@ -47,7 +47,11 @@ class Gitee extends GitServer {
 
   // 创建组织仓库
   // https://gitee.com/api/v5/swagger/#/postV5OrgsOrgRepos
-  createOrgRepo() {}
+  createOrgRepo(name, login) {
+    return this.request.post(`/orgs/${login}/repos`, {
+      name,
+    })
+  }
 
   // 返回生成Token的url
   getTokenUrl() {
