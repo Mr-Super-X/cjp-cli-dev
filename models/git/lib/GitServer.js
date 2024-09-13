@@ -58,6 +58,7 @@ class GitServer {
     return response && response.status;
   }
 
+  // 处理错误的请求返回数据
   handleResponse(response) {
     if (this.isHttpResponse(response) && response !== 200) {
       return null;

@@ -32,28 +32,26 @@ class Gitee extends GitServer {
   // 获取远端仓库
   // https://gitee.com/api/v5/swagger/#/getV5ReposOwnerRepo
   getRepo(login, name) {
-    return this.request.get(`/repos/${login}/${name}`).then(res => {
-      return res
+    return this.request.get(`/repos/${login}/${name}`).then((res) => {
+      return this.handleResponse(res);
     });
   }
 
   // 创建个人用户仓库
   // https://gitee.com/api/v5/swagger/#/postV5UserRepos
   createRepo(name) {
-    return this.request.post('/user/repos', {
-      name
-    })
+    return this.request.post("/user/repos", {
+      name,
+    });
   }
 
   // 创建组织仓库
   // https://gitee.com/api/v5/swagger/#/postV5OrgsOrgRepos
-  createOrgRepo() {
-
-  }
+  createOrgRepo() {}
 
   // 返回生成Token的url
   getTokenUrl() {
-    return "https://gitee.com/personal_access_tokens"
+    return "https://gitee.com/personal_access_tokens";
   }
 
   // 返回生成token帮助文档链接

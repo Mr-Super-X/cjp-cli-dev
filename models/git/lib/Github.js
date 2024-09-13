@@ -27,6 +27,27 @@ class Github extends GitServer {
     });
   }
 
+  // 获取远端仓库
+  // https://docs.github.com/zh/rest/repos
+  // https://docs.github.com/zh/rest/repos/repos?apiVersion=2022-11-28#get-a-repository
+  getRepo(login, name) {
+    return this.request.get(`/repos/${login}/${name}`).then((res) => {
+      return this.handleResponse(res);
+    });
+  }
+
+  // 创建个人用户仓库
+  // https://docs.github.com/zh/rest/repos/repos?apiVersion=2022-11-28#create-a-repository-for-the-authenticated-user
+  createRepo(name) {
+    return this.request.post("/user/repos", {
+      name,
+    });
+  }
+
+  // 创建组织仓库
+  // https://gitee.com/api/v5/swagger/#/postV5OrgsOrgRepos
+  createOrgRepo() {}
+
   // 返回生成Token的url
   getTokenUrl() {
     return "https://github.com/settings/tokens";

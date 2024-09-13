@@ -256,7 +256,7 @@ class Git {
         }
       }
     } else {
-      log.success("获取远程仓库成功：", `${this.login}/${this.name}`);
+      log.success("获取远程仓库信息成功：", `${this.login}/${this.name}`);
     }
 
     // 将值保存到this中

@@ -419,7 +419,7 @@ class InitCommand extends Command {
     const projectNamePrompt = {
       type: "input",
       name: "projectName",
-      default: "vue-project",
+      default: "",
       message: `请输入${promptTitle}名称：`,
       validate: function (v) {
         const done = this.async();
