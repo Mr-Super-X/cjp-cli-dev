@@ -14,6 +14,7 @@ const log = require("@cjp-cli-dev/log");
 const { readFile, writeFile, spinners } = require("@cjp-cli-dev/utils");
 const Github = require("./Github");
 const Gitee = require("./Gitee");
+const gitignoreTemplate = require("./gitignoreTemplate");
 
 const DEFAULT_CLI_HOME = ".cjp-cli-dev"; // 默认缓存路径
 const GIT_ROOT_DIR = ".git"; // git根目录
@@ -21,6 +22,7 @@ const GIT_SERVER_FILE = ".git_server"; // git托管服务缓存文件
 const GIT_TOKEN_FILE = ".git_token"; // git token缓存文件
 const GIT_OWNER_FILE = ".git_owner"; // git owner登录类型缓存文件
 const GIT_LOGIN_FILE = ".git_login"; // git login缓存文件
+const GIT_IGNORE_FILE = ".gitignore"; // .gitignore缓存文件
 
 const GITHUB = "github";
 const GETEE = "gitee";
@@ -92,6 +94,7 @@ class Git {
     await this.getUserAndOrgs(); // 获取远端仓库用户和组织信息
     await this.checkGitOwner(); // 确认远端仓库登录类型是组织还是个人
     await this.checkRepo(); // 检查并创建远程仓库
+    await this.checkGitIgnore(); // 检查并创建.gitignore
   }
 
   // 检查用户主目录
@@ -261,6 +264,16 @@ class Git {
 
     // 将值保存到this中
     this.repo = repo;
+  }
+
+  // 检查并创建.gitignore
+  async checkGitIgnore() {
+    const ignorePath = path.resolve(this.dir, GIT_IGNORE_FILE);
+    // 文件不存在则写入一个默认模板
+    if (!fs.existsSync(ignorePath)) {
+      writeFile(ignorePath, gitignoreTemplate);
+      log.success(`自动写入 ${GIT_IGNORE_FILE} 文件成功`);
+    }
   }
 
   // 获取远端仓库用户和组织信息
