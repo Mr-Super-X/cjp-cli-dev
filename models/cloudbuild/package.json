@@ -1,7 +1,7 @@
 {
-  "name": "@cjp-cli-dev/git",
+  "name": "@cjp-cli-dev/cloudbuild",
   "version": "1.0.6",
-  "description": "cjp-cli-dev git",
+  "description": "cjp-cli-dev cloudbuild",
   "author": "v_jpch <v_jpch.digitalgd.com>",
   "homepage": "",
   "license": "ISC",
@@ -22,17 +22,9 @@
     "url": "git@gitee.com:Mr_Mikey/cjp-cli-dev.git"
   },
   "scripts": {
-    "test": "node ./__tests__/@cjp-cli-dev/git.test.js"
+    "test": "node ./__tests__/@cjp-cli-dev/cloudbuild.test.js"
   },
   "dependencies": {
-    "@cjp-cli-dev/log": "file:../../utils/log",
-    "@cjp-cli-dev/utils": "file:../../utils/utils",
-    "@cjp-cli-dev/cloudbuild": "file:../../models/cloudbuild",
-    "axios": "^1.7.7",
-    "fs-extra": "^11.2.0",
-    "inquirer": "^8.2.4",
-    "semver": "^7.6.3",
-    "simple-git": "^3.26.0",
-    "terminal-link": "^2.1.1"
+    "socket.io-client": "^2.5.0"
   }
 }

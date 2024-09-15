@@ -38,7 +38,6 @@ function spawn(command, args, options) {
 
   const cmd = win32 ? "cmd" : command;
   const cmdArgs = win32 ? ["/c"].concat(command, args) : args;
-
   return cp.spawn(cmd, cmdArgs, options || {});
 }
 

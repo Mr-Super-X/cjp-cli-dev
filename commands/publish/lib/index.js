@@ -14,7 +14,7 @@ class PublishCommand extends Command {
   init() {
     log.verbose("publish", this._args, this._cmd);
 
-    const { refreshGitServer, refreshGitToken, refreshGitOwner } =
+    const { refreshGitServer, refreshGitToken, refreshGitOwner, buildCmd } =
       this._args[0];
 
     // 保存用户输入的参数
@@ -22,6 +22,7 @@ class PublishCommand extends Command {
       refreshGitServer: refreshGitServer || false,
       refreshGitToken: refreshGitToken || false,
       refreshGitOwner: refreshGitOwner || false,
+      buildCmd,
     };
   }
 
@@ -35,6 +36,7 @@ class PublishCommand extends Command {
       await git.prepare(); // 自动化提交准备和代码仓库初始化
       await git.commit(); // 代码自动化提交
       // 3. 云构建和云发布
+      await git.publish(); // 代码云构建+云发布
       const endTime = new Date().getTime();
       log.info("本次发布耗时：", Math.floor(endTime - startTime) / 1000 + "秒");
     } catch (err) {

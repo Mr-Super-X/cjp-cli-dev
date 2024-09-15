@@ -2,7 +2,6 @@
 
 // 内置库
 const path = require("path");
-const cp = require("child_process");
 // 自建库
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
@@ -31,6 +30,7 @@ async function exec() {
   const cmdName = cmdObj.name();
   // 获取命令参数
   const cmdOpts = cmdObj.opts();
+  log.verbose('命令参数', cmdOpts);
   // 获取命令对应的包名（可以放在服务端通过接口获取，这样可以扩展动态配置）
   const packageName = SETTINGS[cmdName];
   // 获取版本号，默认获取最新版本
@@ -67,6 +67,7 @@ async function exec() {
 
   // 找到入口执行文件并执行
   const rootFile = pkg.getRootFilePath();
+  log.verbose('rootFile', rootFile);
   if (rootFile) {
     // 捕获异步throw err
     try {

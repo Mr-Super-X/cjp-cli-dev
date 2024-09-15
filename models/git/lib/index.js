@@ -12,10 +12,13 @@ const os = require("os");
 const fs = require("fs");
 // 自建库
 const log = require("@cjp-cli-dev/log");
+const CloudBuild = require("@cjp-cli-dev/cloudbuild");
 const { readFile, writeFile, spinners } = require("@cjp-cli-dev/utils");
 const Github = require("./Github");
 const Gitee = require("./Gitee");
 const gitignoreTemplate = require("./gitignoreTemplate");
+// 白名单命令，不在此白名单中的命令都需要确认是否执行，防止用户插入风险操作，如：rm -rf等
+const COMMAND_WHITELIST = require("./commandWhitelist");
 
 const DEFAULT_CLI_HOME = ".cjp-cli-dev"; // 默认缓存路径
 const GIT_ROOT_DIR = ".git"; // git根目录
@@ -71,6 +74,7 @@ class Git {
       refreshGitServer = false,
       refreshGitToken = false,
       refreshGitOwner = false,
+      buildCmd = "",
     }
   ) {
     // 将当前类使用到的属性都定义出来，可读性更高
@@ -90,6 +94,7 @@ class Git {
     this.refreshGitServer = refreshGitServer; // 是否强制更新git托管平台
     this.refreshGitToken = refreshGitToken; // 是否强制更新git token
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
+    this.buildCmd = buildCmd; // 自定义构建命令
   }
 
   async prepare() {
@@ -308,6 +313,42 @@ class Git {
     await this.checkNotCommitted();
     // 7. 推送开发分支到远程仓库
     await this.pushRemoteRepo(this.branch);
+  }
+
+  // 发布
+  async publish() {
+    await this.preparePublish();
+
+    // 创建云构建实例，将当前git实例和所需要的参数传进去
+    const cloudBuild = new CloudBuild(this, {
+      gitPublishType: "", // 发布类型 测试or预发布or生产
+      buildCmd: this.buildCmd,
+    });
+  }
+
+  // 发布准备阶段
+  async preparePublish() {
+    if (this.buildCmd) {
+      const buildCmdArr = this.buildCmd.split(" ");
+      const cmd = this.checkCommandInWhitelist(buildCmdArr[0]);
+    } else {
+      // 不传默认就是npm run build
+      this.buildCmd = "npm run build";
+    }
+  }
+
+  // 检查命令是否在白名单
+  checkCommandInWhitelist(command) {
+    if (!COMMAND_WHITELIST.includes(command)) {
+      // 如果命令不在白名单
+      throw new Error(
+        `命令 ${command} 不在白名单中，可能存在风险，已阻止程序运行。当前仅支持以下命令：\n${COMMAND_WHITELIST.join(
+          "|"
+        )}`
+      );
+    }
+
+    return command;
   }
 
   async getCorrectVersion() {

@@ -297,7 +297,7 @@ class InitCommand extends Command {
     if (!COMMAND_WHITELIST.includes(command)) {
       // 如果命令不在白名单
       throw new Error(
-        `命令 ${command} 不在白名单中，可能存在风险，已阻止程序运行`
+        `命令 ${command} 不在白名单中，可能存在风险，已阻止程序运行。当前仅支持以下命令：\n${COMMAND_WHITELIST.join('|')}`
       );
     }
 
