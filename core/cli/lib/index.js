@@ -59,7 +59,7 @@ function registerCommander() {
     .option("-rgs, --refreshGitServer", "强制更新Git托管平台")
     .option("-rgt, --refreshGitToken", "强制更新Git托管平台token")
     .option("-rgo, --refreshGitOwner", "强制更新Git仓库登录类型")
-    .option("-bc, --buildCmd <buildCmd>", "指定该参数传入自定义构建命令（命令需使用引号），默认使用'npm run build'构建", "npm run build")
+    .option("-bc, --buildCmd [buildCmd]", "指定该参数传入自定义构建命令（命令需使用引号），默认使用'npm run build'构建", "npm run build")
     .action(exec);
 
   // 高级功能：监听debug事件，开启debug模式
