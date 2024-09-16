@@ -325,7 +325,9 @@ class Git {
       buildCmd: this.buildCmd,
     });
 
-    cloudBuild.init()
+    // 初始化云构建任务
+    await cloudBuild.init();
+    await cloudBuild.build();
   }
 
   // 发布准备阶段
