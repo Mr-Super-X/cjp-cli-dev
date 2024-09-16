@@ -14,7 +14,7 @@ class PublishCommand extends Command {
   init() {
     log.verbose("publish", this._args, this._cmd);
 
-    const { refreshGitServer, refreshGitToken, refreshGitOwner, buildCmd } =
+    const { refreshGitServer, refreshGitToken, refreshGitOwner, buildCmd, production } =
       this._args[0];
 
     // 保存用户输入的参数
@@ -23,6 +23,7 @@ class PublishCommand extends Command {
       refreshGitToken: refreshGitToken || false,
       refreshGitOwner: refreshGitOwner || false,
       buildCmd,
+      production,
     };
   }
 

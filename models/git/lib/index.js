@@ -35,6 +35,7 @@ const REPO_OWNER_USER = "user"; // 登录类型：个人
 const REPO_OWNER_ORG = "org"; // 登录类型：组织
 const RELEASE_VERSION = "release"; // 发布分支
 const DEVELOP_VERSION = "develop"; // 开发分支
+const PUBLISH_TYPE = "oss"; // 默认发布平台
 
 // 创建远程仓库类型选项
 const GIT_SERVER_TYPE_CHOICES = [
@@ -68,6 +69,14 @@ const GIT_OWNER_TYPE_ONLY_CHOICES = [
   },
 ];
 
+// 发布类型选项（可配置更多扩展）
+const GIT_PUBLISH_TYPE_CHOICES = [
+  {
+    name: "OSS",
+    value: "oss",
+  },
+];
+
 class Git {
   constructor(
     { name, version, dir },
@@ -76,6 +85,7 @@ class Git {
       refreshGitToken = false,
       refreshGitOwner = false,
       buildCmd = "",
+      production = false,
     }
   ) {
     // 将当前类使用到的属性都定义出来，可读性更高
@@ -92,10 +102,12 @@ class Git {
     this.repo = null; // 远程仓库信息
     this.remote = null; // 远程地址
     this.branch = null; // 本地开发分支
+    this.gitPublish = null; // 静态资源服务器类型
     this.refreshGitServer = refreshGitServer; // 是否强制更新git托管平台
     this.refreshGitToken = refreshGitToken; // 是否强制更新git token
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
     this.buildCmd = buildCmd; // 自定义构建命令
+    this.production = production; // 是否正式发布
   }
 
   async prepare() {
@@ -322,13 +334,16 @@ class Git {
 
     // 创建云构建实例，将当前git实例和所需要的参数传进去
     const cloudBuild = new CloudBuild(this, {
-      gitPublishType: "", // 发布类型 测试or预发布or生产
-      buildCmd: this.buildCmd,
+      type: this.gitPublish, // 静态资源服务器类型
+      buildCmd: this.buildCmd, // 构建命令
+      prod: this.production, // 是否正式发布
     });
 
+    // 准备云构建任务
+    await cloudBuild.prepare();
     // 初始化云构建任务
-    // await cloudBuild.init();
-    // await cloudBuild.build();
+    await cloudBuild.init();
+    await cloudBuild.build();
   }
 
   // 发布准备阶段
@@ -344,27 +359,54 @@ class Git {
       this.buildCmd = "npm run build";
     }
 
-    log.verbose('buildCmd', this.buildCmd);
-    log.verbose('scripts', pkg.scripts);
+    log.verbose("buildCmd", this.buildCmd);
+    log.verbose("scripts", pkg.scripts);
 
     // 如果package.json中没有配置script脚本则抛出异常
     const buildCmdArr = this.buildCmd.split(" ");
     const lastCmd = buildCmdArr[buildCmdArr.length - 1];
-    if(!pkg.scripts || !Object.keys(pkg.scripts).includes(lastCmd)) {
-      throw new Error(`当前项目package.json中scripts不存在 ${lastCmd} 命令配置`);
+    if (!pkg.scripts || !Object.keys(pkg.scripts).includes(lastCmd)) {
+      throw new Error(
+        `当前项目package.json中scripts不存在 ${lastCmd} 命令配置`
+      );
     }
 
     log.success("代码预检查通过");
 
+    const gitPublishPath = this.createPath(GIT_PUBLISH_FILE);
+    let gitPublish = readFile(gitPublishPath);
+    if (!gitPublish) {
+      gitPublish = (
+        await inquirer.prompt({
+          type: "list",
+          name: "gitPublish",
+          message: "请选择您想要上传静态资源代码的平台：",
+          default: PUBLISH_TYPE,
+          choices: GIT_PUBLISH_TYPE_CHOICES,
+        })
+      ).gitPublish;
 
+      writeFile(gitPublishPath, gitPublish);
+      log.success(
+        "git publish类型写入成功",
+        `${gitPublish}  =>  ${gitPublishPath}`
+      );
+    } else {
+      log.success("git publish类型读取成功", `${gitPublish}`);
+    }
+
+    this.gitPublish = gitPublish; // 缓存到this上
+    log.verbose("gitPublish", gitPublish);
   }
 
   // 获取项目package.json
   getPackageJson() {
     const pkgPath = path.resolve(this.dir, "package.json");
     // 没有package.json表示这不是一个标准前端项目
-    if(!fs.existsSync(pkgPath)) {
-      throw new Error(`源码目录 ${this.dir} 中不存在 package.json ，可能不是一个标准前端项目`)
+    if (!fs.existsSync(pkgPath)) {
+      throw new Error(
+        `源码目录 ${this.dir} 中不存在 package.json ，可能不是一个标准前端项目`
+      );
     }
 
     return fse.readJSONSync(pkgPath);
@@ -639,6 +681,8 @@ class Git {
 
       await this.git.commit(message);
       log.success("本次commit提交成功：", message);
+    } else {
+      log.info("没有发现未提交代码");
     }
   }
 

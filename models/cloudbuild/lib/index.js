@@ -11,7 +11,7 @@ const TIMEOUT = 5 * 60 * 1000; // 5 minutes
 const CONNECT_TIMEOUT = 5 * 1000; // 5 seconds以后超时断开连接
 
 // 云构建失败服务器socket emit出来的action（需和服务端配置保持一致）
-const BUILD_FAILED_ACTION = ["prepare failed", "download failed", "install failed", "build failed"]; // 错误类型
+const BUILD_FAILED_ACTION = ["prepare failed", "download failed", "install failed", "build failed", "pre-publish failed", 'publish failed']; // 错误类型
 
 // 与后端约定好的规范参数解析方法
 function parseMsg(msg) {
@@ -25,13 +25,21 @@ function parseMsg(msg) {
 
 class CloudBuild {
   constructor(git, options) {
-    const { buildCmd } = options;
+    const { buildCmd, production } = options;
 
     this.git = git; // 当前simpleGit实例（@cjp-cli-dev/git）
     this.buildCmd = buildCmd; // 自定义构建命令
+    this.production = production; // 是否正式发布
     this.timeout = TIMEOUT; // 云构建任务超时时间
     this.timer = null; // socket连接超时延时器
     this.socket = null; // socket对象
+  }
+
+
+  async prepare() {
+    // 1. 获取oss文件
+    // 2. 判断当前项目oss文件是否存在
+    // 3. 如果存在且处于正式发布状态则询问用户是否覆盖安装
   }
 
   init() {
@@ -43,6 +51,7 @@ class CloudBuild {
           branch: this.git.branch, // 本地开发分支
           version: this.git.version, // 版本号
           buildCmd: this.buildCmd, // 自定义构建命令
+          prod: this.production, // 是否正式发布
         },
       });
 
