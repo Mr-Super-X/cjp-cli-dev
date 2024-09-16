@@ -324,6 +324,8 @@ class Git {
       gitPublishType: "", // 发布类型 测试or预发布or生产
       buildCmd: this.buildCmd,
     });
+
+    cloudBuild.init()
   }
 
   // 发布准备阶段
@@ -358,7 +360,7 @@ class Git {
     //    开发分支：develop/x.y.z
     // 版本规范：
     //    major/minor/patch
-    log.notice("获取远程代码分支信息");
+    log.info("获取远程代码分支信息");
     const remoteBranchList = await this.getRemoteBranchList(RELEASE_VERSION);
     let releaseVersion = null;
     if (remoteBranchList && remoteBranchList.length > 0) {
@@ -370,13 +372,13 @@ class Git {
     if (!releaseVersion) {
       this.branch = `${DEVELOP_VERSION}/${devVersion}`;
     } else if (semver.gte(this.version, releaseVersion)) {
-      log.notice(
+      log.info(
         "当前本地版本大于等于远程最新版本",
         `${devVersion} >= ${releaseVersion}`
       );
       this.branch = `${DEVELOP_VERSION}/${devVersion}`;
     } else {
-      log.notice(
+      log.info(
         "当前本地版本落后于远程最新版本",
         `${devVersion} < ${releaseVersion}`
       );
@@ -427,16 +429,16 @@ class Git {
 
   // 检查stash区，如果和本地变更有冲突，需要手动将本地代码进行提交，再手动执行git stash pop取出
   async checkStash() {
-    log.notice("检查stash记录");
+    log.info("检查stash记录");
     const stashList = await this.git.stashList();
     log.verbose("stash", stashList.all);
     // 如果stash中有内容则弹出内容
     if (stashList.all.length > 0) {
-      log.notice("检测到stash区中有内容，将自动取出stash");
+      log.info("检测到stash区中有内容，将自动取出stash");
       await this.git.stash(["pop"]);
       log.success("自动执行git stash pop成功");
     } else {
-      log.notice("stash区未检测到内容");
+      log.info("stash区未检测到内容");
     }
   }
 
@@ -446,27 +448,27 @@ class Git {
 
     // 如果本地存在该分支，直接切换，否则创建一个本地分支
     if (localBranchList.all.includes(branchName)) {
-      log.notice(`本地分支 ${branchName} 存在，将自动切换到该分支`);
+      log.info(`本地分支 ${branchName} 存在，将自动切换到该分支`);
       await this.git.checkout(branchName);
       log.success(`自动切换到 ${branchName} 分支成功`);
     } else {
-      log.notice(`本地分支 ${branchName} 不存在，将自动创建该分支`);
+      log.info(`本地分支 ${branchName} 不存在，将自动创建该分支`);
       await this.git.checkoutLocalBranch(branchName); // 创建并切换到该分支
       log.success(`自动创建 ${branchName} 分支成功`);
     }
   }
 
   async pullRemoteMasterBranch() {
-    log.notice(`自动合并远程 master => ${this.branch}`);
+    log.info(`自动合并远程 master => ${this.branch}`);
     await this.pullRemoteRepo("master");
     log.success("合并远程 master 分支代码成功");
 
     // 合并代码后检查冲突
     await this.checkConflicted();
-    log.notice("检查远程开发分支");
+    log.info("检查远程开发分支");
     const remoteBranchList = await this.getRemoteBranchList();
     if (remoteBranchList.includes(this.version)) {
-      log.notice(
+      log.info(
         `存在远程分支 ${this.branch}，自动合并远程 ${this.branch} => ${this.branch}`
       );
       await this.pullRemoteRepo(this.branch);
@@ -532,20 +534,20 @@ class Git {
 
     // 如果远程master已存在，则拉取代码到本地进行合并
     if (await this.checkRemoteMaster()) {
-      log.notice("当前远程仓库已存在 master 分支");
+      log.info("当前远程仓库已存在 master 分支");
       await this.pullRemoteRepo("master", {
         // 强制让没有关系的两个分支代码进行合并，防止不在一条代码线上的情况
         "--allow-unrelated-histories": true,
       });
     } else {
-      log.notice("远程仓库 master 分支不存在");
+      log.info("远程仓库 master 分支不存在");
       await this.pushRemoteRepo("master");
     }
   }
 
   // 检查代码冲突
   async checkConflicted() {
-    log.notice("检查代码冲突");
+    log.info("检查代码冲突");
     const status = await this.git.status();
     if (status.conflicted.length > 0) {
       throw new Error(
@@ -560,7 +562,7 @@ class Git {
 
   // 检查未提交的代码
   async checkNotCommitted() {
-    log.notice("检查未提交代码");
+    log.info("检查未提交代码");
     const status = await this.git.status();
 
     const { not_added, created, deleted, modified, renamed } = status;
@@ -580,7 +582,7 @@ class Git {
       log.verbose("当前git状态", status);
       log.warn(`存在已变更但未提交的代码`);
 
-      log.notice("自动执行git add操作");
+      log.info("自动执行git add操作");
       // 将可能产生变更的所有文件都添加到git暂存区，然后让用户输入commit信息
       await this.git.add(not_added);
       await this.git.add(created);
@@ -589,7 +591,7 @@ class Git {
       await this.git.add(renamed);
       log.success("git add命令执行成功");
 
-      log.notice("自动执行git commit操作");
+      log.info("自动执行git commit操作");
       let message;
 
       // 持续提示用户输入内容
@@ -619,26 +621,26 @@ class Git {
 
   // 推送到远程分支
   async pushRemoteRepo(branchName) {
-    log.notice(`推送代码至远程仓库 ${branchName} 分支`);
+    log.info(`推送代码至远程仓库 ${branchName} 分支`);
     await this.git.push("origin", branchName);
     log.success("推送代码成功");
   }
 
   async pullRemoteRepo(branchName, options) {
-    log.notice(`同步远程仓库 ${branchName} 分支代码`);
+    log.info(`同步远程仓库 ${branchName} 分支代码`);
     await this.git.pull("origin", branchName, options);
     log.success("代码同步成功");
   }
 
   // 获取远程仓库地址
   async getRemote() {
-    log.notice(`检查${GIT_ROOT_DIR}目录是否存在`);
+    log.info(`检查${GIT_ROOT_DIR}目录是否存在`);
     const gitPath = path.resolve(this.dir, GIT_ROOT_DIR);
     // 将remote缓存到this中
     this.remote = this.gitServer.getRemote(this.login, this.name);
 
     if (fs.existsSync(gitPath)) {
-      log.notice(`${GIT_ROOT_DIR}目录已存在`);
+      log.info(`${GIT_ROOT_DIR}目录已存在`);
       return true;
     } else {
       log.warn(`${GIT_ROOT_DIR}目录不存在，将自动创建该目录`);
@@ -647,10 +649,10 @@ class Git {
 
   // 初始化并添加远程仓库
   async initAndAddRemote() {
-    log.notice("执行git init");
+    log.info("执行git init");
     await this.git.init(this.dir);
     log.success("git init初始化成功");
-    log.notice("添加git remote");
+    log.info("添加git remote");
     const remotes = await this.git.getRemotes();
     log.success("git remote添加成功");
     log.verbose("git remote：", remotes);

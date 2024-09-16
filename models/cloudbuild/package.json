@@ -25,6 +25,8 @@
     "test": "node ./__tests__/@cjp-cli-dev/cloudbuild.test.js"
   },
   "dependencies": {
+    "@cjp-cli-dev/log": "file:../../utils/log",
+    "lodash": "^4.17.21",
     "socket.io-client": "^2.5.0"
   }
 }
