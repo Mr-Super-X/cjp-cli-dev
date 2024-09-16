@@ -11,7 +11,7 @@ const TIMEOUT = 5 * 60 * 1000; // 5 minutes
 const CONNECT_TIMEOUT = 5 * 1000; // 5 seconds以后超时断开连接
 
 // 云构建失败服务器socket emit出来的action（需和服务端配置保持一致）
-const BUILD_FAILED_ACTION = ["prepare failed", "download failed", "error", "install failed"]; // 错误类型
+const BUILD_FAILED_ACTION = ["prepare failed", "download failed", "install failed", "build failed"]; // 错误类型
 
 // 与后端约定好的规范参数解析方法
 function parseMsg(msg) {
