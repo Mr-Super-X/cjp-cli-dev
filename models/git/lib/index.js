@@ -27,6 +27,7 @@ const GIT_TOKEN_FILE = ".git_token"; // git token缓存文件
 const GIT_OWNER_FILE = ".git_owner"; // git owner登录类型缓存文件
 const GIT_LOGIN_FILE = ".git_login"; // git login缓存文件
 const GIT_IGNORE_FILE = ".gitignore"; // .gitignore缓存文件
+const GIT_PUBLISH_FILE = ".git_publish"; // 缓存发布文件
 
 const GITHUB = "github";
 const GETEE = "gitee";
@@ -326,12 +327,15 @@ class Git {
     });
 
     // 初始化云构建任务
-    await cloudBuild.init();
-    await cloudBuild.build();
+    // await cloudBuild.init();
+    // await cloudBuild.build();
   }
 
   // 发布准备阶段
   async preparePublish() {
+    log.info("开始进行云构建前代码预检查");
+    const pkg = this.getPackageJson();
+
     if (this.buildCmd) {
       const buildCmdArr = this.buildCmd.split(" ");
       const cmd = this.checkCommandInWhitelist(buildCmdArr[0]);
@@ -339,6 +343,31 @@ class Git {
       // 不传默认就是npm run build
       this.buildCmd = "npm run build";
     }
+
+    log.verbose('buildCmd', this.buildCmd);
+    log.verbose('scripts', pkg.scripts);
+
+    // 如果package.json中没有配置script脚本则抛出异常
+    const buildCmdArr = this.buildCmd.split(" ");
+    const lastCmd = buildCmdArr[buildCmdArr.length - 1];
+    if(!pkg.scripts || !Object.keys(pkg.scripts).includes(lastCmd)) {
+      throw new Error(`当前项目package.json中scripts不存在 ${lastCmd} 命令配置`);
+    }
+
+    log.success("代码预检查通过");
+
+
+  }
+
+  // 获取项目package.json
+  getPackageJson() {
+    const pkgPath = path.resolve(this.dir, "package.json");
+    // 没有package.json表示这不是一个标准前端项目
+    if(!fs.existsSync(pkgPath)) {
+      throw new Error(`源码目录 ${this.dir} 中不存在 package.json ，可能不是一个标准前端项目`)
+    }
+
+    return fse.readJSONSync(pkgPath);
   }
 
   // 检查命令是否在白名单
