@@ -331,12 +331,11 @@ class Git {
   // 发布
   async publish() {
     await this.preparePublish();
-
     // 创建云构建实例，将当前git实例和所需要的参数传进去
     const cloudBuild = new CloudBuild(this, {
       type: this.gitPublish, // 静态资源服务器类型
       buildCmd: this.buildCmd, // 构建命令
-      prod: this.production, // 是否正式发布
+      production: this.production, // 是否正式发布
     });
 
     // 准备云构建任务
