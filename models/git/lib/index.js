@@ -342,7 +342,24 @@ class Git {
     await cloudBuild.prepare();
     // 初始化云构建任务
     await cloudBuild.init();
-    await cloudBuild.build();
+    // 开始云构建
+    const result = await cloudBuild.build();
+    // if(result) {
+    //   await this.uploadTemplate()
+    // }
+    // if(this.production && result) {
+    //   // 打tag
+    //   await this.checkTag();
+    // }
+    // await this.checkTag();
+  }
+
+  // 检查并打tag
+  async checkTag() {
+    log.info('获取远程 tag 列表')
+    const tag = `${RELEASE_VERSION}/${this.version}`;
+    const tagList = await this.getRemoteBranchList(RELEASE_VERSION)
+    console.log(tagList, tag)
   }
 
   // 发布准备阶段

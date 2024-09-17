@@ -1,9 +1,11 @@
 "use strict";
 
 // 第三方库
+const inquirer = require("inquirer"); // 用于终端交互
 const io = require("socket.io-client"); // 用于连接egg-socket.io
 const get = require("lodash/get");
 // 自建库
+const request = require("@cjp-cli-dev/request"); // 用于发起http请求
 const log = require("@cjp-cli-dev/log"); // 用于打印日志
 
 const WS_SERVER = "http://cjp.clidev.xyz:7001";
@@ -11,7 +13,14 @@ const TIMEOUT = 5 * 60 * 1000; // 5 minutes
 const CONNECT_TIMEOUT = 5 * 1000; // 5 seconds以后超时断开连接
 
 // 云构建失败服务器socket emit出来的action（需和服务端配置保持一致）
-const BUILD_FAILED_ACTION = ["prepare failed", "download failed", "install failed", "build failed", "pre-publish failed", 'publish failed']; // 错误类型
+const BUILD_FAILED_ACTION = [
+  "prepare failed",
+  "download failed",
+  "install failed",
+  "build failed",
+  "pre-publish failed",
+  "publish failed",
+]; // 错误类型
 
 // 与后端约定好的规范参数解析方法
 function parseMsg(msg) {
@@ -35,11 +44,40 @@ class CloudBuild {
     this.socket = null; // socket对象
   }
 
-
   async prepare() {
-    // 1. 获取oss文件
-    // 2. 判断当前项目oss文件是否存在
-    // 3. 如果存在且处于正式发布状态则询问用户是否覆盖安装
+    // 是否为正式发布
+    if (this.production) {
+      // 1. 获取oss文件
+      const projectName = this.git.name;
+      const projectType = this.production ? "prod" : "dev";
+      const ossProject = await request({
+        url: "/project/oss",
+        params: {
+          name: projectName,
+          type: projectType,
+        },
+      });
+      // 2. 判断当前项目oss文件是否存在
+      if (ossProject.code === 0 && ossProject.data.length > 0) {
+        // 3. 如果存在且处于正式发布状态则询问用户是否覆盖安装
+        const cover = (
+          await inquirer.prompt({
+            type: "list",
+            name: "cover",
+            message: `OSS中已存在 ${projectName} 项目，是否强行覆盖发布？`,
+            default: false, // 默认不覆盖
+            choices: [
+              { name: "放弃发布", value: false },
+              { name: "覆盖发布", value: true },
+            ],
+          })
+        ).cover;
+
+        if (!cover) {
+          throw new Error("发布终止");
+        }
+      }
+    }
   }
 
   init() {
