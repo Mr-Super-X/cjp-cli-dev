@@ -27,6 +27,7 @@
   "dependencies": {
     "@cjp-cli-dev/log": "file:../../utils/log",
     "@cjp-cli-dev/utils": "file:../../utils/utils",
+    "@cjp-cli-dev/request": "file:../../utils/request",
     "@cjp-cli-dev/cloudbuild": "file:../../models/cloudbuild",
     "axios": "^1.7.7",
     "fs-extra": "^11.2.0",

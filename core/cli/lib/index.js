@@ -61,6 +61,9 @@ function registerCommander() {
     .option("-rgo, --refreshGitOwner", "强制更新Git仓库登录类型", false)
     .option("-bc, --buildCmd [buildCmd]", "指定该参数传入自定义构建命令（命令需使用引号）", "npm run build")
     .option("-prod, --production", "是否正式发布", false)
+    .option("-su, --sshUser [sshUser]", "指定该参数传入模板服务器用户名", "")
+    .option("-si, --sshIp [sshIp]", "指定该参数传入模板服务器IP或域名", "")
+    .option("-sp, --sshPath [sshPath]", "指定该参数传入模板服务器上传路径", "")
     .action(exec);
 
   // 高级功能：监听debug事件，开启debug模式

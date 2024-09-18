@@ -118,7 +118,7 @@ class CloudBuild {
 
       // 监听连接断开事件
       socket.on("disconnect", () => {
-        log.error("disconnect", "云构建任务断开");
+        log.info("disconnect", "云构建任务断开");
         this.disconnect();
       });
 
@@ -133,6 +133,7 @@ class CloudBuild {
   }
 
   async build() {
+    let result = true;
     return new Promise((resolve, reject) => {
       // 发送build事件给到服务端执行
       this.socket.emit("build");
@@ -144,6 +145,7 @@ class CloudBuild {
           log.error(parsedMsg.action, parsedMsg.message);
           clearTimeout(this.timer);
           this.disconnect();
+          result = false;
         } else {
           log.success(parsedMsg.action, parsedMsg.message);
         }
@@ -151,6 +153,12 @@ class CloudBuild {
       // 监听服务端building事件
       this.socket.on("building", (msg) => {
         console.log(msg); // 输出服务端构建过程中的所有原始日志
+      });
+      this.socket.on("disconnect", () => {
+        resolve(result);
+      });
+      this.socket.on("error", (err) => {
+        reject(err);
       });
     });
   }

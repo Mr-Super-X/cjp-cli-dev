@@ -10,7 +10,9 @@ const terminalLink = require("terminal-link"); // 用于生成终端可点击链
 const path = require("path");
 const os = require("os");
 const fs = require("fs");
+const cp = require("child_process");
 // 自建库
+const request = require("@cjp-cli-dev/request");
 const log = require("@cjp-cli-dev/log");
 const CloudBuild = require("@cjp-cli-dev/cloudbuild");
 const { readFile, writeFile, spinners } = require("@cjp-cli-dev/utils");
@@ -36,6 +38,7 @@ const REPO_OWNER_ORG = "org"; // 登录类型：组织
 const RELEASE_VERSION = "release"; // 发布分支
 const DEVELOP_VERSION = "develop"; // 开发分支
 const PUBLISH_TYPE = "oss"; // 默认发布平台
+const TEMPLATE_TEMP_DIR = "oss-temp"; // 从oss下载的模板缓存目录
 
 // 创建远程仓库类型选项
 const GIT_SERVER_TYPE_CHOICES = [
@@ -86,6 +89,9 @@ class Git {
       refreshGitOwner = false,
       buildCmd = "",
       production = false,
+      sshUser = "",
+      sshIp = "",
+      sshPath = "",
     }
   ) {
     // 将当前类使用到的属性都定义出来，可读性更高
@@ -108,6 +114,11 @@ class Git {
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
     this.buildCmd = buildCmd; // 自定义构建命令
     this.production = production; // 是否正式发布
+    this.sshUser = sshUser; // ssh用户
+    this.sshIp = sshIp; // ssh IP
+    this.sshPath = sshPath; // ssh 路径
+
+    log.verbose("ssh配置：", this.sshUser, this.sshIp, this.sshPath);
   }
 
   async prepare() {
@@ -318,12 +329,12 @@ class Git {
     await this.checkStash();
     // 3. 检查代码冲突
     await this.checkConflicted();
-    // 4. 切换开发分支
-    await this.checkoutLocalBranch(this.branch);
-    // 5. 合并远程master分支到本地开发分支
-    await this.pullRemoteMasterBranch();
-    // 6. 检查未提交的代码进行提交
+    // 4. 检查未提交的代码进行提交
     await this.checkNotCommitted();
+    // 5. 切换开发分支
+    await this.checkoutLocalBranch(this.branch);
+    // 6. 合并远程master分支到本地开发分支
+    await this.pullRemoteMasterBranch();
     // 7. 推送开发分支到远程仓库
     await this.pushRemoteRepo(this.branch);
   }
@@ -344,22 +355,78 @@ class Git {
     await cloudBuild.init();
     // 开始云构建
     const result = await cloudBuild.build();
-    // if(result) {
-    //   await this.uploadTemplate()
-    // }
-    // if(this.production && result) {
-    //   // 打tag
-    //   await this.checkTag();
-    // }
+    // 获取云构建结果，上传模板
+    if (result) {
+      await this.uploadTemplate();
+    }
+    if (this.production && result) {
+      // 打tag
+      await this.checkTag();
+    }
     // await this.checkTag();
+  }
+
+  // 上传模板
+  async uploadTemplate() {
+    const TEMPLATE_FILE_NAME = "index.html";
+    if (this.sshUser && this.sshIp && this.sshPath) {
+      log.info("开始从OSS中下载模板文件");
+      let ossTemplateFile = await request({
+        url: "/oss/get",
+        params: {
+          name: this.name, // 项目文件夹名称
+          type: this.production ? "prod" : "dev", // 是否生产模式
+          file: TEMPLATE_FILE_NAME,
+        },
+      });
+      // 更新
+      if (ossTemplateFile.code === 0 && ossTemplateFile.data) {
+        ossTemplateFile = ossTemplateFile.data;
+      }
+      log.verbose("oss模板文件url", ossTemplateFile.url);
+
+      // 下载模板文件（index.html）
+      let response = await request({
+        url: ossTemplateFile.url,
+      });
+
+      if (response) {
+        // 如果模板文件存在，则创建缓存目录，否则清空目录
+        const ossTempDir = path.resolve(
+          this.homePath,
+          TEMPLATE_TEMP_DIR,
+          `${this.name}@${this.version}`
+        );
+        if (!fs.existsSync(ossTempDir)) {
+          fse.mkdirpSync(ossTempDir);
+        } else {
+          fse.emptyDirSync(ossTempDir);
+        }
+
+        // 然后将模板文件写入缓存目录
+        const templateFilePath = path.resolve(ossTempDir, TEMPLATE_FILE_NAME);
+        fse.createFileSync(templateFilePath);
+        fs.writeFileSync(templateFilePath, response);
+        log.success("OSS模板文件下载成功，已写入缓存 => " + templateFilePath);
+
+        // 上传模板文件
+        log.info('开始上传模板文件至服务器')
+        const uploadCmd = `scp -r ${templateFilePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`
+        log.verbose('uploadCmd', uploadCmd)
+        const result = cp.execSync(uploadCmd)
+        console.log(result.toString());
+        log.success("模板文件上传成功");
+        fse.emptyDirSync(ossTempDir); // 上传模板成功后清空缓存目录
+      }
+    }
   }
 
   // 检查并打tag
   async checkTag() {
-    log.info('获取远程 tag 列表')
+    log.info("获取远程 tag 列表");
     const tag = `${RELEASE_VERSION}/${this.version}`;
-    const tagList = await this.getRemoteBranchList(RELEASE_VERSION)
-    console.log(tagList, tag)
+    const tagList = await this.getRemoteBranchList(RELEASE_VERSION);
+    console.log(tagList, tag);
   }
 
   // 发布准备阶段
