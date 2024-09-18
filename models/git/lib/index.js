@@ -359,11 +359,42 @@ class Git {
     if (result) {
       await this.uploadTemplate();
     }
+    // 如果是生产发布则执行以下流程
     if (this.production && result) {
-      // 打tag
+      // 自动删除和打新tag
       await this.checkTag();
+      // 切换master分支
+      await this.checkoutLocalBranch("master");
+      // 合并开发分支代码到master分支
+      await this.mergeBranchToMaster();
+      // 将代码推送到远程master分支
+      await this.pushRemoteRepo("master");
+      // 删除本地开发分支
+      await this.deleteLocalBranch();
+      // 删除远程开发分支
+      await this.deleteRemoteBranch();
     }
-    // await this.checkTag();
+  }
+
+  // 删除本地开发分支
+  async deleteLocalBranch() {
+    log.info("开始删除本地开发分支", this.branch);
+    await this.git.deleteLocalBranch(this.branch);
+    log.success(`删除本地开发分支 ${this.branch} 成功`);
+  }
+
+  // 删除远程开发分支
+  async deleteRemoteBranch() {
+    log.info("开始删除远程开发分支", this.branch);
+    await this.git.push(["origin", "--delete", this.branch]);
+    log.success(`删除远程开发分支 ${this.branch} 成功`);
+  }
+
+  // 合并开发分支代码到master分支
+  async mergeBranchToMaster() {
+    log.info("开始合并代码", `${this.branch}  =>  master`);
+    await this.git.mergeFromTo(this.branch, "master");
+    log.success("代码合并成功", `已将 ${this.branch} 合并至 master`);
   }
 
   // 上传模板
@@ -410,10 +441,10 @@ class Git {
         log.success("OSS模板文件下载成功，已写入缓存 => " + templateFilePath);
 
         // 上传模板文件
-        log.info('开始上传模板文件至服务器')
-        const uploadCmd = `scp -r ${templateFilePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`
-        log.verbose('uploadCmd', uploadCmd)
-        const result = cp.execSync(uploadCmd)
+        log.info("开始上传模板文件至服务器");
+        const uploadCmd = `scp -r ${templateFilePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`;
+        log.verbose("uploadCmd", uploadCmd);
+        const result = cp.execSync(uploadCmd);
         console.log(result.toString());
         log.success("模板文件上传成功");
         fse.emptyDirSync(ossTempDir); // 上传模板成功后清空缓存目录
@@ -426,7 +457,31 @@ class Git {
     log.info("获取远程 tag 列表");
     const tag = `${RELEASE_VERSION}/${this.version}`;
     const tagList = await this.getRemoteBranchList(RELEASE_VERSION);
-    console.log(tagList, tag);
+    log.verbose("tagList", tagList);
+    log.verbose("tag", tag);
+
+    // 检查远程tag，如果远程tag中有当前版本则删除
+    if (tagList.includes(this.version)) {
+      log.info(`远程tag ${tag} 已存在`);
+      await this.git.push(["origin", `:refs/tags/${tag}`]);
+      // await this.git.push(["origin", "--delete", tag]); // 效果与上面一致
+      log.success(`远程tag ${tag} 删除成功`);
+    }
+
+    // 检查本地tag，有也需要进行删除
+    const localTagList = await this.git.tags();
+    if (localTagList.all.includes(tag)) {
+      log.info(`本地已存在tag ${tag}，将会自动删除该tag然后创建新的tag`);
+      await this.git.tag(["-d", tag]);
+      log.success(`本地tag ${tag} 删除成功`);
+    }
+
+    // 创建新的本地tag
+    await this.git.addTag(tag);
+    log.success(`创建新的本地tag ${tag} 成功`);
+    // 推送新的本地tag到远端
+    await this.git.pushTags("origin");
+    log.success(`已将新的tag ${tag} 推送到远程`);
   }
 
   // 发布准备阶段
