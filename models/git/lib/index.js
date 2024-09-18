@@ -362,7 +362,7 @@ class Git {
     }
     // 如果是生产发布则执行以下流程
     if (this.production && result) {
-      this.runCreateTagTask();
+      await this.runCreateTagTask();
 
       // // 自动删除和打新tag
       // await this.checkTag();
@@ -380,7 +380,7 @@ class Git {
   }
 
   // 使用listr和rxjs优化任务在终端的交互，目前以自动打tag任务作为示例，可以参考将所有的流程都进行优化
-  runCreateTagTask() {
+  async runCreateTagTask() {
     // 注意以下task任务中的方法不能调用log.xx输出日志，否则会有冲突
     const tasks = new Listr([
       {
@@ -405,7 +405,7 @@ class Git {
                 return new Observable(async (o) => {
                   o.next("正在切换master分支");
                   await sleep(1000);
-                  this.checkoutLocalBranch("master").then(() => {
+                  this.checkoutBranchTask("master").then(() => {
                     o.complete();
                   });
                 });
@@ -417,9 +417,8 @@ class Git {
                 return new Observable(async (o) => {
                   o.next("正在合并开发分支代码到master分支");
                   await sleep(1000);
-                  this.mergeBranchToMaster().then(() => {
-                    o.complete();
-                  });
+                  await this.git.mergeFromTo(this.branch, "master");
+                  o.complete();
                 });
               },
             },
@@ -429,9 +428,8 @@ class Git {
                 return new Observable(async (o) => {
                   o.next("正在将代码推送到远程master分支");
                   await sleep(1000);
-                  this.pushRemoteRepo("master").then(() => {
-                    o.complete();
-                  });
+                  await this.git.push("origin", "master");
+                  o.complete();
                 });
               },
             },
@@ -441,9 +439,8 @@ class Git {
                 return new Observable(async (o) => {
                   o.next("正在删除本地开发分支");
                   await sleep(1000);
-                  this.deleteLocalBranch().then(() => {
-                    o.complete();
-                  });
+                  await this.git.deleteLocalBranch(this.branch);
+                  o.complete();
                 });
               },
             },
@@ -453,9 +450,8 @@ class Git {
                 return new Observable(async (o) => {
                   o.next("正在删除远程开发分支");
                   await sleep(1000);
-                  this.deleteRemoteBranch().then(() => {
-                    o.complete();
-                  });
+                  await this.git.push(["origin", "--delete", this.branch]);
+                  o.complete();
                 });
               },
             },
@@ -468,23 +464,23 @@ class Git {
 
   // 删除本地开发分支
   async deleteLocalBranch() {
-    // log.info("开始删除本地开发分支", this.branch);
+    log.info("开始删除本地开发分支", this.branch);
     await this.git.deleteLocalBranch(this.branch);
-    // log.success(`删除本地开发分支 ${this.branch} 成功`);
+    log.success(`删除本地开发分支 ${this.branch} 成功`);
   }
 
   // 删除远程开发分支
   async deleteRemoteBranch() {
-    // log.info("开始删除远程开发分支", this.branch);
+    log.info("开始删除远程开发分支", this.branch);
     await this.git.push(["origin", "--delete", this.branch]);
-    // log.success(`删除远程开发分支 ${this.branch} 成功`);
+    log.success(`删除远程开发分支 ${this.branch} 成功`);
   }
 
   // 合并开发分支代码到master分支
   async mergeBranchToMaster() {
-    // log.info("开始合并代码", `${this.branch}  =>  master`);
+    log.info("开始合并代码", `${this.branch}  =>  master`);
     await this.git.mergeFromTo(this.branch, "master");
-    // log.success("代码合并成功", `已将 ${this.branch} 合并至 master`);
+    log.success("代码合并成功", `已将 ${this.branch} 合并至 master`);
   }
 
   // 上传模板
@@ -616,11 +612,11 @@ class Git {
 
       writeFile(gitPublishPath, gitPublish);
       log.success(
-        "git publish类型写入成功",
+        "发布平台类型写入成功",
         `${gitPublish}  =>  ${gitPublishPath}`
       );
     } else {
-      log.success("git publish类型读取成功", `${gitPublish}`);
+      log.success("发布平台类型读取成功", `${gitPublish}`);
     }
 
     this.gitPublish = gitPublish; // 缓存到this上
@@ -749,13 +745,25 @@ class Git {
 
     // 如果本地存在该分支，直接切换，否则创建一个本地分支
     if (localBranchList.all.includes(branchName)) {
-      // log.info(`本地分支 ${branchName} 存在，将自动切换到该分支`);
+      log.info(`本地分支 ${branchName} 存在，将自动切换到该分支`);
       await this.git.checkout(branchName);
-      // log.success(`自动切换到 ${branchName} 分支成功`);
+      log.success(`自动切换到 ${branchName} 分支成功`);
     } else {
-      // log.info(`本地分支 ${branchName} 不存在，将自动创建并切换到该分支`);
+      log.info(`本地分支 ${branchName} 不存在，将自动创建并切换到该分支`);
       await this.git.checkoutLocalBranch(branchName); // 创建并切换到该分支
-      // log.success(`自动创建并切换 ${branchName} 分支成功`);
+      log.success(`自动创建并切换 ${branchName} 分支成功`);
+    }
+  }
+
+  // 切换开发分支（给listr使用的，不能带log）
+  async checkoutBranchTask(branchName) {
+    const localBranchList = await this.git.branchLocal();
+
+    // 如果本地存在该分支，直接切换，否则创建一个本地分支
+    if (localBranchList.all.includes(branchName)) {
+      await this.git.checkout(branchName);
+    } else {
+      await this.git.checkoutLocalBranch(branchName); // 创建并切换到该分支
     }
   }
 
@@ -778,7 +786,7 @@ class Git {
       // 合并完检查冲突
       await this.checkConflicted();
     } else {
-      log.warn(`不存在远程分支 ${this.branch}`);
+      log.warn(`远程分支 ${this.branch} 不存在，将在远程创建该分支`);
     }
   }
 
@@ -924,9 +932,9 @@ class Git {
 
   // 推送到远程分支
   async pushRemoteRepo(branchName) {
-    // log.info(`推送代码至远程仓库 ${branchName} 分支`);
+    log.info(`推送代码至远程 ${branchName} 分支`);
     await this.git.push("origin", branchName);
-    // log.success("推送代码成功");
+    log.success("推送代码成功");
   }
 
   async pullRemoteRepo(branchName, options) {
