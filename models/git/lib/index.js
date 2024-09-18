@@ -6,6 +6,8 @@ const inquirer = require("inquirer"); // 用于终端交互
 const fse = require("fs-extra"); // 用于文件操作
 const semver = require("semver"); // 用于比对版本号
 const terminalLink = require("terminal-link"); // 用于生成终端可点击链接
+const Listr = require("listr"); // 文件列表增强工具
+const { Observable } = require("rxjs"); // 用于响应式数据操作
 // 内置库
 const path = require("path");
 const os = require("os");
@@ -15,7 +17,7 @@ const cp = require("child_process");
 const request = require("@cjp-cli-dev/request");
 const log = require("@cjp-cli-dev/log");
 const CloudBuild = require("@cjp-cli-dev/cloudbuild");
-const { readFile, writeFile, spinners } = require("@cjp-cli-dev/utils");
+const { readFile, writeFile, spinners, sleep } = require("@cjp-cli-dev/utils");
 const Github = require("./Github");
 const Gitee = require("./Gitee");
 const gitignoreTemplate = require("./gitignoreTemplate");
@@ -348,7 +350,6 @@ class Git {
       buildCmd: this.buildCmd, // 构建命令
       production: this.production, // 是否正式发布
     });
-
     // 准备云构建任务
     await cloudBuild.prepare();
     // 初始化云构建任务
@@ -361,40 +362,129 @@ class Git {
     }
     // 如果是生产发布则执行以下流程
     if (this.production && result) {
-      // 自动删除和打新tag
-      await this.checkTag();
-      // 切换master分支
-      await this.checkoutLocalBranch("master");
-      // 合并开发分支代码到master分支
-      await this.mergeBranchToMaster();
-      // 将代码推送到远程master分支
-      await this.pushRemoteRepo("master");
-      // 删除本地开发分支
-      await this.deleteLocalBranch();
-      // 删除远程开发分支
-      await this.deleteRemoteBranch();
+      this.runCreateTagTask();
+
+      // // 自动删除和打新tag
+      // await this.checkTag();
+      // // 切换master分支
+      // await this.checkoutLocalBranch("master");
+      // // 合并开发分支代码到master分支
+      // await this.mergeBranchToMaster();
+      // // 将代码推送到远程master分支
+      // await this.pushRemoteRepo("master");
+      // // 删除本地开发分支
+      // await this.deleteLocalBranch();
+      // // 删除远程开发分支
+      // await this.deleteRemoteBranch();
     }
+  }
+
+  // 使用listr和rxjs优化任务在终端的交互，目前以自动打tag任务作为示例，可以参考将所有的流程都进行优化
+  runCreateTagTask() {
+    // 注意以下task任务中的方法不能调用log.xx输出日志，否则会有冲突
+    const tasks = new Listr([
+      {
+        title: "自动删除旧Tag并生成新Tag，合并代码并删除开发分支",
+        task: () =>
+          new Listr([
+            {
+              title: "检查旧Tag并生成新Tag",
+              task: () => {
+                return new Observable(async (o) => {
+                  o.next("正在检查旧Tag并生成新Tag");
+                  await sleep(1000);
+                  this.checkTag().then(() => {
+                    o.complete();
+                  });
+                });
+              },
+            },
+            {
+              title: "切换master分支",
+              task: () => {
+                return new Observable(async (o) => {
+                  o.next("正在切换master分支");
+                  await sleep(1000);
+                  this.checkoutLocalBranch("master").then(() => {
+                    o.complete();
+                  });
+                });
+              },
+            },
+            {
+              title: "合并开发分支代码到master分支",
+              task: () => {
+                return new Observable(async (o) => {
+                  o.next("正在合并开发分支代码到master分支");
+                  await sleep(1000);
+                  this.mergeBranchToMaster().then(() => {
+                    o.complete();
+                  });
+                });
+              },
+            },
+            {
+              title: "代码推送到远程master分支",
+              task: () => {
+                return new Observable(async (o) => {
+                  o.next("正在将代码推送到远程master分支");
+                  await sleep(1000);
+                  this.pushRemoteRepo("master").then(() => {
+                    o.complete();
+                  });
+                });
+              },
+            },
+            {
+              title: "删除本地开发分支",
+              task: () => {
+                return new Observable(async (o) => {
+                  o.next("正在删除本地开发分支");
+                  await sleep(1000);
+                  this.deleteLocalBranch().then(() => {
+                    o.complete();
+                  });
+                });
+              },
+            },
+            {
+              title: "删除远程开发分支",
+              task: () => {
+                return new Observable(async (o) => {
+                  o.next("正在删除远程开发分支");
+                  await sleep(1000);
+                  this.deleteRemoteBranch().then(() => {
+                    o.complete();
+                  });
+                });
+              },
+            },
+          ]),
+      },
+    ]);
+
+    tasks.run();
   }
 
   // 删除本地开发分支
   async deleteLocalBranch() {
-    log.info("开始删除本地开发分支", this.branch);
+    // log.info("开始删除本地开发分支", this.branch);
     await this.git.deleteLocalBranch(this.branch);
-    log.success(`删除本地开发分支 ${this.branch} 成功`);
+    // log.success(`删除本地开发分支 ${this.branch} 成功`);
   }
 
   // 删除远程开发分支
   async deleteRemoteBranch() {
-    log.info("开始删除远程开发分支", this.branch);
+    // log.info("开始删除远程开发分支", this.branch);
     await this.git.push(["origin", "--delete", this.branch]);
-    log.success(`删除远程开发分支 ${this.branch} 成功`);
+    // log.success(`删除远程开发分支 ${this.branch} 成功`);
   }
 
   // 合并开发分支代码到master分支
   async mergeBranchToMaster() {
-    log.info("开始合并代码", `${this.branch}  =>  master`);
+    // log.info("开始合并代码", `${this.branch}  =>  master`);
     await this.git.mergeFromTo(this.branch, "master");
-    log.success("代码合并成功", `已将 ${this.branch} 合并至 master`);
+    // log.success("代码合并成功", `已将 ${this.branch} 合并至 master`);
   }
 
   // 上传模板
@@ -454,7 +544,7 @@ class Git {
 
   // 检查并打tag
   async checkTag() {
-    log.info("获取远程 tag 列表");
+    // log.info("获取远程 tag 列表");
     const tag = `${RELEASE_VERSION}/${this.version}`;
     const tagList = await this.getRemoteBranchList(RELEASE_VERSION);
     log.verbose("tagList", tagList);
@@ -462,26 +552,26 @@ class Git {
 
     // 检查远程tag，如果远程tag中有当前版本则删除
     if (tagList.includes(this.version)) {
-      log.info(`远程tag ${tag} 已存在`);
+      // log.info(`远程tag ${tag} 已存在`);
       await this.git.push(["origin", `:refs/tags/${tag}`]);
       // await this.git.push(["origin", "--delete", tag]); // 效果与上面一致
-      log.success(`远程tag ${tag} 删除成功`);
+      // log.success(`远程tag ${tag} 删除成功`);
     }
 
     // 检查本地tag，有也需要进行删除
     const localTagList = await this.git.tags();
     if (localTagList.all.includes(tag)) {
-      log.info(`本地已存在tag ${tag}，将会自动删除该tag然后创建新的tag`);
+      // log.info(`本地已存在tag ${tag}，将会自动删除该tag然后创建新的tag`);
       await this.git.tag(["-d", tag]);
-      log.success(`本地tag ${tag} 删除成功`);
+      // log.success(`本地tag ${tag} 删除成功`);
     }
 
     // 创建新的本地tag
     await this.git.addTag(tag);
-    log.success(`创建新的本地tag ${tag} 成功`);
+    // log.success(`创建新的本地tag ${tag} 成功`);
     // 推送新的本地tag到远端
     await this.git.pushTags("origin");
-    log.success(`已将新的tag ${tag} 推送到远程`);
+    // log.success(`已将新的tag ${tag} 推送到远程`);
   }
 
   // 发布准备阶段
@@ -659,13 +749,13 @@ class Git {
 
     // 如果本地存在该分支，直接切换，否则创建一个本地分支
     if (localBranchList.all.includes(branchName)) {
-      log.info(`本地分支 ${branchName} 存在，将自动切换到该分支`);
+      // log.info(`本地分支 ${branchName} 存在，将自动切换到该分支`);
       await this.git.checkout(branchName);
-      log.success(`自动切换到 ${branchName} 分支成功`);
+      // log.success(`自动切换到 ${branchName} 分支成功`);
     } else {
-      log.info(`本地分支 ${branchName} 不存在，将自动创建该分支`);
+      // log.info(`本地分支 ${branchName} 不存在，将自动创建并切换到该分支`);
       await this.git.checkoutLocalBranch(branchName); // 创建并切换到该分支
-      log.success(`自动创建 ${branchName} 分支成功`);
+      // log.success(`自动创建并切换 ${branchName} 分支成功`);
     }
   }
 
@@ -834,9 +924,9 @@ class Git {
 
   // 推送到远程分支
   async pushRemoteRepo(branchName) {
-    log.info(`推送代码至远程仓库 ${branchName} 分支`);
+    // log.info(`推送代码至远程仓库 ${branchName} 分支`);
     await this.git.push("origin", branchName);
-    log.success("推送代码成功");
+    // log.success("推送代码成功");
   }
 
   async pullRemoteRepo(branchName, options) {

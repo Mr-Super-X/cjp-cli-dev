@@ -25,13 +25,15 @@
     "test": "node ./__tests__/@cjp-cli-dev/git.test.js"
   },
   "dependencies": {
-    "@cjp-cli-dev/log": "file:../../utils/log",
-    "@cjp-cli-dev/utils": "file:../../utils/utils",
-    "@cjp-cli-dev/request": "file:../../utils/request",
     "@cjp-cli-dev/cloudbuild": "file:../../models/cloudbuild",
+    "@cjp-cli-dev/log": "file:../../utils/log",
+    "@cjp-cli-dev/request": "file:../../utils/request",
+    "@cjp-cli-dev/utils": "file:../../utils/utils",
     "axios": "^1.7.7",
     "fs-extra": "^11.2.0",
     "inquirer": "^8.2.4",
+    "listr": "^0.14.3",
+    "rxjs": "^6.6.7",
     "semver": "^7.6.3",
     "simple-git": "^3.26.0",
     "terminal-link": "^2.1.1"
