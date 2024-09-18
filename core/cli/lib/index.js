@@ -37,6 +37,7 @@ async function core() {
   }
 }
 
+// TODO: --buildCmd --sshUser --sshIp --sshPath这几个参数改成必传在window上传入targetPath会报错系统找不到执行文件，暂时不好解决
 // commander文档：https://www.npmjs.com/package/commander
 function registerCommander() {
   program
