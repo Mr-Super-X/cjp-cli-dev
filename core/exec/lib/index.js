@@ -96,6 +96,7 @@ async function exec() {
       // 子进程中执行代码
       // 将require转成动态字符串代码，再通过 node -e 来执行代码
       const code = `require('${rootFile}').call(null, ${JSON.stringify(args)})`;
+      // const nodePath = process.execPath; // 获取 node 可执行文件的路径
       const child = spawn("node", ["-e", code], {
         cwd: process.cwd(),
         stdio: "inherit", // 将输出流交给父进程，可以看到执行动画和打印内容
@@ -105,11 +106,15 @@ async function exec() {
         process.exit(e.code);
       });
       child.on("exit", (e) => {
-        log.verbose("命令执行成功：", e);
+        if (e === 0) {
+          log.verbose("命令执行成功");
+        } else {
+          log.error("命令执行失败，退出码：", e);
+        }
         process.exit(e);
       });
     } catch (err) {
-      log.error(err.message);
+      log.error(err);
     }
   }
 }

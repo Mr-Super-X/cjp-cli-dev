@@ -2,9 +2,10 @@
 
 // 第三方库
 const Spinner = require("cli-spinner").Spinner;
+const cSpawn = require("cross-spawn"); // 用来解决node内置的spawn在windows上运行路径解析错误问题
 // 内置库
-const cp = require("child_process");
 const fs = require("fs");
+// const cp = require("child_process");
 
 function isObject(o) {
   return Object.prototype.toString.call(o) === "[object Object]";
@@ -35,10 +36,9 @@ function sleep(timeout = 1000) {
 // 兼容windows和MacOS
 function spawn(command, args, options) {
   const win32 = process.platform === "win32";
-
   const cmd = win32 ? "cmd" : command;
   const cmdArgs = win32 ? ["/c"].concat(command, args) : args;
-  return cp.spawn(cmd, cmdArgs, options || {});
+  return cSpawn(cmd, cmdArgs, options || {});
 }
 
 function spawnAsync(command, args, options) {

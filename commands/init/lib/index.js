@@ -55,7 +55,7 @@ class InitCommand extends Command {
       // 3. 安装模板
       await this.installTemplate();
     } catch (err) {
-      log.error(err.message);
+      log.error(err);
 
       // debug模式下打印执行栈，便于调试
       if (process.env.LOG_LEVEL === "verbose") {

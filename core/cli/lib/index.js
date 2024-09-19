@@ -29,7 +29,7 @@ async function core() {
     registerCommander();
     // log.verbose('debug', '测试debug')
   } catch (e) {
-    log.error(e.message);
+    log.error(e);
     // debug模式下打印执行栈
     if (process.env.LOG_LEVEL === "verbose") {
       console.log(e);
@@ -41,8 +41,11 @@ async function core() {
 // commander文档：https://www.npmjs.com/package/commander
 function registerCommander() {
   program
+    // 程序名
     .name(Object.keys(pkg.bin)[0])
+    // 使用方法提示
     .usage("<command> [options]")
+    // 版本号
     .version(pkg.version)
     // option方法参数说明，1：参数简写和全写，2：参数描述，3：默认值
     .option("-d, --debug", "是否开启调试模式", false)
@@ -69,7 +72,9 @@ function registerCommander() {
     .option("-su, --sshUser [sshUser]", "指定该参数传入模板服务器用户名", "")
     .option("-si, --sshIp [sshIp]", "指定该参数传入模板服务器IP或域名", "")
     .option("-sp, --sshPath [sshPath]", "指定该参数传入模板服务器上传路径", "")
-    .action(exec);
+    .action((...args) => {
+      exec(...args); // 这种写法也可以
+    });
 
   // 高级功能：监听debug事件，开启debug模式
   program.on("option:debug", function () {
@@ -83,7 +88,7 @@ function registerCommander() {
   program.on("option:targetPath", function () {
     // 获取所有的参数
     const options = program.opts();
-    process.env.CLI_TARGET_PAT = options.targetPath || ""
+    process.env.CLI_TARGET_PATH = options.targetPath || ""
   });
 
   // 高级功能：对未知命令进行监听
@@ -99,14 +104,13 @@ function registerCommander() {
 
   // 解析输出参数
   program.parse(process.argv);
-  // console.log(program.opts())
 
   // 没有输入参数的时候输出帮助文档（注意：需要parse之后调用，否则program.args拿不到输入内容）
-  // if (program.args && program.args.length < 1) {
-  //   program.outputHelp();
-  //   // 美化，输出一行空格
-  //   console.log();
-  // }
+  if (program.args && program.args.length < 1) {
+    program.outputHelp();
+    // 美化，输出一行空格
+    console.log();
+  }
 }
 
 async function prepare() {
