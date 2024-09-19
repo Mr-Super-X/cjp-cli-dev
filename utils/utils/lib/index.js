@@ -35,10 +35,14 @@ function sleep(timeout = 1000) {
 
 // 兼容windows和MacOS
 function spawn(command, args, options) {
-  const win32 = process.platform === "win32";
-  const cmd = win32 ? "cmd" : command;
-  const cmdArgs = win32 ? ["/c"].concat(command, args) : args;
-  return cSpawn(cmd, cmdArgs, options || {});
+  // 使用node child_process需要这样传参，然后使用，会导致commander参数options中如果有必传参无法继续执行
+  // const win32 = process.platform === "win32";
+  // const cmd = win32 ? "cmd" : command;
+  // const cmdArgs = win32 ? ["/c"].concat(command, args) : args;
+  // return cp.spawn(cmd, cmdArgs, options || {});
+
+  // 使用cross-spawn可以解决跨平台兼容问题，且不会导致解析commander必传参数无法执行
+  return cSpawn(command, args, options || {});
 }
 
 function spawnAsync(command, args, options) {

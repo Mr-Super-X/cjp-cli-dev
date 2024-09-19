@@ -64,14 +64,14 @@ function registerCommander() {
     .option("-rgt, --refreshGitToken", "强制更新Git托管平台token", false)
     .option("-rgo, --refreshGitOwner", "强制更新Git仓库登录类型", false)
     .option(
-      "-bc, --buildCmd [buildCmd]",
+      "-bc, --buildCmd <buildCmd>",
       "指定该参数传入自定义构建命令（命令需使用引号）",
       "npm run build"
     )
     .option("-prod, --production", "是否正式发布", false)
-    .option("-su, --sshUser [sshUser]", "指定该参数传入模板服务器用户名", "")
-    .option("-si, --sshIp [sshIp]", "指定该参数传入模板服务器IP或域名", "")
-    .option("-sp, --sshPath [sshPath]", "指定该参数传入模板服务器上传路径", "")
+    .option("-su, --sshUser <sshUser>", "指定该参数传入模板服务器用户名", "")
+    .option("-si, --sshIp <sshIp>", "指定该参数传入模板服务器IP或域名", "")
+    .option("-sp, --sshPath <sshPath>", "指定该参数传入模板服务器上传路径", "")
     .action((...args) => {
       exec(...args); // 这种写法也可以
     });
