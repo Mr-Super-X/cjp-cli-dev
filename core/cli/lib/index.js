@@ -60,7 +60,11 @@ function registerCommander() {
     .option("-rgs, --refreshGitServer", "强制更新Git托管平台", false)
     .option("-rgt, --refreshGitToken", "强制更新Git托管平台token", false)
     .option("-rgo, --refreshGitOwner", "强制更新Git仓库登录类型", false)
-    .option("-bc, --buildCmd [buildCmd]", "指定该参数传入自定义构建命令（命令需使用引号）", "npm run build")
+    .option(
+      "-bc, --buildCmd [buildCmd]",
+      "指定该参数传入自定义构建命令（命令需使用引号）",
+      "npm run build"
+    )
     .option("-prod, --production", "是否正式发布", false)
     .option("-su, --sshUser [sshUser]", "指定该参数传入模板服务器用户名", "")
     .option("-si, --sshIp [sshIp]", "指定该参数传入模板服务器IP或域名", "")
@@ -71,11 +75,7 @@ function registerCommander() {
   program.on("option:debug", function () {
     // 获取所有的参数
     const options = program.opts();
-    if (options.debug) {
-      process.env.LOG_LEVEL = "verbose";
-    } else {
-      process.env.LOG_LEVEL = "info";
-    }
+    process.env.LOG_LEVEL = options.debug ? "verbose" : "info";
     log.level = process.env.LOG_LEVEL;
   });
 
@@ -83,11 +83,7 @@ function registerCommander() {
   program.on("option:targetPath", function () {
     // 获取所有的参数
     const options = program.opts();
-    if (options.targetPath) {
-      process.env.CLI_TARGET_PATH = options.targetPath;
-    } else {
-      process.env.CLI_TARGET_PATH = "";
-    }
+    process.env.CLI_TARGET_PAT = options.targetPath || ""
   });
 
   // 高级功能：对未知命令进行监听
