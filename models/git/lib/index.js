@@ -41,6 +41,7 @@ const RELEASE_VERSION = "release"; // 发布分支
 const DEVELOP_VERSION = "develop"; // 开发分支
 const PUBLISH_TYPE = "oss"; // 默认发布平台
 const TEMPLATE_TEMP_DIR = "oss-temp"; // 从oss下载的模板缓存目录
+const COMPONENT_FILE = ".componentrc"; // 组件配置文件
 
 // 创建远程仓库类型选项
 const GIT_SERVER_TYPE_CHOICES = [
@@ -97,6 +98,13 @@ class Git {
     }
   ) {
     // 将当前类使用到的属性都定义出来，可读性更高
+
+    // 如果项目名称中带有@符号开头且包含分隔符/说明这是一个组织包，代码托管平台不允许创建这种名称的仓库，需要处理
+    if (name.startsWith("@") && name.includes("/")) {
+      const nameArr = name.split("/");
+      // 将名称如@cjp-cli-dev/test-component => cjp-cli-dev_test-component
+      name = nameArr.join("_").replace("@", "");
+    }
     this.name = name; // 项目名称
     this.version = version; // 项目版本
     this.dir = dir; // 源码路径
@@ -131,7 +139,47 @@ class Git {
     await this.checkGitOwner(); // 确认远程仓库登录类型是组织还是个人
     await this.checkRepo(); // 检查并创建远程仓库
     await this.checkGitIgnore(); // 检查并创建.gitignore
+    await this.checkComponent(); // 检查组件合法性
     await this.init(); // 完成本地git仓库初始化
+  }
+
+  // 检查组件合法性
+  async checkComponent() {
+    let componentFile = this.isComponent();
+    if (componentFile) {
+      log.info("开始检查build结果");
+      if (!this.buildCmd) {
+        this.buildCmd = "npm run build";
+      }
+      // 自动执行build命令生成结果
+      cp.execSync(this.buildCmd, {
+        cwd: this.dir,
+      });
+
+      // 检查构建结果
+      const buildPath = path.resolve(this.dir, componentFile.buildPath);
+      if (!fs.existsSync(buildPath)) {
+        throw new Error(`构建结果目录：${buildPath} 不存在！`);
+      }
+
+      // 检查pkg.files中是否存在构建结果目录，如果不存在，发布npm时就没有该目录
+      const pkg = this.getPackageJson();
+      if (!pkg.files || !pkg.files.includes(componentFile.buildPath)) {
+        throw new Error(
+          `package.json中files属性未添加构建结果目录：${componentFile.buildPath}，将导致发布的npm包缺少构建结果，请手动添加后再试！`
+        );
+      }
+
+      log.success("build结果检查通过");
+    }
+  }
+
+  // 判断是否为组件，满足.componentrc文件存在且内容不为空
+  isComponent() {
+    const componentFilePath = path.resolve(this.dir, COMPONENT_FILE);
+    return (
+      fs.existsSync(componentFilePath) && fse.readJsonSync(componentFilePath)
+    );
   }
 
   // 检查用户主目录
@@ -343,25 +391,37 @@ class Git {
 
   // 发布
   async publish() {
-    await this.preparePublish();
-    // 创建云构建实例，将当前git实例和所需要的参数传进去
-    const cloudBuild = new CloudBuild(this, {
-      type: this.gitPublish, // 静态资源服务器类型
-      buildCmd: this.buildCmd, // 构建命令
-      production: this.production, // 是否正式发布
-    });
-    // 准备云构建任务
-    await cloudBuild.prepare();
-    // 初始化云构建任务
-    await cloudBuild.init();
-    // 开始云构建
-    const result = await cloudBuild.build();
-    // 获取云构建结果，上传模板
-    if (result) {
-      await this.uploadTemplate();
+    let result = false;
+    // 如果是组件，发布npm流程，如果是项目则执行云构建和云发布流程
+    if (this.isComponent()) {
+      log.info('开始发布组件')
+      await this.saveComponentToDB()
+    } else {
+      log.info("开始发布项目")
+      await this.preparePublish();
+      // 创建云构建实例，将当前git实例和所需要的参数传进去
+      const cloudBuild = new CloudBuild(this, {
+        type: this.gitPublish, // 静态资源服务器类型
+        buildCmd: this.buildCmd, // 构建命令
+        production: this.production, // 是否正式发布
+      });
+      // 准备云构建任务
+      await cloudBuild.prepare();
+      // 初始化云构建任务
+      await cloudBuild.init();
+      // 开始云构建
+      result = await cloudBuild.build();
+      // 获取云构建结果，上传模板
+      if (result) {
+        await this.uploadTemplate();
+      }
     }
+
+    // 公共流程
+
     // 如果是生产发布则执行以下流程
     if (this.production && result) {
+      await this.uploadComponentToNpm()
       await this.runCreateTagTask();
 
       // // 自动删除和打新tag
@@ -377,6 +437,16 @@ class Git {
       // // 删除远程开发分支
       // await this.deleteRemoteBranch();
     }
+  }
+
+  async saveComponentToDB() {
+    // 1. 将组件信息上传至数据库
+    // 2. 将组件多预览页面上传至oss
+
+  }
+
+  async uploadComponentToNpm() {
+    // 3. 完成组件上传npm
   }
 
   // 使用listr和rxjs优化任务在终端的交互，目前以自动打tag任务作为示例，可以参考将所有的流程都进行优化

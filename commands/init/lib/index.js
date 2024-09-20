@@ -6,6 +6,7 @@ const fse = require("fs-extra"); // 用于清空文件夹
 const semver = require("semver"); // 用于判断版本号
 const kebabCase = require("kebab-case"); // 用于将驼峰命名转为kebab-case
 const ejs = require("ejs"); // 用于渲染ejs模板
+// const validatePackageName = require("validate-npm-package-name"); // 用于验证npm包名合法性
 const { glob } = require("glob"); // 用于shell模式匹配文件
 // 内置库
 const fs = require("fs");
