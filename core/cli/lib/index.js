@@ -20,9 +20,9 @@ const constant = require("./const");
 const homedir = os.homedir(); // 用户主目录
 const program = new commander.Command();
 
-module.exports = core;
+module.exports = cli;
 
-async function core() {
+async function cli() {
   try {
     await prepare();
     // 8. 注册commander命令
@@ -37,7 +37,6 @@ async function core() {
   }
 }
 
-// TODO: --buildCmd --sshUser --sshIp --sshPath这几个参数改成必传在window上传入targetPath会报错系统找不到执行文件，暂时不好解决
 // commander文档：https://www.npmjs.com/package/commander
 function registerCommander() {
   program
@@ -50,6 +49,16 @@ function registerCommander() {
     // option方法参数说明，1：参数简写和全写，2：参数描述，3：默认值
     .option("-d, --debug", "是否开启调试模式", false)
     .option("-tp, --targetPath <targetPath>", "指定本地调试文件路径", "");
+
+  program
+    .command('cjp')
+    .description('cjp的前端cli工具')
+    .action(() => {
+      log.notice('欢迎使用', 'cjp的前端工程脚手架工具');
+      log.notice('作者介绍', 'cjp@一名普通前端打工仔');
+      log.notice('作者主页', 'https://juejin.cn/user/237150241041912/posts');
+      log.notice('作者宣言', '世界上只有一种真正的英雄主义，那就是看清生活的真相后依然热爱生活。');
+    });
 
   // 初始化项目
   program

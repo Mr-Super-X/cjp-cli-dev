@@ -140,7 +140,7 @@ class CloudBuild {
       // 监听服务端build事件
       this.socket.on("build", (msg) => {
         const parsedMsg = parseMsg(msg);
-        // 如果检测到错误事件则中断连接
+        // 如果检测到错误事件则断开连接
         if (BUILD_FAILED_ACTION.includes(parsedMsg.action)) {
           log.error(parsedMsg.action, parsedMsg.message);
           clearTimeout(this.timer);
