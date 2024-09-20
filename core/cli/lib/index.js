@@ -44,7 +44,7 @@ function registerCommander() {
     .name(Object.keys(pkg.bin)[0])
     // 使用方法提示
     .usage("<command> [options]")
-    .description('前端通用脚手架工具，用于初始化前端项目或组件库，支持本地选择代码托管平台自动在远程创建项目和提交代码，支持云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、代码上传OSS、自动Git Flow分支管理、自动同步代码并创建版本Tag。')
+    .description('前端通用脚手架工具，用于初始化前端项目或组件库，支持本地选择代码托管平台自动在远程创建项目和提交代码，支持云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、静态资源上传OSS、自动Git Flow分支管理、自动同步代码并创建版本Tag。')
     // 版本号
     .version(pkg.version)
     // option方法参数说明，1：参数简写和全写，2：参数描述，3：默认值

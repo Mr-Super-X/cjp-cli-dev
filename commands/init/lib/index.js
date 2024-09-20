@@ -157,34 +157,37 @@ class InitCommand extends Command {
   // 安装自定义模板，例如安装自己创建的项目模板
   async installCustomTemplate() {
     // 查询自定义模板入口文件
-    if(await this.npmPackage.exists()) {
-      const rootFile = this.npmPackage.getRootFilePath()
-      if(fs.existsSync(rootFile)) {
-        log.notice('开始执行自定义模板安装')
-        const templatePath = path.resolve(this.npmPackage.cacheFilePath, 'template')
+    if (await this.npmPackage.exists()) {
+      const rootFile = this.npmPackage.getRootFilePath();
+      if (fs.existsSync(rootFile)) {
+        log.notice("开始执行自定义模板安装");
+        const templatePath = path.resolve(
+          this.npmPackage.cacheFilePath,
+          "template"
+        );
 
         const options = {
           templateInfo: this.templateInfo, // 模板信息
           projectInfo: this.projectInfo, // 项目信息
           sourcePath: templatePath, // 模板来源路径
           targetPath: process.cwd(), // 目标路径
-        }
+        };
 
         // 动态引入代码
-        const code = `require('${rootFile}')(${JSON.stringify(options)})`
+        const code = `require('${rootFile}')(${JSON.stringify(options)})`;
         // 调试模式输出
-        log.verbose('code', code)
+        log.verbose("code", code);
         // 子进程中执行代码，并将stdout、stderr打印到控制台中
-        const result = await spawnAsync('node', ['-e', code], {
+        const result = await spawnAsync("node", ["-e", code], {
           stdio: "inherit",
           cwd: process.cwd(),
-        })
+        });
 
-        if(result === 0) {
-          log.success('自定义模板安装成功')
+        if (result === 0) {
+          log.success("自定义模板安装成功");
         }
-      }else {
-        throw new Error('自定义模板入口文件不存在！')
+      } else {
+        throw new Error("自定义模板入口文件不存在！");
       }
     }
   }
@@ -297,7 +300,9 @@ class InitCommand extends Command {
     if (!COMMAND_WHITELIST.includes(command)) {
       // 如果命令不在白名单
       throw new Error(
-        `命令 ${command} 不在白名单中，可能存在风险，已阻止程序运行。当前仅支持以下命令：\n${COMMAND_WHITELIST.join('|')}`
+        `命令 ${command} 不在白名单中，可能存在风险，已阻止程序运行。当前仅支持以下命令：\n${COMMAND_WHITELIST.join(
+          "|"
+        )}`
       );
     }
 
@@ -389,12 +394,15 @@ class InitCommand extends Command {
     let projectInfo = {};
     let isProjectNameValid = false;
 
-    // 检查用户输入的项目名是否合法
-    if (isValidName(this.projectName)) {
-      isProjectNameValid = true;
-      projectInfo.projectName = this.projectName; // 更新合法项目名称
-    } else {
-      log.warn("项目名称不合法，请继续流程，稍后会提示重新输入");
+    // 用户在调用init命令时有指定项目名才需要检查，否则后续直接输入即可
+    if (this.projectName) {
+      // 检查用户输入的项目名是否合法
+      if (isValidName(this.projectName)) {
+        isProjectNameValid = true;
+        projectInfo.projectName = this.projectName; // 更新合法项目名称
+      } else {
+        log.warn(`您指定的项目名称不合法，请继续流程，稍后会提示重新输入`);
+      }
     }
 
     // 3. 选择创建项目或组件
@@ -415,7 +423,7 @@ class InitCommand extends Command {
     log.verbose(`筛选${type}模板数据：`, this.template);
 
     // 4. 获取项目基本信息
-    const promptTitle = type === TYPE_PROJECT ? '项目' : '组件'
+    const promptTitle = type === TYPE_PROJECT ? "项目" : "组件";
     const projectNamePrompt = {
       type: "input",
       name: "projectName",
