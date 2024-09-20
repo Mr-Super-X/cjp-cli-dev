@@ -28,6 +28,8 @@ const TYPE_COMPONENT = "component";
 const TEMPLATE_TYPE_NORMAL = "normal";
 const TEMPLATE_TYPE_CUSTOM = "custom";
 
+const COMPONENT_FILE = ".componentrc";
+
 const userHome = os.homedir(); // 用户主目录
 
 class InitCommand extends Command {
@@ -102,14 +104,14 @@ class InitCommand extends Command {
   // 安装标准模板，例如安装vue-cli创建项目模板
   async installNormalTemplate() {
     const spinner = spinners("正在安装标准模板...");
+    // 当前目录路径
+    const targetPath = process.cwd();
     try {
       // 拷贝模板代码到当前目录
       const templatePath = path.resolve(
         this.npmPackage.cacheFilePath,
         "template"
       );
-      // 当前目录路径
-      const targetPath = process.cwd();
       // 确保这两个目录都存在，如果不存在会自动创建
       fse.ensureDirSync(templatePath);
       fse.ensureDirSync(targetPath);
@@ -128,6 +130,9 @@ class InitCommand extends Command {
     const ignore = ["**/node_modules/**", ...templateIgnore];
     // 模板安装完成后进行ejs渲染，替换掉ejs变量
     await this.ejsRender({ ignore });
+
+    // 如果安装的是组件库，则生成组件库配置文件
+    await this.createComponentFile(targetPath);
 
     // 模板安装完成后执行安装和启动模板
     const { installCommand, startCommand } = this.templateInfo;
@@ -152,6 +157,29 @@ class InitCommand extends Command {
       "startCommand",
       `检测到startCommand存在，执行：${startCommand}`
     );
+  }
+
+  // 创建组件库配置文件.componentrc
+  async createComponentFile(targetPath) {
+    const templateInfo = this.templateInfo
+    const projectInfo = this.projectInfo
+
+    // 检测是否为组件
+    if(templateInfo.tag.includes(TYPE_COMPONENT)) {
+      const componentData = {
+        ...projectInfo,
+        buildPath: templateInfo.buildPath, // 获取数据库中配置的打包输出目录
+        examplePath: templateInfo.examplePath, // 获取数据库中配置的演示组件用法目录
+        npmName: templateInfo.npmName, // 获取数据库中配置的npm包名
+        npmVersion: templateInfo.npmVersion, // 获取数据库中配置的npm版本号
+      }
+      log.verbose('componentData', componentData)
+
+      // 写入.componentrc
+      const componentFile = path.resolve(targetPath, COMPONENT_FILE);
+      // JSON.stringify(componentData, null, 2)，写入两个空格作为缩进
+      fs.writeFileSync(componentFile, JSON.stringify(componentData, null, 2))
+    }
   }
 
   // 安装自定义模板，例如安装自己创建的项目模板
@@ -435,7 +463,7 @@ class InitCommand extends Command {
         setTimeout(() => {
           if (!isValidName(v)) {
             done(
-              `请输入合法的项目名称，要求如下：\n 1. 第一个字符必须是字母 \n 2. 输入的内容不少于2个字符，不超过64个字符 \n 3. 可以用横杠和下划线作为连接符`
+              `请输入合法的项目名称，要求如下：\n 1. 第一个字符必须是字母 \n 2. 输入的内容不少于2个字符，不超过64个字符 \n 3. 可以用横杠和下划线作为连接符 \n 4. 如果是组织包名，可以使用@符号开头，且以\/分隔组织名和包名`
             );
             return;
           }
@@ -578,11 +606,12 @@ class InitCommand extends Command {
 
 function isValidName(v) {
   // 正则表达式说明：
+  // 如果是组织包名，支持@xxx，但必须以/作为组织包结尾
   // [a-zA-Z] - 第一个字符必须是字母
   // [a-zA-Z0-9_-]{0,62} - 后面可以跟0到62个字母、数字、下划线或短横线
   // $        - 字符串结束
   // 注意：因为我们已经要求第一个字符不能是数字或短横线，所以这里{0,62}确保总长度不超过64个字符
-  const regex = /^[a-zA-Z][a-zA-Z0-9_-]{0,62}$/;
+  const regex = /^(@[a-zA-Z0-9-_]+\/)?[a-zA-Z][a-zA-Z0-9_-]{0,62}$/;
 
   return regex.test(v) && v.length >= 2 && v.length <= 64;
 }
