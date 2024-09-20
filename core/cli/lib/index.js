@@ -44,6 +44,7 @@ function registerCommander() {
     .name(Object.keys(pkg.bin)[0])
     // 使用方法提示
     .usage("<command> [options]")
+    .description('前端通用脚手架工具，用于初始化前端项目或组件库，支持本地选择代码托管平台自动在远程创建项目和提交代码，支持云构建、云发布、代码上传OSS、Git Flow分支管理、自动同步代码并创建版本Tag。')
     // 版本号
     .version(pkg.version)
     // option方法参数说明，1：参数简写和全写，2：参数描述，3：默认值
@@ -52,7 +53,7 @@ function registerCommander() {
 
   program
     .command('cjp')
-    .description('cjp的前端cli工具')
+    .description('输出作者信息')
     .action(() => {
       log.notice('欢迎使用', 'cjp的前端工程脚手架工具');
       log.notice('作者介绍', 'cjp@一名普通前端打工仔');
@@ -63,12 +64,14 @@ function registerCommander() {
   // 初始化项目
   program
     .command("init [projectName]")
+    .description('初始化项目模板或组件模板')
     .option("-f, --force", "是否强制初始化项目")
     .action(exec);
 
   // 发布项目
   program
     .command("publish")
+    .description('云构建和云发布')
     .option("-rgs, --refreshGitServer", "强制更新Git托管平台", false)
     .option("-rgt, --refreshGitToken", "强制更新Git托管平台token", false)
     .option("-rgo, --refreshGitOwner", "强制更新Git仓库登录类型", false)
