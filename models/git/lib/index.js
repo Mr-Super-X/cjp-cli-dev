@@ -403,7 +403,7 @@ class Git {
     // 如果是组件，发布npm流程，如果是项目则执行云构建和云发布流程
     if (this.isComponent()) {
       log.info("开始发布组件");
-      await this.saveComponentToDB();
+      result = await this.saveComponentToDB();
     } else {
       log.info("开始发布项目");
       await this.preparePublish();
@@ -462,7 +462,7 @@ class Git {
     if (dirs.includes("dist")) {
       componentExamplePath = path.resolve(componentExamplePath, "dist");
       dirs = fs.readdirSync(componentExamplePath);
-      componentFile.examplePath = `${componentFile.examplePath}/dist`
+      componentFile.examplePath = `${componentFile.examplePath}/dist`;
     }
     // 拿到所有的index.html
     dirs = dirs.filter((dir) => dir.match(/^index(\d)*.html$/));
@@ -475,7 +475,8 @@ class Git {
     componentFile.exampleRealPath = componentExamplePath;
     const data = ComponentRequest.createComponent({
       component: componentFile, // 组件信息
-      git: { // git信息
+      git: {
+        // git信息
         type: this.gitServer.type,
         remote: this.remote,
         version: this.version,
@@ -483,13 +484,59 @@ class Git {
         login: this.login,
         owner: this.owner,
         repo: this.repo,
-      }
-    })
+      },
+    });
+    if (!data) {
+      throw new Error("上传组件信息失败");
+    }
     // 2. 将组件多预览页面上传至oss
+
+    // 告诉下一步，当前这一步完成了
+    return true;
   }
 
+  // 上传组件到npm
   async uploadComponentToNpm() {
     // 3. 完成组件上传npm
+    if (this.isComponent()) {
+      log.info("开始发布npm包");
+      await this.checkNpmSource();
+      // 执行发布操作
+      cp.execSync("npm publish", {
+        cwd: this.dir, // 在当前源码目录下执行
+        stdio: 'inherit',
+      });
+      log.success("npm包发布成功");
+    }
+  }
+
+  // 检测用户当前npm源
+  async checkNpmSource() {
+    try {
+      const npmRegistry = await this.getNpmRegistry();
+      const officialSource = "https://registry.npmjs.com/";
+      log.verbose("npm registry：", npmRegistry);
+      if (npmRegistry.trim() === officialSource) {
+        log.info(`当前npm源为官方源：${officialSource}`);
+      } else {
+        log.warn(`您当前的npm源为：${npmRegistry} `);
+      }
+    } catch (error) {
+      log.error("检查npm源失败：", error.message);
+    }
+  }
+
+  // 获取npm registry
+  async getNpmRegistry() {
+    return new Promise((resolve, reject) => {
+      cp.exec("npm config get registry", (error, stdout) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(stdout);
+        }
+      });
+    });
   }
 
   // 使用listr和rxjs优化任务在终端的交互，目前以自动打tag任务作为示例，可以参考将所有的流程都进行优化
@@ -690,7 +737,7 @@ class Git {
 
     if (this.buildCmd) {
       const buildCmdArr = this.buildCmd.split(" ");
-      const cmd = this.checkCommandInWhitelist(buildCmdArr[0]);
+      this.checkCommandInWhitelist(buildCmdArr[0]);
     } else {
       // 不传默认就是npm run build
       this.buildCmd = "npm run build";
@@ -834,7 +881,7 @@ class Git {
     log.verbose("本地开发分支：", this.branch);
 
     // 3. 同步写入版本到package.json
-    this.writeVersionToPackageSync();
+    await this.writeVersionToPackageSync();
   }
 
   // 检查stash区，如果和本地变更有冲突，需要手动将本地代码进行提交，再手动执行git stash pop取出
