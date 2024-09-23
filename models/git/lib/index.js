@@ -20,6 +20,7 @@ const CloudBuild = require("@cjp-cli-dev/cloudbuild");
 const { readFile, writeFile, spinners, sleep } = require("@cjp-cli-dev/utils");
 const Github = require("./Github");
 const Gitee = require("./Gitee");
+const ComponentRequest = require("./ComponentRequest");
 const gitignoreTemplate = require("./gitignoreTemplate");
 // 白名单命令，不在此白名单中的命令都需要确认是否执行，防止用户插入风险操作，如：rm -rf等
 const COMMAND_WHITELIST = require("./commandWhitelist");
@@ -148,12 +149,19 @@ class Git {
     let componentFile = this.isComponent();
     if (componentFile) {
       log.info("开始检查build结果");
+      // 如果没有配置构建命令则默认npm run build
       if (!this.buildCmd) {
-        this.buildCmd = "npm run build";
+        const defaultBuildCmd = "npm run build";
+        log.warn(
+          `当前没有配置构建命令，将使用默认 ${defaultBuildCmd} 命令进行构建`
+        );
+        this.buildCmd = defaultBuildCmd;
       }
+      log.info("自动执行组件库构建");
       // 自动执行build命令生成结果
       cp.execSync(this.buildCmd, {
         cwd: this.dir,
+        stdio: "inherit",
       });
 
       // 检查构建结果
@@ -394,10 +402,10 @@ class Git {
     let result = false;
     // 如果是组件，发布npm流程，如果是项目则执行云构建和云发布流程
     if (this.isComponent()) {
-      log.info('开始发布组件')
-      await this.saveComponentToDB()
+      log.info("开始发布组件");
+      await this.saveComponentToDB();
     } else {
-      log.info("开始发布项目")
+      log.info("开始发布项目");
       await this.preparePublish();
       // 创建云构建实例，将当前git实例和所需要的参数传进去
       const cloudBuild = new CloudBuild(this, {
@@ -421,7 +429,7 @@ class Git {
 
     // 如果是生产发布则执行以下流程
     if (this.production && result) {
-      await this.uploadComponentToNpm()
+      await this.uploadComponentToNpm();
       await this.runCreateTagTask();
 
       // // 自动删除和打新tag
@@ -440,9 +448,44 @@ class Git {
   }
 
   async saveComponentToDB() {
-    // 1. 将组件信息上传至数据库
-    // 2. 将组件多预览页面上传至oss
+    // 1. 将组件信息上传至数据库 RDS
+    log.info("正在上传组件信息至OSS和写入数据库");
+    const componentFile = this.isComponent();
+    // 获取源码目录下.componentrc中的examplePath，在MongoDB中配置
+    let componentExamplePath = path.resolve(
+      this.dir,
+      componentFile.examplePath
+    );
+    // 获取examplePath下的dist路径
+    let dirs = fs.readdirSync(componentExamplePath);
+    // 如果componentExamplePath下存在dist文件夹，则进行更新
+    if (dirs.includes("dist")) {
+      componentExamplePath = path.resolve(componentExamplePath, "dist");
+      dirs = fs.readdirSync(componentExamplePath);
+      componentFile.examplePath = `${componentFile.examplePath}/dist`
+    }
+    // 拿到所有的index.html
+    dirs = dirs.filter((dir) => dir.match(/^index(\d)*.html$/));
+    log.verbose("组件预览页面路径：", componentExamplePath);
+    log.verbose("组件预览页面数据：", dirs);
 
+    // 将最终预览文件名称信息存入componentFile
+    componentFile.exampleList = dirs;
+    // 更新预览文件访问路径
+    componentFile.exampleRealPath = componentExamplePath;
+    const data = ComponentRequest.createComponent({
+      component: componentFile, // 组件信息
+      git: { // git信息
+        type: this.gitServer.type,
+        remote: this.remote,
+        version: this.version,
+        branch: this.branch,
+        login: this.login,
+        owner: this.owner,
+        repo: this.repo,
+      }
+    })
+    // 2. 将组件多预览页面上传至oss
   }
 
   async uploadComponentToNpm() {
