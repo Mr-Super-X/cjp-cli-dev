@@ -16,7 +16,7 @@ const path = require("path");
 const Command = require("@cjp-cli-dev/command");
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spinners, spawnAsync } = require("@cjp-cli-dev/utils");
+const { spinners, spawnAsync, sleep } = require("@cjp-cli-dev/utils");
 const getProjectTemplate = require("./getProjectTemplate");
 
 // 白名单命令，不在此白名单中的命令都需要确认是否执行，防止用户插入风险操作，如：rm -rf等
@@ -263,10 +263,12 @@ class InitCommand extends Command {
       // 如果npm包不存在，则执行npm install，否则更新
       if (!(await npmPackage.exists())) {
         spinner = spinners("正在下载模板...");
+        await sleep()
         await npmPackage.install();
         successMsg = "下载模板成功";
       } else {
         spinner = spinners("正在更新模板...");
+        await sleep()
         await npmPackage.update();
         successMsg = "更新模板成功";
       }
