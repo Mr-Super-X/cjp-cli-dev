@@ -12,6 +12,7 @@ const SETTINGS = {
   // 配置表
   init: "@cjp-cli-dev/init",
   publish: "@cjp-cli-dev/publish",
+  add: "@cjp-cli-dev/add",
 };
 
 const CACHE_DIR = "dependencies"; // 缓存路径

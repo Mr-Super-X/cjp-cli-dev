@@ -44,7 +44,9 @@ function registerCommander() {
     .name(Object.keys(pkg.bin)[0])
     // 使用方法提示
     .usage("<command> [options]")
-    .description('前端通用脚手架工具，用于初始化前端项目或组件库，支持本地选择代码托管平台自动在远程创建项目和提交代码，支持云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、静态资源上传OSS、自动Git Flow分支管理、自动同步代码并创建版本Tag。')
+    .description(
+      "前端通用脚手架工具，支持：\n1.快速创建各种项目或组件模板，包括默认模板创建、自定义模板创建、组件库创建、模板自动安装启动。\n2.发布项目或组件，包括预发布和正式发布、自动在代码托管平台创建仓库、Git自动化、自动构建、自动发布。 \n3.支持项目云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、静态资源上传OSS、自动Git Flow分支管理、自动同步代码并创建版本Tag。"
+    )
     // 版本号
     .version(pkg.version)
     // option方法参数说明，1：参数简写和全写，2：参数描述，3：默认值
@@ -52,26 +54,29 @@ function registerCommander() {
     .option("-tp, --targetPath <targetPath>", "指定本地调试文件路径", "");
 
   program
-    .command('cjp')
-    .description('输出作者信息')
+    .command("cjp")
+    .description("输出作者信息")
     .action(() => {
-      log.notice('欢迎使用', 'cjp的前端工程脚手架工具');
-      log.notice('作者介绍', 'cjp@一名普通前端打工仔');
-      log.notice('作者主页', 'https://juejin.cn/user/237150241041912/posts');
-      log.notice('作者宣言', '世界上只有一种真正的英雄主义，那就是看清生活的真相后依然热爱生活。');
+      log.notice("欢迎使用", "cjp的前端工程脚手架工具");
+      log.notice("作者介绍", "cjp@一名普通前端打工仔");
+      log.notice("作者主页", "https://juejin.cn/user/237150241041912/posts");
+      log.notice(
+        "作者宣言",
+        "世界上只有一种真正的英雄主义，那就是看清生活的真相后依然热爱生活。"
+      );
     });
 
   // 初始化项目
   program
     .command("init [projectName]")
-    .description('初始化项目模板或组件模板')
+    .description("创建各种项目模板或组件模板")
     .option("-f, --force", "是否强制初始化项目")
     .action(exec);
 
   // 发布项目
   program
     .command("publish")
-    .description('云构建和云发布')
+    .description("自动构建并发布项目或组件库")
     .option("-rgs, --refreshGitServer", "强制更新Git托管平台", false)
     .option("-rgt, --refreshGitToken", "强制更新Git托管平台token", false)
     .option("-rgo, --refreshGitOwner", "强制更新Git仓库登录类型", false)
@@ -88,6 +93,13 @@ function registerCommander() {
       exec(...args); // 这种写法也可以
     });
 
+  // 添加复用代码
+  program
+    .command("add [templateName]")
+    .description("添加各种代码复用片段或模板")
+    .option("-f, --force", "是否强制添加复用代码")
+    .action(exec);
+
   // 高级功能：监听debug事件，开启debug模式
   program.on("option:debug", function () {
     // 获取所有的参数
@@ -100,7 +112,7 @@ function registerCommander() {
   program.on("option:targetPath", function () {
     // 获取所有的参数
     const options = program.opts();
-    process.env.CLI_TARGET_PATH = options.targetPath || ""
+    process.env.CLI_TARGET_PATH = options.targetPath || "";
   });
 
   // 高级功能：对未知命令进行监听

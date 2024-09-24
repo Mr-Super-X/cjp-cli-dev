@@ -1,0 +1,32 @@
+{
+  "name": "@cjp-cli-dev/add",
+  "version": "1.0.6",
+  "description": "cjp-cli-dev add",
+  "author": "v_jpch <v_jpch.digitalgd.com>",
+  "homepage": "",
+  "license": "ISC",
+  "main": "lib/index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitee.com:Mr_Mikey/cjp-cli-dev.git"
+  },
+  "scripts": {
+    "test": "node ./__tests__/@cjp-cli-dev/add.test.js"
+  },
+  "dependencies": {
+    "@cjp-cli-dev/command": "file:../../models/command",
+    "@cjp-cli-dev/log": "file:../../utils/log",
+    "inquirer": "^8.2.4"
+  }
+}
