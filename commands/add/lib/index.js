@@ -5,6 +5,7 @@ const inquirer = require("inquirer"); // 用于终端交互
 const pathExists = require("path-exists").sync; // 用于判断路径是否存在
 const fse = require("fs-extra"); // 用于清空文件夹
 const ejs = require("ejs"); // 用于渲染ejs模板
+const semver = require("semver"); // 用于判断版本号
 const readPkgUp = require("read-pkg-up"); // 用于查找根目录下的package.json
 const { glob } = require("glob"); // 用于shell模式匹配文件
 // 内置库
@@ -52,20 +53,29 @@ function arrayToObject(a) {
 
 function dependenciesDiff(templateDepArr, targetDepArr) {
   const result = [...targetDepArr];
-  // 场景一：模板中存在依赖，项目中不存在（拷贝依赖）
-  // 场景二：模板中存在依赖，项目中也存在（不会拷贝依赖，但是在脚手架中给予提示，让开发者手动处理）
   templateDepArr.forEach((templateDep) => {
     // 找出重复的依赖
     const duplicatedDep = targetDepArr.find(
       (targetDep) => templateDep.key === targetDep.key
     );
 
+    // 场景一：模板中存在依赖，项目中不存在（拷贝依赖）
     // 将不重复的依赖push到目标dependencies中
     if (!duplicatedDep) {
       log.info("检测到新的依赖：", templateDep);
       result.push(templateDep);
     } else {
       log.info("检测到重复依赖：", duplicatedDep);
+
+      // 场景二：模板中存在依赖，项目中也存在（不会拷贝依赖，但是在脚手架中给予提示，让开发者手动处理）
+      // 对版本的上限进行比较，上限不一样就提示
+      const templateRange = semver.validRange(templateDep.value).split('<')[1];
+      const targetRange = semver.validRange(duplicatedDep.value).split('<')[1];
+      if (templateRange !== targetRange) {
+        log.warn(
+          `${templateDep.key} 依赖冲突 \n模板依赖版本：${templateDep.value} \n本地依赖版本：${duplicatedDep.value} \n请手动处理冲突依赖版本为您希望使用的版本`
+        );
+      }
     }
   });
   return result;
@@ -234,7 +244,7 @@ class AddCommand extends Command {
     fse.writeJsonSync(targetPkg.path, targetPkg.packageJson, { spaces: 2 }); // 写入package.json并给两个字符的缩进
 
     // 帮用户合并完依赖之后也自动帮用户安装好依赖（安装路径为当前项目package.json所在目录，通过path.dir来获得）
-    log.info('开始安装模板所需依赖...')
+    log.info("开始安装模板所需依赖...");
     await this.execCommand("npm install", path.dirname(targetPkg.path));
     log.success("模板所需依赖安装完成");
 
