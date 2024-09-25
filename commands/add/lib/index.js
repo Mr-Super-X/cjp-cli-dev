@@ -4,6 +4,8 @@
 const inquirer = require("inquirer"); // 用于终端交互
 const pathExists = require("path-exists").sync; // 用于判断路径是否存在
 const fse = require("fs-extra"); // 用于清空文件夹
+const ejs = require("ejs"); // 用于渲染ejs模板
+const { glob } = require("glob"); // 用于shell模式匹配文件
 // 内置库
 const path = require("path");
 const os = require("os");
@@ -20,6 +22,7 @@ const PAGE_TEMPLATE = [
     npmName: "cjp-cli-dev-template-vue3-template-page", // 需要先将这个包发到npm上
     version: "1.0.0",
     targetPath: "src/views/home", // 要拷贝的文件目录
+    ignore: ['**/**.png']
   },
 ];
 
@@ -31,11 +34,6 @@ process.on("unhandledRejection", (err) => {
 });
 
 class AddCommand extends Command {
-  // constructor() {
-  //   super();
-  //   this.pageTemplate = null; // 当前选择的页面模板
-  // }
-
   init() {
     // 获取add命令后面的参数
     this.templateName = this._args[0] || "";
@@ -82,6 +80,50 @@ class AddCommand extends Command {
     fse.ensureDirSync(targetPath);
     // 将模板路径的所有文件拷贝到目标路径中
     fse.copySync(templatePath, targetPath);
+    // 使用ejs渲染目标路径中的文件
+    await this.ejsRender({ targetPath });
+  }
+
+  // 使用ejs渲染模板
+  async ejsRender(options = {}) {
+    const { pageName } = this.pageTemplate;
+    const { targetPath, ignore } = options;
+
+    try {
+      // 获取匹配的文件
+      const files = await glob("**", {
+        cwd: targetPath,
+        ignore: ignore || "**/node_modules/**", // 忽略内容
+        nodir: true, // 不要文件夹
+        dot: true, // 包含隐藏文件
+      });
+
+      if (!files || files.length === 0) {
+        throw new Error("glob没有匹配到文件");
+      }
+
+      // 遍历文件并渲染 EJS 模板
+      await Promise.all(
+        files.map(async (file) => {
+          // 获取文件真实路径
+          const filePath = path.join(targetPath, file);
+          try {
+            // 第二个参数是ejs渲染所需要的变量，如 <%= name %>
+            const result = await ejs.renderFile(filePath, {
+              name: pageName.toLocaleLowerCase(),
+            }, {});
+            // 写入渲染后的结果
+            fse.writeFileSync(filePath, result);
+          } catch (err) {
+            throw new Error(`EJS 渲染文件 ${filePath} 出错: ${err.message}`);
+          }
+        })
+      );
+    } catch (err) {
+      // 捕获并处理所有错误
+      log.error("ejsRender 执行出错：", err.message);
+      throw err; // 抛出错误，以便外部调用处理
+    }
   }
 
   async prepare() {

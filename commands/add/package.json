@@ -29,7 +29,9 @@
     "@cjp-cli-dev/log": "file:../../utils/log",
     "@cjp-cli-dev/package": "file:../../models/package",
     "@cjp-cli-dev/utils": "file:../../utils/utils",
+    "ejs": "^3.1.10",
     "fs-extra": "^11.2.0",
+    "glob": "^10.4.5",
     "inquirer": "^8.2.4",
     "path-exists": "^4.0.0"
   }
