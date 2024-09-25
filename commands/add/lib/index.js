@@ -5,6 +5,7 @@ const inquirer = require("inquirer"); // 用于终端交互
 const pathExists = require("path-exists").sync; // 用于判断路径是否存在
 const fse = require("fs-extra"); // 用于清空文件夹
 const ejs = require("ejs"); // 用于渲染ejs模板
+const readPkgUp = require("read-pkg-up"); // 用于查找根目录下的package.json
 const { glob } = require("glob"); // 用于shell模式匹配文件
 // 内置库
 const path = require("path");
@@ -13,20 +14,62 @@ const os = require("os");
 const Command = require("@cjp-cli-dev/command");
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spinners, sleep } = require("@cjp-cli-dev/utils");
+const { spinners, sleep, spawnAsync } = require("@cjp-cli-dev/utils");
 
 // 页面模板（尽量提供高质量模板）
 const PAGE_TEMPLATE = [
   {
     name: "vue3首页模板",
     npmName: "cjp-cli-dev-template-vue3-template-page", // 需要先将这个包发到npm上
-    version: "1.0.0",
+    version: "latest",
     targetPath: "src/views/home", // 要拷贝的文件目录
-    ignore: ['**/**.png']
+    ignore: ["**/**.png"],
   },
 ];
 
 const USER_HOME = os.homedir(); // 用户主目录
+
+function objectToArray(o) {
+  const arr = [];
+  Object.keys(o).forEach((key) => {
+    arr.push({
+      key,
+      value: o[key],
+    });
+  });
+
+  return arr;
+}
+
+function arrayToObject(a) {
+  const obj = {};
+  a.forEach((item) => {
+    obj[item.key] = item.value;
+  });
+
+  return obj;
+}
+
+function dependenciesDiff(templateDepArr, targetDepArr) {
+  const result = [...targetDepArr];
+  // 场景一：模板中存在依赖，项目中不存在（拷贝依赖）
+  // 场景二：模板中存在依赖，项目中也存在（不会拷贝依赖，但是在脚手架中给予提示，让开发者手动处理）
+  templateDepArr.forEach((templateDep) => {
+    // 找出重复的依赖
+    const duplicatedDep = targetDepArr.find(
+      (targetDep) => templateDep.key === targetDep.key
+    );
+
+    // 将不重复的依赖push到目标dependencies中
+    if (!duplicatedDep) {
+      log.info("检测到新的依赖：", templateDep);
+      result.push(templateDep);
+    } else {
+      log.info("检测到重复依赖：", duplicatedDep);
+    }
+  });
+  return result;
+}
 
 // 监听全局promise未捕获的错误
 process.on("unhandledRejection", (err) => {
@@ -54,12 +97,13 @@ class AddCommand extends Command {
     // 3.2.下载页面模板至缓存目录
     await this.downloadTemplate();
     // 3.3.将页面模板拷贝至指定目录
-    await this.installTemplate();
     // 4.合并页面模板依赖
     // 5.安装完成
+    await this.installTemplate();
   }
 
   async installTemplate() {
+    log.info("开始安装页面模板...");
     log.verbose("pageTemplate", this.pageTemplate);
     // 拿到模板路径
     const templatePath = path.resolve(
@@ -82,6 +126,10 @@ class AddCommand extends Command {
     fse.copySync(templatePath, targetPath);
     // 使用ejs渲染目标路径中的文件
     await this.ejsRender({ targetPath });
+    // 如果拷贝的模板中有依赖外部node_modules包，需要检查和合并依赖
+    await this.mergeDependencies({ templatePath, targetPath });
+    // 合并依赖完成后自动帮用户重新安装依赖
+    log.success("页面模板安装完成");
   }
 
   // 使用ejs渲染模板
@@ -109,9 +157,13 @@ class AddCommand extends Command {
           const filePath = path.join(targetPath, file);
           try {
             // 第二个参数是ejs渲染所需要的变量，如 <%= name %>
-            const result = await ejs.renderFile(filePath, {
-              name: pageName.toLocaleLowerCase(),
-            }, {});
+            const result = await ejs.renderFile(
+              filePath,
+              {
+                name: pageName.toLocaleLowerCase(),
+              },
+              {}
+            );
             // 写入渲染后的结果
             fse.writeFileSync(filePath, result);
           } catch (err) {
@@ -124,6 +176,69 @@ class AddCommand extends Command {
       log.error("ejsRender 执行出错：", err.message);
       throw err; // 抛出错误，以便外部调用处理
     }
+  }
+
+  // 异步执行命令
+  async execCommand(command, cwd) {
+    let result;
+    if (!command) {
+      throw new Error("命令不存在！");
+    }
+    // npm install => ['npm', 'install']
+    const commandArr = command.split(" ");
+    const cmd = commandArr[0];
+    const args = commandArr.slice(1);
+    result = await spawnAsync(cmd, args, { stdio: "inherit", cwd });
+
+    if (result !== 0) {
+      throw new Error(`${command} 命令执行失败！`);
+    }
+    return result;
+  }
+
+  // 如果拷贝的模板中有依赖外部node_modules包，需要检查和合并依赖
+  async mergeDependencies(options) {
+    log.info("开始检查和合并依赖...");
+    // 处理依赖合并问题
+    // 场景一：模板中存在依赖，项目中不存在（拷贝依赖）
+    // 场景二：模板中存在依赖，项目中也存在（不会拷贝依赖，但是在脚手架中给予提示，让开发者手动处理）
+    const { templatePath, targetPath } = options;
+    // 获取package.json readPkgUp.sync会返回{ packageJson, path }
+    const templatePkg = readPkgUp.sync({
+      cwd: templatePath,
+      normalize: false,
+    });
+    const targetPkg = readPkgUp.sync({
+      cwd: targetPath,
+      normalize: false,
+    });
+
+    // 获取依赖dependencies
+    const templateDependencies = templatePkg.packageJson.dependencies || {};
+    const targetDependencies = targetPkg.packageJson.dependencies || {};
+    log.verbose("模板依赖", templateDependencies);
+    log.verbose("目标依赖", targetDependencies);
+
+    // 将对象转化为数组
+    const templateDependenciesArr = objectToArray(templateDependencies);
+    const targetDependenciesArr = objectToArray(targetDependencies);
+
+    // 实现dependencies的diff
+    const newDependencies = dependenciesDiff(
+      templateDependenciesArr,
+      targetDependenciesArr
+    );
+    log.verbose("合并后的依赖", newDependencies);
+    // 将合并后的依赖写入到目标路径的package.json中dependencies里
+    targetPkg.packageJson.dependencies = arrayToObject(newDependencies);
+    fse.writeJsonSync(targetPkg.path, targetPkg.packageJson, { spaces: 2 }); // 写入package.json并给两个字符的缩进
+
+    // 帮用户合并完依赖之后也自动帮用户安装好依赖（安装路径为当前项目package.json所在目录，通过path.dir来获得）
+    log.info('开始安装模板所需依赖...')
+    await this.execCommand("npm install", path.dirname(targetPkg.path));
+    log.success("模板所需依赖安装完成");
+
+    log.success("依赖合并成功");
   }
 
   async prepare() {
