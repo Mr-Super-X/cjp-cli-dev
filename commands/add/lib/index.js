@@ -18,6 +18,8 @@ const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
 const { spinners, sleep, spawnAsync } = require("@cjp-cli-dev/utils");
 
+// TODO 优化方向1、在MongoDB中配置模板，这里通过接口获取
+// TODO 优化方向2、可以指定本地代码模板
 // 页面模板（尽量提供高质量模板）
 const PAGE_TEMPLATE = [
   {
@@ -25,10 +27,12 @@ const PAGE_TEMPLATE = [
     npmName: "cjp-cli-dev-template-vue3-template-page", // 需要先将这个包发到npm上
     version: "latest",
     targetPath: "src/views/home", // 要拷贝的文件目录
-    ignore: ["**/**.png"],
+    ignore: ["**/**.png"], // ejs忽略的内容
   },
 ];
 
+// TODO 优化方向1、在MongoDB中配置模板，这里通过接口获取
+// TODO 优化方向2、可以指定本地代码模板
 // 代码片段模板
 const SECTION_TEMPLATE = [
   {
