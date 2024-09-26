@@ -38,6 +38,26 @@ const SECTION_TEMPLATE = [
   },
 ];
 
+const VUE2_NORMAL_STYLE = "vue2"; // vue2 标准选项式风格
+const VUE3_SETUP_STYLE = "vue3Setup"; // vue3 <script setup>风格
+const VUE3_NORMAL_STYLE = "vue3"; // vue3 标准组合式风格
+
+// vue版本风格选择
+const VUE_VERSION_STYLE_CHOICES = [
+  {
+    name: "vue2 标准选项式风格",
+    value: VUE2_NORMAL_STYLE,
+  },
+  {
+    name: "vue3 <script setup>风格",
+    value: VUE3_SETUP_STYLE,
+  },
+  {
+    name: "vue3 标准组合式风格",
+    value: VUE3_NORMAL_STYLE,
+  },
+];
+
 const ADD_MODE_SECTION = "section";
 const ADD_MODE_PAGE = "page";
 
@@ -214,6 +234,19 @@ class AddCommand extends Command {
     return codeFile;
   }
 
+  // 获取vue不同版本编码风格选项
+  async getVueVersionStyle(choices) {
+    const { vueVersionStyle } = await inquirer.prompt({
+      type: "list",
+      name: "vueVersionStyle",
+      message: "请选择 Vue.js 版本：",
+      default: VUE3_SETUP_STYLE, // 默认vue3 script setup风格
+      choices: choices || VUE_VERSION_STYLE_CHOICES,
+    });
+
+    return vueVersionStyle;
+  }
+
   // 安装代码片段
   async installSection() {
     // 1.选择要把代码片段插入到哪个源码文件
@@ -238,22 +271,115 @@ class AddCommand extends Command {
     const codeFilePath = path.resolve(this.dir, codeFile);
     const codeLines = fs.readFileSync(codeFilePath, "utf-8").split("\n");
     log.verbose("源码文件内容数组：插入代码片段前", codeLines);
-    // 4.以组件形式插入代码片段到分割好的代码数组中
+    // 4.选择代码插入的风格，vue2和vue3有差异
+    const vueVersionStyle = await this.getVueVersionStyle();
+    log.verbose("用户选择的vue编码风格", vueVersionStyle);
+    // 5.以组件形式插入代码片段到分割好的代码数组中
     const componentName = this.sectionTemplate.sectionName;
-    codeLines.splice(lineNumber, 0, `<${componentName} />`);
-    // 5.插入代码片段的import语句
+    codeLines.splice(lineNumber, 0, `  <${componentName} />`);
+    // 6.插入代码片段的import语句
     // 找到源码中script的位置（去除头尾空格，防止不规范编写导致找不到）
     const scriptIndex = codeLines.findIndex(
       (linCode) => linCode.replace(/\s/g, "") === "<script>"
     );
+
+    if (scriptIndex === -1) {
+      throw new Error(`在 ${codeFile} 源码中找不到 <script> 标签！`);
+    }
+
     // 测试代码
     // console.log('<script>'.replace(/\s/g, "") === "<script>")
     // console.log(' <script>'.replace(/\s/g, "") === "<script>")
     // console.log('<script> '.replace(/\s/g, "") === "<script>")
     // console.log('  <script> '.replace(/\s/g, "") === "<script>")
     // 向script中插入import导入语句，路径为当前目录下components/输入的片段名/index.vue
-    codeLines.splice(scriptIndex + 1, 0, `import ${componentName} from './components/${componentName}/index.vue'`)
+    // TODO 后续优化，为用户提供按需导入还是直接导入选择
+    codeLines.splice(
+      scriptIndex + 1,
+      0,
+      `import ${componentName} from './components/${componentName}/index.vue'`
+    );
+    // 如果是vue2或者是vue3标准模板，需要额外添加components选项来注册局部组件，script setup模式不需要
+    if ([VUE2_NORMAL_STYLE, VUE3_NORMAL_STYLE].includes(vueVersionStyle)) {
+      // 找到 export default {} 的位置
+      const exportIndex = codeLines.findIndex((line) =>
+        line.trim().startsWith("export default")
+      );
+
+      if (exportIndex === -1) {
+        throw new Error(`在 ${codeFile} 源码中没有找到 export default`);
+      }
+
+      log.verbose("源码文件中export default位置：", `第 ${exportIndex + 1} 行`);
+
+      // 找到 components: { 的位置
+      let componentsIndex = codeLines.findIndex((line) =>
+        /components\s*\:\s*\{[^}]*/.test(line)
+      );
+      log.verbose(
+        "源码文件中components属性位置",
+        componentsIndex === -1
+          ? "未找到components属性配置"
+          : `第 ${componentsIndex + 1} 行`
+      );
+
+      // 测试代码
+      // console.log('  components:{'.replace(/\s/g, "") === "components:{")
+      // console.log('  components : {'.replace(/\s/g, "") === "components:{")
+      // console.log('  components :{'.replace(/\s/g, "") === "components:{")
+      // console.log(' components : { '.replace(/\s/g, "") === "components:{")
+
+      // 如果没有找到 components 则创建一个components属性并插入到export default { 的下一行
+      if (componentsIndex === -1) {
+        // 插入 components: {}
+        codeLines.splice(
+          exportIndex + 1,
+          0,
+          `  components: { ${componentName}, }`
+        );
+      } else {
+        // 如果找到了 components:{，判断components是不是写成了一行如components: {xxx}
+        // 如果是，在当前这一行的结尾处插入内容。
+        // 如果有换行，则在当前这一行后面一行插入内容。
+        // 测试代码
+        // console.log(/components\s*\:\s*\{[^}]*\}/.test("components: { a: 1    }"));
+        // console.log(
+        //   /components\s*\:\s*\{[^}]*\}/.test("components: {a: 1, b: {}}")
+        // );
+
+        // 处理不同写法的问题
+        // components: {a: 1}
+        // components: {
+        //    a: 1
+        // }
+
+        // 匹配components是不是写成了一行
+        const componentsLineCode = codeLines[componentsIndex];
+        if (/components\s*\:\s*\{[^}]*\}/.test(componentsLineCode)) {
+          // 没换行则在components:{的结束符号}之前插入代码片段名
+          // 通过寻找最后一个 } 的位置来确定插入点
+          const closingBraceIndex = componentsLineCode.indexOf("}");
+          if (closingBraceIndex !== -1) {
+            // 在 } 前面插入组件名称
+            // 生成新的一行字符，规则为保留原来的代码到closingBraceIndex标记点，然后加上自己的代码片段，再加上 }
+            const updatedCode = `${componentsLineCode.slice(
+              0,
+              closingBraceIndex
+            )} ${componentName},${componentsLineCode.slice(closingBraceIndex)}`;
+            // 将新的内容更新到codeLines对应下标位置
+            codeLines[componentsIndex] = updatedCode;
+          }
+        } else {
+          // 如果有换行，则在匹配到的componentsIndex的下一行注册代码片段名称（空格是为了对齐格式，不一定准确），并以逗号结尾
+          codeLines.splice(componentsIndex + 1, 0, `    ${componentName},`);
+        }
+      }
+    }
     log.verbose("源码文件内容数组：插入代码片段后", codeLines);
+    // 7. 将代码还原为字符串并写入到源码文件中
+    const codeContent = codeLines.join("\n");
+    // fs.writeFileSync(codeFilePath, codeContent);
+    console.log(codeContent);
   }
 
   // 安装页面模板
