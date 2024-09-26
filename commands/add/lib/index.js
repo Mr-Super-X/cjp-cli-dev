@@ -1,5 +1,6 @@
 "use strict";
 
+// TODO 优化点：将使用次数大于等于三次的库封装到utils包中
 // 第三方库
 const inquirer = require("inquirer"); // 用于终端交互
 const pathExists = require("path-exists").sync; // 用于判断路径是否存在
@@ -36,9 +37,16 @@ const PAGE_TEMPLATE = [
 // 代码片段模板
 const SECTION_TEMPLATE = [
   {
-    name: "vue3代码片段模板",
+    name: "vue3代码片段模板1",
     npmName: "cjp-cli-dev-template-vue3-section", // 需要先将这个包发到npm上
     version: "latest",
+    targetPath: "./", // 要拷贝的文件目录
+  },
+  {
+    name: "vue3代码片段模板2",
+    npmName: "cjp-cli-dev-template-vue3-section-template", // 需要先将这个包发到npm上
+    version: "latest",
+    targetPath: "src/", // 要拷贝的文件目录
   },
 ];
 
@@ -399,10 +407,14 @@ class AddCommand extends Command {
     // 拿到模板路径
     const templatePath = path.resolve(
       this.sectionTemplatePackage.cacheFilePath,
-      "template"
+      "template",
+      this.sectionTemplate.targetPath
     );
     // 拿到目标路径
     const targetPath = this.targetPath;
+    log.verbose("templatePath", templatePath);
+    log.verbose("targetPath", targetPath);
+
     // 拷贝模板到目标路径
     fse.copySync(templatePath, targetPath);
     log.verbose(`代码片段模板已拷贝到 ${targetPath}`);
