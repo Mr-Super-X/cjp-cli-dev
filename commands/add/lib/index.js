@@ -132,7 +132,7 @@ class AddCommand extends Command {
   async exec() {
     // 代码片段（区块）：以源码形式拷贝的vue组件
     // 选择复用方式
-    // 如果选择复用代码片段，会提示选择可复用的模板，然后提示输入文件夹/文件名，然后自动拷贝模板代码到当前目录下的components中，提示用户选择要
+    // 如果选择复用代码片段，步骤非常复杂，详情查看installSection方法中代码注释
     // 如果选择复用页面模板，会提示选择可复用的模板，然后提示输入文件夹/文件名，然后自动拷贝模板代码到当前目录，检查合并依赖并安装依赖
     this.addMode = await this.getAddMode();
     if (this.addMode === ADD_MODE_SECTION) {
@@ -203,7 +203,7 @@ class AddCommand extends Command {
     const { lineNumber } = await inquirer.prompt({
       type: "input",
       name: "lineNumber",
-      message: "请问您想在哪一行插入代码片段？",
+      message: "请问您想在哪一行插入代码片段？（行号下标从0开始）",
       default: "",
       validate(value) {
         const done = this.async();
@@ -266,17 +266,21 @@ class AddCommand extends Command {
     // 2.需要用户输入插入行数
     const lineNumber = await this.getLineNumber();
     log.verbose("用户选择的源码文件", codeFile);
-    log.verbose("要插入的行号", lineNumber);
+    log.verbose("要插入的行号下标", lineNumber);
+
     // 3.对源码文件进行分割（把代码以行为单位分割成数组）
     const codeFilePath = path.resolve(this.dir, codeFile);
     const codeLines = fs.readFileSync(codeFilePath, "utf-8").split("\n");
     log.verbose("源码文件内容数组：插入代码片段前", codeLines);
+
     // 4.选择代码插入的风格，vue2和vue3有差异
     const vueVersionStyle = await this.getVueVersionStyle();
     log.verbose("用户选择的vue编码风格", vueVersionStyle);
+
     // 5.以组件形式插入代码片段到分割好的代码数组中
     const componentName = this.sectionTemplate.sectionName;
     codeLines.splice(lineNumber, 0, `  <${componentName} />`);
+
     // 6.插入代码片段的import语句
     // 找到源码中script的位置（去除头尾空格，防止不规范编写导致找不到）
     const scriptIndex = codeLines.findIndex(
@@ -299,7 +303,7 @@ class AddCommand extends Command {
       0,
       `import ${componentName} from './components/${componentName}/index.vue'`
     );
-    // 如果是vue2或者是vue3标准模板，需要额外添加components选项来注册局部组件，script setup模式不需要
+    // 8.如果是vue2或者是vue3标准模板，需要额外添加components选项来注册局部组件，vue3 script setup模式不需要
     if ([VUE2_NORMAL_STYLE, VUE3_NORMAL_STYLE].includes(vueVersionStyle)) {
       // 找到 export default {} 的位置
       const exportIndex = codeLines.findIndex((line) =>
@@ -331,11 +335,11 @@ class AddCommand extends Command {
 
       // 如果没有找到 components 则创建一个components属性并插入到export default { 的下一行
       if (componentsIndex === -1) {
-        // 插入 components: {}
+        // 插入 components: {}, 逗号不能少，因为不确定后面会不会有内容
         codeLines.splice(
           exportIndex + 1,
           0,
-          `  components: { ${componentName}, }`
+          `  components: { ${componentName}, },`
         );
       } else {
         // 如果找到了 components:{，判断components是不是写成了一行如components: {xxx}
@@ -376,10 +380,28 @@ class AddCommand extends Command {
       }
     }
     log.verbose("源码文件内容数组：插入代码片段后", codeLines);
-    // 7. 将代码还原为字符串并写入到源码文件中
+    // 9. 将代码还原为字符串并写入到源码文件中
     const codeContent = codeLines.join("\n");
-    // fs.writeFileSync(codeFilePath, codeContent);
-    console.log(codeContent);
+    fs.writeFileSync(codeFilePath, codeContent);
+    log.success(`代码片段已成功写入当前路径下的源码文件 ${codeFile}`);
+    log.success(
+      `已将 ${componentName} 写入源码第 ${
+        Number(lineNumber) + 1
+      } 行，自动import导入 ${componentName} ，自动局部注册components，可能会有一些代码格式问题需要您手动对齐`
+    );
+
+    // 10.将代码片段目录拷贝到当前目录 ./components/代码片段名/ 中
+    fse.ensureDirSync(this.targetPath); // 确保文件夹存在，不存在自动创建
+    // 拿到模板路径
+    const templatePath = path.resolve(
+      this.sectionTemplatePackage.cacheFilePath,
+      "template"
+    );
+    // 拿到目标路径
+    const targetPath = this.targetPath;
+    // 拷贝模板到目标路径
+    fse.copySync(templatePath, targetPath);
+    log.verbose(`代码片段模板已拷贝到 ${targetPath}`);
   }
 
   // 安装页面模板
@@ -532,7 +554,8 @@ class AddCommand extends Command {
       this.targetPath = path.resolve(this.dir, "components", name);
     }
     if (pathExists(this.targetPath)) {
-      throw new Error(`当前路径中 ${name} 文件夹已存在`);
+      const msg = addMode === ADD_MODE_PAGE ? name : "/components/" + name;
+      throw new Error(`当前路径中 ${msg} 文件夹已存在`);
     }
   }
 
