@@ -11,6 +11,7 @@ const { glob } = require("glob"); // 用于shell模式匹配文件
 // 内置库
 const path = require("path");
 const os = require("os");
+const fs = require("fs");
 // 自建库
 const Command = require("@cjp-cli-dev/command");
 const Package = require("@cjp-cli-dev/package");
@@ -27,6 +28,18 @@ const PAGE_TEMPLATE = [
     ignore: ["**/**.png"],
   },
 ];
+
+// 代码片段模板
+const SECTION_TEMPLATE = [
+  {
+    name: "vue3代码片段模板",
+    npmName: "cjp-cli-dev-template-vue3-section", // 需要先将这个包发到npm上
+    version: "latest",
+  },
+];
+
+const ADD_MODE_SECTION = "section";
+const ADD_MODE_PAGE = "page";
 
 const USER_HOME = os.homedir(); // 用户主目录
 
@@ -69,8 +82,8 @@ function dependenciesDiff(templateDepArr, targetDepArr) {
 
       // 场景二：模板中存在依赖，项目中也存在（不会拷贝依赖，但是在脚手架中给予提示，让开发者手动处理）
       // 对版本的上限进行比较，上限不一样就提示
-      const templateRange = semver.validRange(templateDep.value).split('<')[1];
-      const targetRange = semver.validRange(duplicatedDep.value).split('<')[1];
+      const templateRange = semver.validRange(templateDep.value).split("<")[1];
+      const targetRange = semver.validRange(duplicatedDep.value).split("<")[1];
       if (templateRange !== targetRange) {
         log.warn(
           `${templateDep.key} 依赖冲突 \n模板依赖版本：${templateDep.value} \n本地依赖版本：${duplicatedDep.value} \n请手动处理冲突依赖版本为您希望使用的版本`
@@ -97,23 +110,154 @@ class AddCommand extends Command {
   }
 
   async exec() {
+    // 代码片段（区块）：以源码形式拷贝的vue组件
+    // 选择复用方式
+    // 如果选择复用代码片段，会提示选择可复用的模板，然后提示输入文件夹/文件名，然后自动拷贝模板代码到当前目录下的components中，提示用户选择要
+    // 如果选择复用页面模板，会提示选择可复用的模板，然后提示输入文件夹/文件名，然后自动拷贝模板代码到当前目录，检查合并依赖并安装依赖
+    this.addMode = await this.getAddMode();
+    if (this.addMode === ADD_MODE_SECTION) {
+      // 选择复用代码片段模板
+      await this.installSectionTemplate();
+    } else {
+      // 选择复用页面模板
+      await this.installPageTemplate();
+    }
+  }
+
+  // 安装代码片段模板
+  async installSectionTemplate() {
+    log.info("开始安装代码片段...");
+    // 1.获取页面安装文件夹路径
+    this.dir = process.cwd();
+    // 2.选择代码片段
+    this.sectionTemplate = await this.getTemplate(ADD_MODE_SECTION);
+    // 3.安装代码片段
+    // 3.1.预检查：是否有重名目录
+    await this.prepare(ADD_MODE_SECTION);
+    // 3.2.下载代码片段模板至缓存目录
+    await this.downloadTemplate(ADD_MODE_SECTION);
+    // 3.3.将代码片段模板拷贝至指定目录
+    // 4.合并代码片段模板依赖
+    // 5.代码片段模板安装完成
+    await this.installSection();
+    log.success("代码片段安装完成");
+  }
+
+  // 安装页面模板
+  async installPageTemplate() {
+    log.info("开始安装页面模板...");
     // 1.获取页面安装文件夹路径
     this.dir = process.cwd();
     // 2.选择页面模板
-    this.pageTemplate = await this.getPageTemplate();
+    this.pageTemplate = await this.getTemplate(ADD_MODE_PAGE);
     // 3.安装页面模板
     // 3.1.预检查：是否有重名目录
-    await this.prepare();
+    await this.prepare(ADD_MODE_PAGE);
     // 3.2.下载页面模板至缓存目录
-    await this.downloadTemplate();
+    await this.downloadTemplate(ADD_MODE_PAGE);
     // 3.3.将页面模板拷贝至指定目录
     // 4.合并页面模板依赖
-    // 5.安装完成
+    // 5.页面模板安装完成
     await this.installTemplate();
+    log.success("页面模板安装完成");
   }
 
+  // 询问添加模式
+  async getAddMode() {
+    const { addMode } = await inquirer.prompt({
+      type: "list",
+      name: "addMode",
+      message: "请选择代码复用模式：",
+      default: "",
+      choices: [
+        { name: "复用页面模板", value: ADD_MODE_PAGE },
+        { name: "复用代码片段", value: ADD_MODE_SECTION },
+      ],
+    });
+
+    return addMode;
+  }
+
+  // 获取代码行号
+  async getLineNumber() {
+    const { lineNumber } = await inquirer.prompt({
+      type: "input",
+      name: "lineNumber",
+      message: "请问您想在哪一行插入代码片段？",
+      default: "",
+      validate(value) {
+        const done = this.async();
+        if (!value || !value.trim()) {
+          done("请输入您要插入的行数");
+          return;
+        }
+        if (!(value >= 0 && Math.floor(value) === Number(value))) {
+          done("插入行数必须是正整数");
+          return;
+        }
+        done(null, true);
+      },
+    });
+
+    return lineNumber;
+  }
+
+  async getCodeFile(choices) {
+    const { codeFile } = await inquirer.prompt({
+      type: "list",
+      name: "codeFile",
+      message: "请选择要插入代码片段到哪个源码文件：",
+      default: "",
+      choices,
+    });
+
+    return codeFile;
+  }
+
+  // 安装代码片段
+  async installSection() {
+    // 1.选择要把代码片段插入到哪个源码文件
+    // 读取当前目录下的所有源码文件
+    let files = fs
+      .readdirSync(this.dir, { withFileTypes: true }) // withFileTypes能读取出文件夹和文件类型
+      .map((file) => (file.isFile() ? file.name : null)) // 排除文件夹类型
+      .filter((_) => _) // 过滤为null的选项
+      .map((file) => ({ name: file, value: file })); // 生成选项
+
+    if (files.length === 0) {
+      throw new Error("当前目录下没找到可供选择的源码文件！");
+    }
+
+    const codeFile = await this.getCodeFile(files);
+
+    // 2.需要用户输入插入行数
+    const lineNumber = await this.getLineNumber();
+    log.verbose("用户选择的源码文件", codeFile);
+    log.verbose("要插入的行号", lineNumber);
+    // 3.对源码文件进行分割（把代码以行为单位分割成数组）
+    const codeFilePath = path.resolve(this.dir, codeFile);
+    const codeLines = fs.readFileSync(codeFilePath, "utf-8").split("\n");
+    log.verbose("源码文件内容数组：插入代码片段前", codeLines);
+    // 4.以组件形式插入代码片段到分割好的代码数组中
+    const componentName = this.sectionTemplate.sectionName;
+    codeLines.splice(lineNumber, 0, `<${componentName} />`);
+    // 5.插入代码片段的import语句
+    // 找到源码中script的位置（去除头尾空格，防止不规范编写导致找不到）
+    const scriptIndex = codeLines.findIndex(
+      (linCode) => linCode.replace(/\s/g, "") === "<script>"
+    );
+    // 测试代码
+    // console.log('<script>'.replace(/\s/g, "") === "<script>")
+    // console.log(' <script>'.replace(/\s/g, "") === "<script>")
+    // console.log('<script> '.replace(/\s/g, "") === "<script>")
+    // console.log('  <script> '.replace(/\s/g, "") === "<script>")
+    // 向script中插入import导入语句，路径为当前目录下components/输入的片段名/index.vue
+    codeLines.splice(scriptIndex + 1, 0, `import ${componentName} from './components/${componentName}/index.vue'`)
+    log.verbose("源码文件内容数组：插入代码片段后", codeLines);
+  }
+
+  // 安装页面模板
   async installTemplate() {
-    log.info("开始安装页面模板...");
     log.verbose("pageTemplate", this.pageTemplate);
     // 拿到模板路径
     const templatePath = path.resolve(
@@ -137,9 +281,8 @@ class AddCommand extends Command {
     // 使用ejs渲染目标路径中的文件
     await this.ejsRender({ targetPath });
     // 如果拷贝的模板中有依赖外部node_modules包，需要检查和合并依赖
-    await this.mergeDependencies({ templatePath, targetPath });
     // 合并依赖完成后自动帮用户重新安装依赖
-    log.success("页面模板安装完成");
+    await this.mergeDependencies({ templatePath, targetPath });
   }
 
   // 使用ejs渲染模板
@@ -251,15 +394,23 @@ class AddCommand extends Command {
     log.success("依赖合并成功");
   }
 
-  async prepare() {
+  async prepare(addMode = ADD_MODE_PAGE) {
+    const name =
+      addMode === ADD_MODE_PAGE
+        ? this.pageTemplate.pageName
+        : this.sectionTemplate.sectionName;
     // 生成最终拷贝路径
-    this.targetPath = path.resolve(this.dir, this.pageTemplate.pageName);
+    if (addMode === ADD_MODE_PAGE) {
+      this.targetPath = path.resolve(this.dir, name);
+    } else {
+      this.targetPath = path.resolve(this.dir, "components", name);
+    }
     if (pathExists(this.targetPath)) {
-      throw new Error(`当前路径中 ${this.pageTemplate.pageName} 文件夹已存在`);
+      throw new Error(`当前路径中 ${name} 文件夹已存在`);
     }
   }
 
-  async downloadTemplate() {
+  async downloadTemplate(addMode = ADD_MODE_PAGE) {
     // 缓存文件夹
     const targetPath = path.resolve(USER_HOME, ".cjp-cli-dev", "template");
     // 缓存真实路径
@@ -271,8 +422,10 @@ class AddCommand extends Command {
     );
 
     // 生成Package对象
-    const { npmName, version } = this.pageTemplate;
-    const pageTemplatePackage = new Package({
+    const template =
+      addMode === ADD_MODE_PAGE ? this.pageTemplate : this.sectionTemplate;
+    const { npmName, version } = template;
+    const templatePackage = new Package({
       targetPath,
       storeDir,
       packageName: npmName,
@@ -281,21 +434,22 @@ class AddCommand extends Command {
 
     let spinner; // 加载动画
     let successMsg; // 成功信息
+    const title = addMode === ADD_MODE_PAGE ? "页面" : "代码片段";
 
     try {
-      // 页面模板是否存在
-      if (!(await pageTemplatePackage.exists())) {
-        spinner = spinners("正在下载页面模板...");
+      // 模板是否存在
+      if (!(await templatePackage.exists())) {
+        spinner = spinners(`正在下载${title}模板...`);
         await sleep();
-        // 下载页面模板
-        await pageTemplatePackage.install();
-        successMsg = "下载页面模板成功";
+        // 下载模板
+        await templatePackage.install();
+        successMsg = `下载${title}模板成功`;
       } else {
-        spinner = spinners("正在更新页面模板...");
+        spinner = spinners(`正在更新${title}模板...`);
         await sleep();
-        // 更新页面模板
-        await pageTemplatePackage.update();
-        successMsg = "更新页面模板成功";
+        // 更新模板
+        await templatePackage.update();
+        successMsg = `更新${title}模板成功`;
       }
     } catch (error) {
       throw error;
@@ -303,53 +457,64 @@ class AddCommand extends Command {
       // 只要完成就停止加载动画
       spinner.stop(true);
       // 完成后下载文件存在且有成功信息
-      if ((await pageTemplatePackage.exists()) && successMsg) {
+      if ((await templatePackage.exists()) && successMsg) {
         // 输出成功信息
         log.success(successMsg);
         // 将包信息存入this
-        this.pageTemplatePackage = pageTemplatePackage;
+        if (addMode === ADD_MODE_PAGE) {
+          this.pageTemplatePackage = templatePackage;
+        } else {
+          this.sectionTemplatePackage = templatePackage;
+        }
       }
     }
   }
 
-  async getPageTemplate() {
-    const { pageTemplateName } = await inquirer.prompt({
+  async getTemplate(addMode = ADD_MODE_PAGE) {
+    const title = addMode === ADD_MODE_PAGE ? "页面" : "代码片段";
+    const templateData =
+      addMode === ADD_MODE_PAGE ? PAGE_TEMPLATE : SECTION_TEMPLATE;
+
+    const { templateName } = await inquirer.prompt({
       type: "list",
-      name: "pageTemplateName",
-      message: "请选择要添加的页面模板：",
+      name: "templateName",
+      message: `请选择要添加的${title}模板：`,
       default: "",
-      choices: this.createChoices(),
+      choices: this.createChoices(templateData),
     });
-    // 2.1.输入页面名称
-    const pageTemplate = PAGE_TEMPLATE.find(
-      (item) => item.npmName === pageTemplateName
-    );
-    if (!pageTemplate) {
-      throw new Error("页面模板不存在！");
+    // 2.1.输入名称
+    const template = templateData.find((item) => item.npmName === templateName);
+    if (!template) {
+      throw new Error(`${title}模板不存在！`);
     }
-    const { pageName } = await inquirer.prompt({
+    const { name } = await inquirer.prompt({
       type: "input",
-      name: "pageName",
-      message: "请输入页面名称：",
+      name: "name",
+      message: `请输入${title}名称：`,
       default: "",
       validate(value) {
         const done = this.async();
         if (!value || !value.trim()) {
-          done("请输入页面名称");
+          done(`请输入${title}名称`);
           return;
         }
         done(null, true);
       },
     });
-    // 对文件名进行trim处理
-    pageTemplate.pageName = pageName.trim();
 
-    return pageTemplate;
+    // 对文件名进行trim处理
+    if (addMode === ADD_MODE_PAGE) {
+      template.pageName = name.trim();
+    } else {
+      template.sectionName = name.trim();
+    }
+
+    return template;
   }
 
   // 创建选项
-  createChoices() {
-    return PAGE_TEMPLATE.map((item) => ({
+  createChoices(data) {
+    return data.map((item) => ({
       name: item.name,
       value: item.npmName,
     }));
