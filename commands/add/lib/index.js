@@ -482,7 +482,7 @@ class AddCommand extends Command {
       throw new Error("自定义页面模板入口文件不存在！");
     }
 
-    log.info("开始执行自定义模板安装");
+    log.info("开始执行自定义页面模板安装");
     // 动态引入代码
     const options = {
       templatePath,
@@ -502,7 +502,7 @@ class AddCommand extends Command {
     });
 
     if (result === 0) {
-      log.success("自定义模板安装成功");
+      log.success("自定义页面模板安装成功");
     }
   }
 
