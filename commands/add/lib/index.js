@@ -489,6 +489,9 @@ class AddCommand extends Command {
       targetPath,
       pageTemplate: this.pageTemplate,
     };
+    // 需要将自定义ejs渲染的逻辑放在模板的入口文件如index.js或main.js中执行
+    // 实现由模板自身控制更灵活的渲染方式，并与脚手架配合起来，但需要遵守一些规则
+    // 自定义模板示例请查阅npm包：cjp-cli-dev-template-vue3-page-custom
     const code = `require('${rootFile}')(${JSON.stringify(options)})`;
     // 调试模式输出
     log.verbose("code", code);
