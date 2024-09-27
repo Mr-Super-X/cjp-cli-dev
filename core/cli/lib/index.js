@@ -45,7 +45,7 @@ function registerCommander() {
     // 使用方法提示
     .usage("<command> [options]")
     .description(
-      "前端通用脚手架工具，支持：\n1.快速创建各种项目或组件模板，包括默认模板创建、自定义模板创建、组件库创建、模板自动安装启动。\n2.发布项目或组件，包括预发布和正式发布、自动在代码托管平台创建仓库、Git自动化、自动构建、自动发布。 \n3.支持项目云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、静态资源上传OSS、自动Git Flow分支管理、自动同步代码并创建版本Tag。"
+      "前端通用脚手架工具，支持：\n1.快速创建各种项目或组件模板，包括默认项目模板创建、自定义项目模板创建、组件库模板创建、模板自动安装和启动。\n2.发布项目或组件，包括预发布和正式发布、自动在代码托管平台创建仓库、Git Flow自动化、自动构建、自动发布。 \n3.支持项目云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、静态资源上传OSS、自动Git Flow分支管理、自动同步代码并创建版本Tag。 \n4.支持快速添加组件代码片段模板、页面标准模板、自定义页面模板到本地项目。其中组件支持自动写入代码到指定位置，自动导入并注册局部组件等。"
     )
     // 版本号
     .version(pkg.version)
@@ -69,14 +69,16 @@ function registerCommander() {
   // 初始化项目
   program
     .command("init [projectName]")
-    .description("创建各种项目模板或组件模板")
+    .description("创建标准项目模板、自定义项目模板、组件库模板")
     .option("-f, --force", "是否强制初始化项目")
     .action(exec);
 
   // 发布项目
   program
     .command("publish")
-    .description("自动构建并发布项目或组件库")
+    .description(
+      "自动云构建云发布项目、自动构建组件库并发布npm"
+    )
     .option("-rgs, --refreshGitServer", "强制更新Git托管平台", false)
     .option("-rgt, --refreshGitToken", "强制更新Git托管平台token", false)
     .option("-rgo, --refreshGitOwner", "强制更新Git仓库登录类型", false)
@@ -96,7 +98,9 @@ function registerCommander() {
   // 添加复用代码
   program
     .command("add [templateName]")
-    .description("添加各种代码复用片段或模板")
+    .description(
+      "添加组件代码片段模板、页面标准模板、自定义页面模板到本地项目"
+    )
     .option("-f, --force", "是否强制添加复用代码")
     .action(exec);
 
