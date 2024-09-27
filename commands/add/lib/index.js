@@ -542,7 +542,7 @@ class AddCommand extends Command {
             const result = await ejs.renderFile(
               filePath,
               {
-                name: pageName.toLocaleLowerCase(),
+                name: pageName,
               },
               {}
             );
