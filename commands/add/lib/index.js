@@ -23,32 +23,37 @@ const { getPageTemplate, getSectionTemplate } = require("./getTemplate");
 // TODO 优化方向2、可以指定本地代码模板
 // 页面模板（尽量提供高质量模板）
 // const PAGE_TEMPLATE = [
-  // {
-  //   name: "vue3首页模板",
-  //   npmName: "cjp-cli-dev-template-vue3-template-page", // 需要先将这个包发到npm上
-  //   version: "latest",
-  //   targetPath: "src/views/home", // 要拷贝的文件目录
-  //   ignore: ["**/**.png"], // ejs忽略的内容
-  // },
+// {
+//   name: "vue3首页模板",
+//   npmName: "cjp-cli-dev-template-vue3-template-page", // 需要先将这个包发到npm上
+//   version: "latest",
+//   targetPath: "src/views/home", // 要拷贝的文件目录
+//   ignore: ["**/**.png"], // ejs忽略的内容
+//   type: "normal", // normal or custom
+// },
 // ];
 
 // TODO 优化方向2、可以指定本地代码模板
 // 代码片段模板
 // const SECTION_TEMPLATE = [
-  // {
-  //   name: "vue3代码片段模板1",
-  //   npmName: "cjp-cli-dev-template-vue3-section", // 需要先将这个包发到npm上
-  //   version: "latest",
-  //   targetPath: "./", // 要拷贝的文件目录
-  // },
-  // {
-  //   name: "vue3代码片段模板2",
-  //   npmName: "cjp-cli-dev-template-vue3-section-template", // 需要先将这个包发到npm上
-  //   version: "latest",
-  //   targetPath: "src/", // 要拷贝的文件目录
-  // },
+// {
+//   name: "vue3代码片段模板1",
+//   npmName: "cjp-cli-dev-template-vue3-section", // 需要先将这个包发到npm上
+//   version: "latest",
+//   targetPath: "./", // 要拷贝的文件目录
+//   type: "normal", // normal or custom
+// },
+// {
+//   name: "vue3代码片段模板2",
+//   npmName: "cjp-cli-dev-template-vue3-section-template", // 需要先将这个包发到npm上
+//   version: "latest",
+//   targetPath: "src/", // 要拷贝的文件目录
+//   type: "normal", // normal or custom
+// },
 // ];
 
+const TYPE_CUSTOM = "custom";
+const TYPE_NORMAL = "normal";
 const VUE2_NORMAL_STYLE = "vue2"; // vue2 标准选项式风格
 const VUE3_SETUP_STYLE = "vue3Setup"; // vue3 <script setup>风格
 const VUE3_NORMAL_STYLE = "vue3"; // vue3 标准组合式风格
@@ -346,12 +351,31 @@ class AddCommand extends Command {
 
       // 如果没有找到 components 则创建一个components属性并插入到export default { 的下一行
       if (componentsIndex === -1) {
-        // 插入 components: {}, 逗号不能少，因为不确定后面会不会有内容
-        codeLines.splice(
-          exportIndex + 1,
-          0,
-          `  components: { ${componentName}, },`
-        );
+        const exportCode = codeLines[exportIndex];
+
+        // 判断export default是写成了一行还是有换行
+        if (/export\s*default\s*\:\s*\{[^}]*\}/.test(exportCode)) {
+          // 在当前这一行的结尾处插入内容
+          // 通过寻找最后一个 } 的位置来确定插入点
+          const closingBraceIndex = exportCode.indexOf("}");
+          if (closingBraceIndex !== -1) {
+            // 在 } 前面插入组件名称
+            // 生成新的一行字符，规则为保留原来的代码到closingBraceIndex标记点，然后加上自己的代码片段，再加上 }
+            const updatedCode = `${exportCode.slice(
+              0,
+              closingBraceIndex
+            )}  components: { ${componentName}, },${exportCode.slice(closingBraceIndex)}`;
+            // 将新的内容更新到codeLines对应下标位置
+            codeLines[exportCode] = updatedCode;
+          }
+        } else {
+          // 插入 components: {}, 逗号不能少，因为不确定后面会不会有内容
+          codeLines.splice(
+            exportIndex + 1,
+            0,
+            `  components: { ${componentName}, },`
+          );
+        }
       } else {
         // 如果找到了 components:{，判断components是不是写成了一行如components: {xxx}
         // 如果是，在当前这一行的结尾处插入内容。
@@ -439,6 +463,48 @@ class AddCommand extends Command {
     // 确保这两个路径存在（不存在也会自动创建）
     fse.ensureDirSync(templatePath);
     fse.ensureDirSync(targetPath);
+
+    log.verbose("页面模板类型：", this.pageTemplate.type);
+    if (this.pageTemplate.type === TYPE_CUSTOM) {
+      // 安装自定义模板
+      await this.installCustomPageTemplate({ templatePath, targetPath });
+    } else {
+      // 安装标准模板
+      await this.installNormalPageTemplate({ templatePath, targetPath });
+    }
+  }
+
+  // 页面自定义模板安装
+  async installCustomPageTemplate({ templatePath, targetPath }) {
+    // 1.获取自定义页面模板入口文件
+    const rootFile = await this.pageTemplatePackage.getRootFilePath();
+    if (!fs.existsSync(rootFile)) {
+      throw new Error("自定义页面模板入口文件不存在！");
+    }
+
+    log.info("开始执行自定义模板安装");
+    // 动态引入代码
+    const options = {
+      templatePath,
+      targetPath,
+      pageTemplate: this.pageTemplate,
+    };
+    const code = `require('${rootFile}')(${JSON.stringify(options)})`;
+    // 调试模式输出
+    log.verbose("code", code);
+    // 子进程中执行代码，并将stdout、stderr打印到控制台中
+    const result = await spawnAsync("node", ["-e", code], {
+      stdio: "inherit",
+      cwd: process.cwd(),
+    });
+
+    if (result === 0) {
+      log.success("自定义模板安装成功");
+    }
+  }
+
+  // 页面模板标准安装
+  async installNormalPageTemplate({ templatePath, targetPath }) {
     // 将模板路径的所有文件拷贝到目标路径中
     fse.copySync(templatePath, targetPath);
     // 使用ejs渲染目标路径中的文件
