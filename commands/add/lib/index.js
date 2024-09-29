@@ -5,7 +5,6 @@
 const pathExists = require("path-exists").sync; // 用于判断路径是否存在
 const fse = require("fs-extra"); // 用于清空文件夹
 const ejs = require("ejs"); // 用于渲染ejs模板
-const semver = require("semver"); // 用于判断版本号
 const readPkgUp = require("read-pkg-up"); // 用于查找根目录下的package.json
 const { glob } = require("glob"); // 用于shell模式匹配文件
 // 内置库
@@ -16,7 +15,7 @@ const fs = require("fs");
 const Command = require("@cjp-cli-dev/command");
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spinners, sleep, spawnAsync, prompt } = require("@cjp-cli-dev/utils");
+const { spinners, sleep, spawnAsync, prompt, semver } = require("@cjp-cli-dev/utils");
 const { getPageTemplate, getSectionTemplate } = require("./getTemplate");
 
 // TODO 优化方向2、可以指定本地代码模板

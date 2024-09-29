@@ -2,8 +2,9 @@
 
 // 第三方库
 const axios = require("axios"); // 用于发起ajax请求
-const semver = require("semver"); // 用于比对版本号
 const urlJoin = require("url-join"); // 用于拼接url
+// 自建库
+const { semver } = require("@cjp-cli-dev/utils");
 
 function getNpmInfo(npmName, registry) {
   if (!npmName) return;

@@ -3,7 +3,6 @@
 // 第三方库
 const simpleGit = require("simple-git"); // 用于在node程序中运行git
 const fse = require("fs-extra"); // 用于文件操作
-const semver = require("semver"); // 用于比对版本号
 const terminalLink = require("terminal-link"); // 用于生成终端可点击链接
 const Listr = require("listr"); // 文件列表增强工具
 const { Observable } = require("rxjs"); // 用于响应式数据操作
@@ -22,6 +21,7 @@ const {
   spinners,
   sleep,
   prompt,
+  semver,
 } = require("@cjp-cli-dev/utils");
 const Github = require("./Github");
 const Gitee = require("./Gitee");

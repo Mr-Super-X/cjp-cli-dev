@@ -33,7 +33,6 @@
     "fs-extra": "^11.2.0",
     "listr": "^0.14.3",
     "rxjs": "^6.6.7",
-    "semver": "^7.6.3",
     "simple-git": "^3.26.0",
     "terminal-link": "^2.1.1"
   }

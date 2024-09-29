@@ -7,6 +7,7 @@ const cSpawn = require("cross-spawn"); // 用来解决node内置的spawn在windo
 const fs = require("fs");
 // const cp = require("child_process");
 // 自建库
+const semver = require('./semver');
 const { prompt } = require("./inquirer");
 
 /**
@@ -124,4 +125,5 @@ module.exports = {
   readFile,
   writeFile,
   prompt,
+  semver,
 };

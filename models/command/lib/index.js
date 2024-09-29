@@ -1,10 +1,10 @@
 "use strict";
 
 // 第三方库
-const semver = require("semver"); // 用于比对各种版本号
 const colors = require("colors/safe"); // 用于给log信息添加颜色
 // 自建库
 const log = require("@cjp-cli-dev/log");
+const { semver } = require("@cjp-cli-dev/utils"); // 工具方法
 
 // 全局变量
 const LOWEST_NODE_VERSION = "16.0.0";
