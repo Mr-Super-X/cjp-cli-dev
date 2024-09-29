@@ -1,7 +1,6 @@
 "use strict";
 
 // 第三方库
-const fse = require("fs-extra"); // 用于清空文件夹
 const kebabCase = require("kebab-case"); // 用于将驼峰命名转为kebab-case
 const ejs = require("ejs"); // 用于渲染ejs模板
 // const validatePackageName = require("validate-npm-package-name"); // 用于验证npm包名合法性
@@ -14,7 +13,7 @@ const path = require("path");
 const Command = require("@cjp-cli-dev/command");
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spinners, spawnAsync, sleep, prompt, semver } = require("@cjp-cli-dev/utils");
+const { spinners, spawnAsync, sleep, prompt, semver, fse } = require("@cjp-cli-dev/utils");
 const getProjectTemplate = require("./getProjectTemplate");
 
 // 白名单命令，不在此白名单中的命令都需要确认是否执行，防止用户插入风险操作，如：rm -rf等

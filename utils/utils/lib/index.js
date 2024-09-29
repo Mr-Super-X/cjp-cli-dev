@@ -7,8 +7,9 @@ const cSpawn = require("cross-spawn"); // 用来解决node内置的spawn在windo
 const fs = require("fs");
 // const cp = require("child_process");
 // 自建库
-const semver = require('./semver');
-const { prompt } = require("./inquirer");
+const semver = require('./semver'); // 用于判断版本号
+const fse = require('./fs-extra'); // 更方便的文件操作
+const { prompt } = require("./inquirer"); // 用于终端询问式交互
 
 /**
  * 判断是否是Object
@@ -126,4 +127,5 @@ module.exports = {
   writeFile,
   prompt,
   semver,
+  fse
 };

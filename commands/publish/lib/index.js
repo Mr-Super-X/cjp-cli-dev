@@ -9,6 +9,7 @@ const fs = require("fs");
 const Command = require("@cjp-cli-dev/command");
 const Git = require("@cjp-cli-dev/git");
 const log = require("@cjp-cli-dev/log");
+const { fse } = require('@cjp-cli-dev/utils')
 
 class PublishCommand extends Command {
   init() {

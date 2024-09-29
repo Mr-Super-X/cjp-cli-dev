@@ -30,7 +30,6 @@
     "@cjp-cli-dev/request": "file:../../utils/request",
     "@cjp-cli-dev/utils": "file:../../utils/utils",
     "axios": "^1.7.7",
-    "fs-extra": "^11.2.0",
     "listr": "^0.14.3",
     "rxjs": "^6.6.7",
     "simple-git": "^3.26.0",

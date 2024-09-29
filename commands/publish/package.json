@@ -28,6 +28,6 @@
     "@cjp-cli-dev/command": "file:../../models/command",
     "@cjp-cli-dev/git": "file:../../models/git",
     "@cjp-cli-dev/log": "file:../../utils/log",
-    "fs-extra": "^11.2.0"
+    "@cjp-cli-dev/utils": "file:../../utils/utils"
   }
 }
