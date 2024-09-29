@@ -14,6 +14,7 @@ const { getNpmSemverVersion } = require("@cjp-cli-dev/get-npm-info"); // 用于�
 const { semver, pathExists } = require("@cjp-cli-dev/utils"); // 工具方法
 const pkg = require("../package.json");
 const constant = require("./const");
+const generateRandomFunnyQuote = require("./generateFunnyQuote");
 
 // 全局变量
 const homedir = os.homedir(); // 用户主目录
@@ -23,6 +24,7 @@ module.exports = cli;
 
 async function cli() {
   try {
+    // 准备阶段
     await prepare();
     // 8. 注册commander命令
     registerCommander();
@@ -36,20 +38,27 @@ async function cli() {
   }
 }
 
-// commander文档：https://www.npmjs.com/package/commander
+/**
+ * 注册命令
+ * commander文档：https://www.npmjs.com/package/commander
+ */
 function registerCommander() {
   program
     // 程序名
     .name(Object.keys(pkg.bin)[0])
-    // 使用方法提示
+    // 提示这个工具怎么用
     .usage("<command> [options]")
+    // 程序描述
     .description(
       "前端通用脚手架工具，支持：\n1.快速创建各种项目或组件模板，包括默认项目模板创建、自定义项目模板创建、组件库模板创建、模板自动安装和启动。\n2.发布项目或组件，包括测试发布和正式发布、自动在代码托管平台创建仓库、Git Flow自动化、自动构建、自动发布。 \n3.支持项目云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、静态资源上传OSS、自动Git Flow分支管理、自动同步代码并创建版本Tag。 \n4.支持快速添加组件代码片段模板、页面标准模板、自定义页面模板到本地项目。其中组件支持自动写入代码到指定位置，自动导入并注册局部组件等。"
     )
     // 版本号
     .version(pkg.version)
-    // option方法参数说明，1：参数简写和全写，2：参数描述，3：默认值
+    // option方法参数说明：1：参数简写和全写，后面加[]表示非必传，加<>表示必传，2：参数描述，3：默认值
+    // 在program后调用option表示添加全局参数，在program.command后面调用option表示给当前命令添加参数
+    // 支持debug模式
     .option("-d, --debug", "是否开启调试模式", false)
+    // 支持指定本地调试文件路径
     .option("-tp, --targetPath <targetPath>", "指定本地调试文件路径", "");
 
   program
@@ -75,15 +84,14 @@ function registerCommander() {
   // 发布项目
   program
     .command("publish")
-    .description(
-      "自动云构建云发布项目、自动构建组件库并发布npm"
-    )
+    .description("自动云构建云发布项目、自动构建组件库并发布npm")
     .option("-rgs, --refreshGitServer", "强制更新Git托管平台", false)
     .option("-rgt, --refreshGitToken", "强制更新Git托管平台token", false)
     .option("-rgo, --refreshGitOwner", "强制更新Git仓库登录类型", false)
+    // 命令中间有空格需使用引号包裹
     .option(
       "-bc, --buildCmd <buildCmd>",
-      "指定该参数传入自定义构建命令（命令需使用引号）",
+      "指定该参数传入自定义构建命令",
       "npm run build"
     )
     .option("-prod, --production", "是否正式发布", false)
@@ -97,9 +105,7 @@ function registerCommander() {
   // 添加复用代码
   program
     .command("add [templateName]")
-    .description(
-      "添加组件代码片段模板、页面标准模板、自定义页面模板到本地项目"
-    )
+    .description("添加组件代码片段模板、页面标准模板、自定义页面模板到本地项目")
     .option("-f, --force", "是否强制添加复用代码")
     .action(exec);
 
@@ -111,17 +117,18 @@ function registerCommander() {
     log.level = process.env.LOG_LEVEL;
   });
 
-  // 指定全局targetPath
+  // 监听全局targetPath参数
   program.on("option:targetPath", function () {
     // 获取所有的参数
     const options = program.opts();
+    // 更新环境变量
     process.env.CLI_TARGET_PATH = options.targetPath || "";
   });
 
   // 高级功能：对未知命令进行监听
   program.on("command:*", function (cmdObj) {
     const availableCommands = program.commands.map((cmd) => cmd.name());
-    log.error(colors.red("未知命令：" + cmdObj[0]));
+    log.error(colors.red(generateRandomFunnyQuote()));
     if (availableCommands.length > 0) {
       log.error(
         colors.red("请使用以下可用命令：\n" + availableCommands.join("\n"))
@@ -177,7 +184,7 @@ async function checkGlobalUpdate() {
 function checkEnv() {
   const dotenvPath = path.resolve(homedir, ".env");
   if (pathExists(dotenvPath)) {
-    const config = dotenv.config({
+    dotenv.config({
       path: dotenvPath,
     });
   }
