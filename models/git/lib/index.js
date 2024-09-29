@@ -22,6 +22,7 @@ const {
   prompt,
   semver,
   fse,
+  DEFAULT_CLI_HOME,
 } = require("@cjp-cli-dev/utils");
 const Github = require("./Github");
 const Gitee = require("./Gitee");
@@ -30,7 +31,6 @@ const gitignoreTemplate = require("./gitignoreTemplate");
 // 白名单命令，不在此白名单中的命令都需要确认是否执行，防止用户插入风险操作，如：rm -rf等
 const COMMAND_WHITELIST = require("./commandWhitelist");
 
-const DEFAULT_CLI_HOME = ".cjp-cli-dev"; // 默认缓存路径
 const GIT_ROOT_DIR = ".git"; // git根目录
 const GIT_SERVER_FILE = ".git_server"; // git托管服务缓存文件
 const GIT_TOKEN_FILE = ".git_token"; // git token缓存文件

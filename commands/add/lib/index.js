@@ -20,6 +20,8 @@ const {
   fse,
   glob,
   ejs,
+  DEFAULT_CLI_HOME,
+  TEMPLATE_CACHE_DIR,
 } = require("@cjp-cli-dev/utils");
 const { getPageTemplate, getSectionTemplate } = require("./getTemplate");
 
@@ -435,7 +437,7 @@ class AddCommand extends Command {
     // 拿到模板路径
     const templatePath = path.resolve(
       this.sectionTemplatePackage.cacheFilePath,
-      "template",
+      TEMPLATE_CACHE_DIR,
       this.sectionTemplate.targetPath
     );
     // 拿到目标路径
@@ -454,7 +456,7 @@ class AddCommand extends Command {
     // 拿到模板路径
     const templatePath = path.resolve(
       this.pageTemplatePackage.cacheFilePath,
-      "template",
+      TEMPLATE_CACHE_DIR,
       this.pageTemplate.targetPath
     );
     // 如果要拷贝的模板不存在，就不用继续往下执行了
@@ -650,12 +652,12 @@ class AddCommand extends Command {
 
   async downloadTemplate(addMode = ADD_MODE_PAGE) {
     // 缓存文件夹
-    const targetPath = path.resolve(USER_HOME, ".cjp-cli-dev", "template");
+    const targetPath = path.resolve(USER_HOME, DEFAULT_CLI_HOME, TEMPLATE_CACHE_DIR);
     // 缓存真实路径
     const storeDir = path.resolve(
       USER_HOME,
-      ".cjp-cli-dev",
-      "template",
+      DEFAULT_CLI_HOME,
+      TEMPLATE_CACHE_DIR,
       "node_modules"
     );
 

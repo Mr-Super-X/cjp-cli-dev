@@ -11,7 +11,11 @@ const { prompt } = require("./inquirer"); // 用于终端询问式交互
 const { spawn, spawnAsync } = require("./spawn"); // 执行耗时命令任务
 const { readFile, writeFile } = require("./file"); // 自定义读写文件方法
 const { isObject, sleep } = require("./util"); // 其它工具方法
-const { DEPENDENCIES_CACHE_DIR } = require("./cli-const"); // 脚手架所使用的一些公共常量配置
+const {
+  DEFAULT_CLI_HOME,
+  DEPENDENCIES_CACHE_DIR,
+  TEMPLATE_CACHE_DIR,
+} = require("./cli-const"); // 脚手架所使用的一些公共常量配置
 
 module.exports = {
   isObject,
@@ -27,5 +31,7 @@ module.exports = {
   fse,
   glob,
   ejs,
+  DEFAULT_CLI_HOME,
+  TEMPLATE_CACHE_DIR,
   DEPENDENCIES_CACHE_DIR,
 };

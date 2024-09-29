@@ -20,6 +20,8 @@ const {
   fse,
   glob,
   ejs,
+  DEFAULT_CLI_HOME,
+  TEMPLATE_CACHE_DIR,
 } = require("@cjp-cli-dev/utils");
 const getProjectTemplate = require("./getProjectTemplate");
 
@@ -115,7 +117,7 @@ class InitCommand extends Command {
       // 拷贝模板代码到当前目录
       const templatePath = path.resolve(
         this.npmPackage.cacheFilePath,
-        "template"
+        TEMPLATE_CACHE_DIR
       );
       // 确保这两个目录都存在，如果不存在会自动创建
       fse.ensureDirSync(templatePath);
@@ -196,7 +198,7 @@ class InitCommand extends Command {
         log.notice("开始执行自定义模板安装");
         const templatePath = path.resolve(
           this.npmPackage.cacheFilePath,
-          "template"
+          TEMPLATE_CACHE_DIR
         );
 
         const options = {
@@ -242,11 +244,11 @@ class InitCommand extends Command {
     this.templateInfo = templateInfo;
 
     // 生成包安装路径信息
-    const targetPath = path.resolve(userHome, ".cjp-cli-dev", "template");
+    const targetPath = path.resolve(userHome, process.env.CLI_HOME_PATH || DEFAULT_CLI_HOME, TEMPLATE_CACHE_DIR);
     const storeDir = path.resolve(
       userHome,
-      ".cjp-cli-dev",
-      "template",
+      process.env.CLI_HOME_PATH || DEFAULT_CLI_HOME,
+      TEMPLATE_CACHE_DIR,
       "node_modules"
     );
     const { npmName: packageName, version: packageVersion } = templateInfo;
