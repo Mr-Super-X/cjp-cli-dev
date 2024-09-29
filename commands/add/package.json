@@ -30,7 +30,6 @@
     "@cjp-cli-dev/package": "file:../../models/package",
     "@cjp-cli-dev/request": "file:../../utils/request",
     "@cjp-cli-dev/utils": "file:../../utils/utils",
-    "ejs": "^3.1.10",
     "read-pkg-up": "^7.0.1"
   }
 }

@@ -2,7 +2,6 @@
 
 // 第三方库
 const kebabCase = require("kebab-case"); // 用于将驼峰命名转为kebab-case
-const ejs = require("ejs"); // 用于渲染ejs模板
 // const validatePackageName = require("validate-npm-package-name"); // 用于验证npm包名合法性
 // 内置库
 const fs = require("fs");
@@ -12,7 +11,16 @@ const path = require("path");
 const Command = require("@cjp-cli-dev/command");
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spinners, spawnAsync, sleep, prompt, semver, fse, glob } = require("@cjp-cli-dev/utils");
+const {
+  spinners,
+  spawnAsync,
+  sleep,
+  prompt,
+  semver,
+  fse,
+  glob,
+  ejs,
+} = require("@cjp-cli-dev/utils");
 const getProjectTemplate = require("./getProjectTemplate");
 
 // 白名单命令，不在此白名单中的命令都需要确认是否执行，防止用户插入风险操作，如：rm -rf等
@@ -158,24 +166,24 @@ class InitCommand extends Command {
 
   // 创建组件库配置文件.componentrc
   async createComponentFile(targetPath) {
-    const templateInfo = this.templateInfo
-    const projectInfo = this.projectInfo
+    const templateInfo = this.templateInfo;
+    const projectInfo = this.projectInfo;
 
     // 检测是否为组件
-    if(templateInfo.tag.includes(TYPE_COMPONENT)) {
+    if (templateInfo.tag.includes(TYPE_COMPONENT)) {
       const componentData = {
         ...projectInfo,
         buildPath: templateInfo.buildPath, // 获取数据库中配置的打包输出目录
         examplePath: templateInfo.examplePath, // 获取数据库中配置的演示组件用法目录
         npmName: templateInfo.npmName, // 获取数据库中配置的npm包名
         npmVersion: templateInfo.npmVersion, // 获取数据库中配置的npm版本号
-      }
-      log.verbose('componentData', componentData)
+      };
+      log.verbose("componentData", componentData);
 
       // 写入.componentrc
       const componentFile = path.resolve(targetPath, COMPONENT_FILE);
       // JSON.stringify(componentData, null, 2)，写入两个空格作为缩进
-      fs.writeFileSync(componentFile, JSON.stringify(componentData, null, 2))
+      fs.writeFileSync(componentFile, JSON.stringify(componentData, null, 2));
     }
   }
 
@@ -259,12 +267,12 @@ class InitCommand extends Command {
       // 如果npm包不存在，则执行npm install，否则更新
       if (!(await npmPackage.exists())) {
         spinner = spinners("正在下载模板...");
-        await sleep()
+        await sleep();
         await npmPackage.install();
         successMsg = "下载模板成功";
       } else {
         spinner = spinners("正在更新模板...");
-        await sleep()
+        await sleep();
         await npmPackage.update();
         successMsg = "更新模板成功";
       }

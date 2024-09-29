@@ -1,8 +1,6 @@
 "use strict";
 
-// TODO 优化点：将使用次数大于等于三次的库封装到utils包中
 // 第三方库
-const ejs = require("ejs"); // 用于渲染ejs模板
 const readPkgUp = require("read-pkg-up"); // 用于查找根目录下的package.json
 // 内置库
 const path = require("path");
@@ -21,6 +19,7 @@ const {
   semver,
   fse,
   glob,
+  ejs,
 } = require("@cjp-cli-dev/utils");
 const { getPageTemplate, getSectionTemplate } = require("./getTemplate");
 
