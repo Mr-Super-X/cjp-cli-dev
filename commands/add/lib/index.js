@@ -4,7 +4,6 @@
 // 第三方库
 const ejs = require("ejs"); // 用于渲染ejs模板
 const readPkgUp = require("read-pkg-up"); // 用于查找根目录下的package.json
-const { glob } = require("glob"); // 用于shell模式匹配文件
 // 内置库
 const path = require("path");
 const os = require("os");
@@ -13,7 +12,16 @@ const fs = require("fs");
 const Command = require("@cjp-cli-dev/command");
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spinners, sleep, spawnAsync, prompt, semver, fse, pathExists } = require("@cjp-cli-dev/utils");
+const {
+  spinners,
+  sleep,
+  spawnAsync,
+  prompt,
+  pathExists,
+  semver,
+  fse,
+  glob,
+} = require("@cjp-cli-dev/utils");
 const { getPageTemplate, getSectionTemplate } = require("./getTemplate");
 
 // TODO 优化方向2、可以指定本地代码模板
@@ -360,7 +368,9 @@ class AddCommand extends Command {
             const updatedCode = `${exportCode.slice(
               0,
               closingBraceIndex
-            )}  components: { ${componentName}, },${exportCode.slice(closingBraceIndex)}`;
+            )}  components: { ${componentName}, },${exportCode.slice(
+              closingBraceIndex
+            )}`;
             // 将新的内容更新到codeLines对应下标位置
             codeLines[exportCode] = updatedCode;
           }

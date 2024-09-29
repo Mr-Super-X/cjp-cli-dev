@@ -31,7 +31,6 @@
     "@cjp-cli-dev/request": "file:../../utils/request",
     "@cjp-cli-dev/utils": "file:../../utils/utils",
     "ejs": "^3.1.10",
-    "glob": "^10.4.5",
     "kebab-case": "^1.0.2",
     "validate-npm-package-name": "^5.0.1"
   }
