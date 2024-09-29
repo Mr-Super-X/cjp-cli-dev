@@ -30,7 +30,6 @@
     "@cjp-cli-dev/log": "file:../../utils/log",
     "@cjp-cli-dev/utils": "file:../../utils/utils",
     "npminstall": "^7.12.0",
-    "path-exists": "^4.0.0",
     "pkg-dir": "^5.0.0"
   }
 }

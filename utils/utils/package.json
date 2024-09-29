@@ -29,6 +29,7 @@
     "cross-spawn": "^7.0.3",
     "fs-extra": "^11.2.0",
     "inquirer": "^8.2.4",
+    "path-exists": "^4.0.0",
     "semver": "^7.6.3"
   },
   "gitHead": "b67c081a8c62b824b50db061b9e25c272c72db09"

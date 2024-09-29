@@ -7,12 +7,11 @@ const path = require("path"); // 用于获取路径
 const colors = require("colors/safe"); // 用于给log信息添加颜色
 const dotenv = require("dotenv"); // 用于将环境变量从 .env 文件加载到 process.env 中
 const commander = require("commander"); // 用于解析输入命令和参数
-const pathExists = require("path-exists").sync; // 用于检查路径是否存在
 // 自建库
 const log = require("@cjp-cli-dev/log"); // 用于给log信息添加各种自定义风格
 const exec = require("@cjp-cli-dev/exec"); // 用于执行动态初始化命令
 const { getNpmSemverVersion } = require("@cjp-cli-dev/get-npm-info"); // 用于获取npm包信息
-const { semver } = require("@cjp-cli-dev/utils"); // 工具方法
+const { semver, pathExists } = require("@cjp-cli-dev/utils"); // 工具方法
 const pkg = require("../package.json");
 const constant = require("./const");
 

@@ -9,6 +9,7 @@ const fs = require("fs");
 // 自建库
 const semver = require('./semver'); // 用于判断版本号
 const fse = require('./fs-extra'); // 更方便的文件操作
+const pathExists = require('./path-exists'); // 检查路径是否存在
 const { prompt } = require("./inquirer"); // 用于终端询问式交互
 
 /**
@@ -127,5 +128,6 @@ module.exports = {
   writeFile,
   prompt,
   semver,
-  fse
+  fse,
+  pathExists
 };

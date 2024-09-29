@@ -3,7 +3,6 @@
 // 第三方库
 const pkgDir = require("pkg-dir").sync; // 用于寻找项目根路径
 const npminstall = require("npminstall"); // 用于下载npm包
-const pathExists = require("path-exists").sync; // 用于判断路径是否存在
 // 内置库
 const path = require("path");
 // 自建库
@@ -13,7 +12,7 @@ const {
   getDefaultRegistry,
   getNpmLatestVersion,
 } = require("@cjp-cli-dev/get-npm-info");
-const { isObject, fse } = require("@cjp-cli-dev/utils");
+const { isObject, fse, pathExists } = require("@cjp-cli-dev/utils");
 
 class Package {
   constructor(options) {
