@@ -5,7 +5,7 @@ const path = require("path");
 // 自建库
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spawn } = require("@cjp-cli-dev/utils");
+const { spawn, DEPENDENCIES_CACHE_DIR } = require("@cjp-cli-dev/utils");
 
 // 全局变量
 const SETTINGS = {
@@ -14,8 +14,6 @@ const SETTINGS = {
   publish: "@cjp-cli-dev/publish",
   add: "@cjp-cli-dev/add",
 };
-
-const CACHE_DIR = "dependencies"; // 缓存路径
 
 async function exec() {
   const homePath = process.env.CLI_HOME_PATH;
@@ -39,7 +37,7 @@ async function exec() {
 
   if (!targetPath) {
     // 生成缓存路径
-    targetPath = path.resolve(homePath, CACHE_DIR);
+    targetPath = path.resolve(homePath, DEPENDENCIES_CACHE_DIR);
     storeDir = path.resolve(targetPath, "node_modules");
     log.verbose("new targetPath", targetPath);
     log.verbose("storeDir", storeDir);

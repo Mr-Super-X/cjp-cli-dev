@@ -1,6 +1,7 @@
 "use strict";
 
 // 内置库
+const fs = require("fs"); // 用于文件操作
 const os = require("os"); // 用于获取系统信息
 const path = require("path"); // 用于获取路径
 // 第三方库
@@ -11,7 +12,14 @@ const commander = require("commander"); // 用于解析输入命令和参数
 const log = require("@cjp-cli-dev/log"); // 用于给log信息添加各种自定义风格
 const exec = require("@cjp-cli-dev/exec"); // 用于执行动态初始化命令
 const { getNpmSemverVersion } = require("@cjp-cli-dev/get-npm-info"); // 用于获取npm包信息
-const { semver, pathExists } = require("@cjp-cli-dev/utils"); // 工具方法
+const {
+  pathExists,
+  prompt,
+  semver,
+  fse,
+  DEFAULT_CLI_HOME,
+  DEPENDENCIES_CACHE_DIR,
+} = require("@cjp-cli-dev/utils"); // 工具方法
 const pkg = require("../package.json");
 const constant = require("./const");
 const generateRandomFunnyQuote = require("./generateFunnyQuote");
@@ -109,6 +117,20 @@ function registerCommander() {
     .option("-f, --force", "是否强制添加复用代码")
     .action(exec);
 
+  // 清除缓存
+  program
+    .command("clean")
+    .description("清空缓存文件")
+    .option("-a, --all", "清空全部缓存", false)
+    .option("--dep", "仅清空依赖缓存", false)
+    .action((options) => {
+      if (options.all) {
+        cleanAll();
+      } else if (options.dep) {
+        cleanDep();
+      }
+    });
+
   // 高级功能：监听debug事件，开启debug模式
   program.on("option:debug", function () {
     // 获取所有的参数
@@ -199,7 +221,11 @@ function createDefaultConfig() {
   if (process.env.CLI_HOME) {
     cliConfig["cliHome"] = path.join(homedir, process.env.CLI_HOME);
   } else {
-    cliConfig["cliHome"] = path.join(homedir, constant.DEFAULT_CLI_HOME);
+    // 双重保险，防止删除DEFAULT_CLI_HOME导致程序异常
+    cliConfig["cliHome"] = path.join(
+      homedir,
+      DEFAULT_CLI_HOME || constant.DEFAULT_CLI_HOME
+    );
   }
 
   process.env.CLI_HOME_PATH = cliConfig.cliHome;
@@ -220,5 +246,56 @@ function checkRoot() {
 }
 
 function checkPkgVersion() {
-  log.info("cli", pkg.version);
+  log.info("cli版本", pkg.version);
+}
+
+async function getConfirmClean(msg) {
+  // 二次确认
+  const { confirmClean } = await prompt({
+    type: "confirm",
+    name: "confirmClean",
+    default: false,
+    message: msg,
+  });
+
+  return confirmClean;
+}
+
+// 清空所有缓存
+async function cleanAll() {
+  if(!fs.existsSync(process.env.CLI_HOME_PATH)) {
+    log.warn("缓存路径不存在", process.env.CLI_HOME_PATH);
+    return;
+  }
+
+  const confirmClean = await getConfirmClean(
+    "确认要清除所有缓存吗？（注意：此操作将删除所有缓存数据）"
+  );
+
+  // 用户选择不确认，中断执行
+  if (!confirmClean) return;
+  log.info("开始清除所有缓存");
+  fse.emptyDirSync(process.env.CLI_HOME_PATH);
+  log.success("清除所有缓存成功", process.env.CLI_HOME_PATH);
+}
+
+// 清空依赖文件
+async function cleanDep() {
+  const depPath = path.resolve(
+    process.env.CLI_HOME_PATH,
+    DEPENDENCIES_CACHE_DIR
+  );
+  if (!fs.existsSync(depPath)) {
+    log.success("依赖缓存路径不存在", depPath);
+    return;
+  }
+  const confirmClean = await getConfirmClean(
+    "确认要清除依赖缓存吗？（注意：此操作将删除所有依赖缓存数据）"
+  );
+
+  // 用户选择不确认，中断执行
+  if (!confirmClean) return;
+  log.info("开始清除依赖缓存文件");
+  fse.emptyDirSync(depPath);
+  log.success("清除依赖缓存文件成功", depPath);
 }
