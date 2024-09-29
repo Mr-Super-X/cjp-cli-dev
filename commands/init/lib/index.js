@@ -1,7 +1,6 @@
 "use strict";
 
 // 第三方库
-const inquirer = require("inquirer"); // 用于终端交互
 const fse = require("fs-extra"); // 用于清空文件夹
 const semver = require("semver"); // 用于判断版本号
 const kebabCase = require("kebab-case"); // 用于将驼峰命名转为kebab-case
@@ -16,7 +15,7 @@ const path = require("path");
 const Command = require("@cjp-cli-dev/command");
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spinners, spawnAsync, sleep } = require("@cjp-cli-dev/utils");
+const { spinners, spawnAsync, sleep, prompt } = require("@cjp-cli-dev/utils");
 const getProjectTemplate = require("./getProjectTemplate");
 
 // 白名单命令，不在此白名单中的命令都需要确认是否执行，防止用户插入风险操作，如：rm -rf等
@@ -389,7 +388,7 @@ class InitCommand extends Command {
       if (!this.force) {
         // 1.1. 询问是否继续创建
         ifContinue = (
-          await inquirer.prompt({
+          await prompt({
             type: "confirm",
             name: "ifContinue",
             default: false, // 默认不创建
@@ -405,7 +404,7 @@ class InitCommand extends Command {
       // 用户选择继续或者输入了--force参数
       if (ifContinue || this.force) {
         // 二次确认
-        const { confirmClean } = await inquirer.prompt({
+        const { confirmClean } = await prompt({
           type: "confirm",
           name: "confirmClean",
           default: false,
@@ -437,7 +436,7 @@ class InitCommand extends Command {
     }
 
     // 3. 选择创建项目或组件
-    const { type } = await inquirer.prompt({
+    const { type } = await prompt({
       type: "list",
       name: "type",
       message: "请选择创建项目的类型：",
@@ -520,7 +519,7 @@ class InitCommand extends Command {
     const typeStrategies = {
       [TYPE_PROJECT]: async () => {
         // 获取用户输入结果
-        const project = await inquirer.prompt(projectPrompts);
+        const project = await prompt(projectPrompts);
 
         // 更新项目信息
         projectInfo = {
@@ -553,7 +552,7 @@ class InitCommand extends Command {
         projectPrompts.push(descriptionPrompt);
 
         // 获取用户输入结果
-        const component = await inquirer.prompt(projectPrompts);
+        const component = await prompt(projectPrompts);
 
         // 更新项目信息
         projectInfo = {

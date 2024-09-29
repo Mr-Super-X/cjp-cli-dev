@@ -27,7 +27,7 @@
   "dependencies": {
     "@cjp-cli-dev/log": "file:../../utils/log",
     "@cjp-cli-dev/request": "file:../../utils/request",
-    "inquirer": "^8.2.4",
+    "@cjp-cli-dev/utils": "file:../../utils/utils",
     "lodash": "^4.17.21",
     "socket.io-client": "^2.5.0"
   }

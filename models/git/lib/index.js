@@ -2,7 +2,6 @@
 
 // 第三方库
 const simpleGit = require("simple-git"); // 用于在node程序中运行git
-const inquirer = require("inquirer"); // 用于终端交互
 const fse = require("fs-extra"); // 用于文件操作
 const semver = require("semver"); // 用于比对版本号
 const terminalLink = require("terminal-link"); // 用于生成终端可点击链接
@@ -17,7 +16,13 @@ const cp = require("child_process");
 const request = require("@cjp-cli-dev/request");
 const log = require("@cjp-cli-dev/log");
 const CloudBuild = require("@cjp-cli-dev/cloudbuild");
-const { readFile, writeFile, spinners, sleep } = require("@cjp-cli-dev/utils");
+const {
+  readFile,
+  writeFile,
+  spinners,
+  sleep,
+  prompt,
+} = require("@cjp-cli-dev/utils");
 const Github = require("./Github");
 const Gitee = require("./Gitee");
 const ComponentRequest = require("./ComponentRequest");
@@ -214,7 +219,7 @@ class Git {
     // 如果没有找到gitServer，就让用户选择
     if (!gitServer || this.refreshGitServer) {
       gitServer = (
-        await inquirer.prompt({
+        await prompt({
           type: "list",
           name: "gitServer",
           message: "请选择您想要托管的Git平台：",
@@ -251,7 +256,7 @@ class Git {
       );
       // 让用户输入token
       token = (
-        await inquirer.prompt({
+        await prompt({
           type: "password",
           name: "token",
           message: `请将 ${this.gitServer.type} token粘贴到这里：`,
@@ -280,7 +285,7 @@ class Git {
     // 如果两个任意一个不存在，提示用户输入
     if (!owner || !login || this.refreshGitOwner) {
       owner = (
-        await inquirer.prompt({
+        await prompt({
           type: "list",
           name: "owner",
           message: "请选择远程仓库登录类型：",
@@ -297,7 +302,7 @@ class Git {
         login = this.user.login;
       } else {
         login = (
-          await inquirer.prompt({
+          await prompt({
             type: "list",
             name: "login",
             message: "请选择组织：",
@@ -504,7 +509,7 @@ class Git {
       // 执行发布操作
       cp.execSync("npm publish", {
         cwd: this.dir, // 在当前源码目录下执行
-        stdio: 'inherit',
+        stdio: "inherit",
       });
       log.success("npm包发布成功");
     }
@@ -761,7 +766,7 @@ class Git {
     let gitPublish = readFile(gitPublishPath);
     if (!gitPublish) {
       gitPublish = (
-        await inquirer.prompt({
+        await prompt({
           type: "list",
           name: "gitPublish",
           message: "请选择您想要上传静态资源代码的平台：",
@@ -839,38 +844,36 @@ class Git {
         "当前本地版本落后于远程最新版本",
         `${devVersion} < ${releaseVersion}`
       );
-      const incType = (
-        await inquirer.prompt({
-          type: "list",
-          name: "incType",
-          message: "自动升级版本，请选择版本号升级类型：",
-          default: "patch",
-          choices: [
-            // semver.inc方法能自动帮我们计算要升级的版本号
-            {
-              name: `patch：${devVersion} => ${semver.inc(
-                devVersion,
-                "patch"
-              )}（小版本，如修复bug或小改进，不破坏兼容性）`,
-              value: "patch",
-            },
-            {
-              name: `minor：${devVersion} => ${semver.inc(
-                devVersion,
-                "minor"
-              )}（中版本，如新增功能或改进功能，不破坏兼容性）`,
-              value: "minor",
-            },
-            {
-              name: `major：${devVersion} => ${semver.inc(
-                devVersion,
-                "major"
-              )}（大版本，如重大更新或废弃旧功能，会破坏兼容性）`,
-              value: "major",
-            },
-          ],
-        })
-      ).incType;
+      const { incType } = await prompt({
+        type: "list",
+        name: "incType",
+        message: "自动升级版本，请选择版本号升级类型：",
+        default: "patch",
+        choices: [
+          // semver.inc方法能自动帮我们计算要升级的版本号
+          {
+            name: `patch：${devVersion} => ${semver.inc(
+              devVersion,
+              "patch"
+            )}（小版本，如修复bug或小改进，不破坏兼容性）`,
+            value: "patch",
+          },
+          {
+            name: `minor：${devVersion} => ${semver.inc(
+              devVersion,
+              "minor"
+            )}（中版本，如新增功能或改进功能，不破坏兼容性）`,
+            value: "minor",
+          },
+          {
+            name: `major：${devVersion} => ${semver.inc(
+              devVersion,
+              "major"
+            )}（大版本，如重大更新或废弃旧功能，会破坏兼容性）`,
+            value: "major",
+          },
+        ],
+      });
 
       // 调用inc传入用户选择结果生成最终要升级的版本号
       const incVersion = semver.inc(devVersion, incType);
@@ -1066,7 +1069,7 @@ class Git {
       // 持续提示用户输入内容
       while (!message) {
         message = (
-          await inquirer.prompt({
+          await prompt({
             type: "text",
             name: "message",
             default: "",

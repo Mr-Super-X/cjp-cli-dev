@@ -31,7 +31,6 @@
     "@cjp-cli-dev/utils": "file:../../utils/utils",
     "axios": "^1.7.7",
     "fs-extra": "^11.2.0",
-    "inquirer": "^8.2.4",
     "listr": "^0.14.3",
     "rxjs": "^6.6.7",
     "semver": "^7.6.3",

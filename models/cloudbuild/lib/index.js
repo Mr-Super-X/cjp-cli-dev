@@ -1,12 +1,12 @@
 "use strict";
 
 // 第三方库
-const inquirer = require("inquirer"); // 用于终端交互
 const io = require("socket.io-client"); // 用于连接egg-socket.io
 const get = require("lodash/get");
 // 自建库
 const request = require("@cjp-cli-dev/request"); // 用于发起http请求
 const log = require("@cjp-cli-dev/log"); // 用于打印日志
+const { prompt } = require("@cjp-cli-dev/utils");
 
 const WS_SERVER = "http://cjp.clidev.xyz:7001";
 const TIMEOUT = 5 * 60 * 1000; // 5 minutes
@@ -61,7 +61,7 @@ class CloudBuild {
       if (ossProject.code === 0 && ossProject.data.length > 0) {
         // 3. 如果存在且处于正式发布状态则询问用户是否覆盖安装
         const cover = (
-          await inquirer.prompt({
+          await prompt({
             type: "list",
             name: "cover",
             message: `OSS中已存在 ${projectName} 项目，是否强行覆盖发布？`,

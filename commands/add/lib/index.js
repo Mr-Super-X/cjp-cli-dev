@@ -2,7 +2,6 @@
 
 // TODO 优化点：将使用次数大于等于三次的库封装到utils包中
 // 第三方库
-const inquirer = require("inquirer"); // 用于终端交互
 const pathExists = require("path-exists").sync; // 用于判断路径是否存在
 const fse = require("fs-extra"); // 用于清空文件夹
 const ejs = require("ejs"); // 用于渲染ejs模板
@@ -17,7 +16,7 @@ const fs = require("fs");
 const Command = require("@cjp-cli-dev/command");
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spinners, sleep, spawnAsync } = require("@cjp-cli-dev/utils");
+const { spinners, sleep, spawnAsync, prompt } = require("@cjp-cli-dev/utils");
 const { getPageTemplate, getSectionTemplate } = require("./getTemplate");
 
 // TODO 优化方向2、可以指定本地代码模板
@@ -200,7 +199,7 @@ class AddCommand extends Command {
 
   // 询问添加模式
   async getAddMode() {
-    const { addMode } = await inquirer.prompt({
+    const { addMode } = await prompt({
       type: "list",
       name: "addMode",
       message: "请选择代码复用模式：",
@@ -216,7 +215,7 @@ class AddCommand extends Command {
 
   // 获取代码行号
   async getLineNumber() {
-    const { lineNumber } = await inquirer.prompt({
+    const { lineNumber } = await prompt({
       type: "input",
       name: "lineNumber",
       message: "请问您想在哪一行插入代码片段？（行号下标从0开始）",
@@ -239,7 +238,7 @@ class AddCommand extends Command {
   }
 
   async getCodeFile(choices) {
-    const { codeFile } = await inquirer.prompt({
+    const { codeFile } = await prompt({
       type: "list",
       name: "codeFile",
       message: "请选择要插入代码片段到哪个源码文件：",
@@ -252,7 +251,7 @@ class AddCommand extends Command {
 
   // 获取vue不同版本编码风格选项
   async getVueVersionStyle(choices) {
-    const { vueVersionStyle } = await inquirer.prompt({
+    const { vueVersionStyle } = await prompt({
       type: "list",
       name: "vueVersionStyle",
       message: "请选择 Vue.js 版本：",
@@ -710,7 +709,7 @@ class AddCommand extends Command {
       addMode === ADD_MODE_PAGE ? getPageTemplate : getSectionTemplate;
     const templateData = await fetchTemplate();
 
-    const { templateName } = await inquirer.prompt({
+    const { templateName } = await prompt({
       type: "list",
       name: "templateName",
       message: `请选择要添加的${title}模板：`,
@@ -722,7 +721,7 @@ class AddCommand extends Command {
     if (!template) {
       throw new Error(`${title}模板不存在！`);
     }
-    const { name } = await inquirer.prompt({
+    const { name } = await prompt({
       type: "input",
       name: "name",
       message: `请输入${title}名称：`,
