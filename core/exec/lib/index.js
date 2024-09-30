@@ -9,7 +9,7 @@ const { spawn, DEPENDENCIES_CACHE_DIR } = require("@cjp-cli-dev/utils");
 
 // 全局变量
 const SETTINGS = {
-  // 配置表
+  // 命令配置表，已发布到npm的包名（如需本地调试可以指定targetPath，这里的配置就会被忽略）
   init: "@cjp-cli-dev/init",
   publish: "@cjp-cli-dev/publish",
   add: "@cjp-cli-dev/add",
