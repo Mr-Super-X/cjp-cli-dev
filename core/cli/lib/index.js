@@ -33,11 +33,10 @@ module.exports = cli;
 
 async function cli() {
   try {
-    // 准备阶段
-    await prepare();
-    // 8. 注册commander命令
+    // 注册commander命令
     registerCommander();
-    // log.verbose('debug', '测试debug')
+    // 进入cli准备阶段
+    await prepare();
   } catch (e) {
     log.error(e);
     // debug模式下打印执行栈
@@ -214,10 +213,13 @@ function registerCommander() {
   }
 }
 
+/**
+ * cli准备阶段
+ */
 async function prepare() {
   // 1. 检查包版本
-  checkPkgVersion();
-  // 2. 检查node版本（放到models/command中）
+  checkCliVersion();
+  // 2. 检查node版本（放到了models/command中）
   // checkNodeVersion();
   // 3. 检查root用户，如果是root用户则尝试切换为普通用户，解决因权限带来的各种问题
   checkRoot();
@@ -226,7 +228,7 @@ async function prepare() {
   // 5. 检查输入参数
   // 6. 检查环境变量
   checkEnv();
-  // 7. 检查是否有全局更新
+  // 7. 检查脚手架最新版本
   await checkGlobalUpdate();
 }
 
@@ -239,6 +241,7 @@ async function checkGlobalUpdate() {
   // 3. 找到最新的版本号，并与当前版本号进行对比
   // 4. 如果有新版本，则提示用户更新
   const lastVersion = await getNpmSemverVersion(currentVersion, npmName);
+  log.verbose("最新版本为", lastVersion);
   if (lastVersion && semver.gt(lastVersion, currentVersion)) {
     log.warn(
       "更新提示",
@@ -253,20 +256,20 @@ async function checkGlobalUpdate() {
 function checkEnv() {
   log.verbose("检查用户主目录下的.env文件");
   const dotenvPath = path.resolve(homedir, ".env");
+  let config;
   // 确保目录存在，不存在自动创建
   if (pathExists(dotenvPath)) {
     // 注册用户主目录下的.env文件中的变量到process.env中
-    dotenv.config({
+    config = dotenv.config({
       path: dotenvPath,
     });
   }
-  const config = createDefaultConfig();
-  // 调试模式下输出环境变量
-  log.verbose("当前环境变量", config);
+  createDefaultConfig();
+  log.verbose("dotenv注入环境变量成功", config.parsed);
 }
 
 function createDefaultConfig() {
-  log.verbose("创建 cli 默认配置");
+  log.verbose("创建 cli 默认环境变量配置");
   const cliConfig = {
     home: homedir,
   };
@@ -279,6 +282,8 @@ function createDefaultConfig() {
 
   // 将cli主目录挂在到环境变量上
   process.env.CLI_HOME_PATH = cliConfig.cliHome;
+
+  log.verbose("process.env.CLI_HOME_PATH", process.env.CLI_HOME_PATH);
 
   return cliConfig;
 }
@@ -293,12 +298,12 @@ function checkUserHome() {
 }
 
 function checkRoot() {
-  log.verbose("检查是否root用户，尝试降级为普通用户");
+  log.verbose("检查是否root用户，如果是将尝试降级为普通用户");
   // 如果是root用户，会自动降级为普通用户
   rootCheck();
 }
 
-function checkPkgVersion() {
+function checkCliVersion() {
   log.info("cli版本", pkg.version);
 }
 
