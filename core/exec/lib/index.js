@@ -101,20 +101,29 @@ async function exec() {
         stdio: "inherit", // 将输出流交给父进程，可以看到执行动画和打印内容
       });
       child.on("error", (e) => {
-        log.error("命令执行失败：", e.message);
+        handleError(cmdOpts, e, "命令执行失败：")
         process.exit(e.code);
       });
-      child.on("exit", (e) => {
-        if (e === 0) {
+      child.on("exit", (c) => {
+        if (c === 0) {
           log.verbose("命令执行成功");
         } else {
-          log.error("命令执行失败，退出码：", e);
+          log.error("命令执行失败，退出码：", c);
         }
-        process.exit(e);
+        process.exit(c);
       });
     } catch (err) {
       log.error(err);
     }
+  }
+}
+
+function handleError(args, e, errPrefix) {
+  // debug模式打印错误执行栈，否则打印错误msg
+  if (args.debug) {
+    log.error(errPrefix, e.stack);
+  } else {
+    log.error(errPrefix, e.message);
   }
 }
 
