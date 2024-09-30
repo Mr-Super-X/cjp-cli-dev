@@ -887,6 +887,18 @@ class Git {
     await this.writeVersionToPackageSync();
   }
 
+  // 二次确认stash内容是否自动弹出
+  async getStashConfirm() {
+    const { stashConfirm } = await prompt({
+      type: "confirm",
+      name: "stashConfirm",
+      message: "检测到stash区中有内容，是否需要取出stash？",
+      default: false,
+    });
+
+    return stashConfirm;
+  }
+
   // 检查stash区，如果和本地变更有冲突，需要手动将本地代码进行提交，再手动执行git stash pop取出
   async checkStash() {
     log.info("检查stash记录");
@@ -894,9 +906,12 @@ class Git {
     log.verbose("stash", stashList.all);
     // 如果stash中有内容则弹出内容
     if (stashList.all.length > 0) {
-      log.info("检测到stash区中有内容，将自动取出stash");
-      await this.git.stash(["pop"]);
-      log.success("自动执行git stash pop成功");
+      // 二次确认是否需要取出stash，防止某些用户喜欢用stash暂存内容
+      const stashConfirm = await this.getStashConfirm();
+      if (stashConfirm) {
+        await this.git.stash(["pop"]);
+        log.success("自动执行git stash pop成功");
+      }
     } else {
       log.info("stash区未检测到内容");
     }
