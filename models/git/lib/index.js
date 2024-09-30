@@ -457,6 +457,7 @@ class Git {
 
   async saveComponentToDB() {
     // 1. 将组件信息上传至数据库 RDS
+    // 2. 将组件多预览页面上传至oss
     log.info("正在上传组件信息至OSS和写入数据库");
     const componentFile = this.isComponent();
     // 获取源码目录下.componentrc中的examplePath，在MongoDB中配置
@@ -497,8 +498,6 @@ class Git {
     if (!data) {
       throw new Error("上传组件信息失败");
     }
-    // 2. 将组件多预览页面上传至oss
-    // TODO 功能暂未写完
 
     // 告诉下一步，当前这一步完成了
     return true;

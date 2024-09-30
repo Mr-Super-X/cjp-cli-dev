@@ -16,42 +16,42 @@ class GitServer {
 
   // 获取远端仓库
   getRepo(login, name) {
-    error("getRepo");
+    error("子类必须实现 getRepo 方法，用于获取git仓库");
   }
 
   // 创建普通仓库
   createRepo(name) {
-    error("createRepo");
+    error("子类必须实现 createRepo 方法，用于创建git个人仓库");
   }
 
   // 创建组织仓库
   createOrgRepo(name, login) {
-    error("createOrgRepo");
+    error("子类必须实现 createOrgRepo 方法，用于创建git组织仓库");
   }
 
   // 获取远程地址
   getRemote() {
-    error("getRemote");
+    error("子类必须实现 getRemote 方法，用于获取git远程地址");
   }
 
   // 获取用户信息
   getUser() {
-    error("getUser");
+    error("子类必须实现 getUser 方法，用于获取git用户信息");
   }
 
   // 获取组织信息
   getOrg() {
-    error("getOrg");
+    error("子类必须实现 getOrg 方法，用于获取git组织信息");
   }
 
-  // 返回生成Token的url
+  // 返回获取Token的url
   getTokenUrl() {
-    error("getSSHKeysHelpUrl");
+    error("子类必须实现 getTokenUrl 方法，用于返回获取token的链接");
   }
 
   // 返回生成token帮助文档链接
   getTokenHelpUrl() {
-    error("getTokenHelpUrl");
+    error("子类必须实现 getTokenHelpUrl 方法，用于返回生成token帮助文档链接");
   }
 
   // 判断是否http返回
