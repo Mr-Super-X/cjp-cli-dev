@@ -84,14 +84,14 @@ function registerCommander() {
   // 初始化项目
   program
     .command("init [projectName]")
-    .description("创建标准项目模板、自定义项目模板、组件库模板")
+    .description("快速创建标准项目模板、自定义项目模板、组件库模板")
     .option("-f, --force", "是否强制初始化项目")
     .action(exec);
 
   // 发布项目
   program
     .command("publish")
-    .description("自动云构建云发布项目、自动构建组件库并发布npm")
+    .description("云构建云发布项目、自动构建组件库并发布npm")
     .option("-rgs, --refreshGitServer", "强制更新Git托管平台", false)
     .option("-rgt, --refreshGitToken", "强制更新Git托管平台token", false)
     .option("-rgo, --refreshGitOwner", "强制更新Git仓库登录类型", false)
@@ -148,11 +148,18 @@ function registerCommander() {
 
   // 高级功能：对未知命令进行监听
   program.on("command:*", function (cmdObj) {
-    const availableCommands = program.commands.map((cmd) => cmd.name());
+    const availableCommands = program.commands.map(cmd => ({
+      command: cmd.name(),
+      description: cmd.description(),
+    }));
+
+    // 抽取一条搞笑语录
     log.error(colors.red(getCommandRandomFunnyQuote()));
+
+    // 提醒可用命令
     if (availableCommands.length > 0) {
       log.error(
-        colors.red("请使用以下可用命令：\n" + availableCommands.join("\n"))
+        colors.red("请使用以下可用命令：\n\n" + availableCommands.map(item => `[${item.command}: ${item.description}]`).join('\n') + "\n\n您可以输入 [脚手架 具体命令 -h] 查看命令使用帮助，如：\ncjp-cli-dev -h\ncjp-cli-dev init --help")
       );
     }
   });
