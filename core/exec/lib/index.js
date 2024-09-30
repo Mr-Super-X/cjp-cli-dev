@@ -5,7 +5,7 @@ const path = require("path");
 // 自建库
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spawn, DEPENDENCIES_CACHE_DIR } = require("@cjp-cli-dev/utils");
+const { spawn, DEPENDENCIES_CACHE_DIR, DEFAULT_NPM_REGISTRY } = require("@cjp-cli-dev/utils");
 
 // 全局变量
 const SETTINGS = {
@@ -34,6 +34,8 @@ async function exec() {
   const packageName = SETTINGS[cmdName];
   // 获取版本号，默认获取最新版本
   const packageVersion = "latest";
+  // 获取npm源
+  const registry = cmdOpts.registry || DEFAULT_NPM_REGISTRY;
 
   if (!targetPath) {
     // 生成缓存路径
@@ -47,6 +49,7 @@ async function exec() {
       storeDir,
       packageName,
       packageVersion,
+      registry,
     });
 
     if (await pkg.exists()) {
@@ -61,6 +64,7 @@ async function exec() {
       targetPath,
       packageName,
       packageVersion,
+      registry,
     });
   }
 
