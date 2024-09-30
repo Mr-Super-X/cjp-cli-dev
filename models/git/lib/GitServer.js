@@ -1,5 +1,5 @@
 function error(methodName) {
-  throw new Error(`${methodName} 方法必须实现！`);
+  throw new Error(`${methodName}`);
 }
 
 // 设置必要方法必须实现
