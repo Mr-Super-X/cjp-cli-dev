@@ -893,7 +893,7 @@ class Git {
       type: "confirm",
       name: "stashConfirm",
       message: "检测到stash区中有内容，是否需要取出stash？",
-      default: false,
+      default: true, // 直接按回车默认取出
     });
 
     return stashConfirm;
