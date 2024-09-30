@@ -13,7 +13,7 @@ const { fse } = require('@cjp-cli-dev/utils')
 
 class PublishCommand extends Command {
   init() {
-    log.verbose("publish", this._args, this._cmd);
+    log.verbose("publish", this._cmd, this._args);
 
     const {
       refreshGitServer,
@@ -37,6 +37,8 @@ class PublishCommand extends Command {
       sshIp,
       sshPath,
     };
+
+    log.verbose("options", this.options)
   }
 
   async exec() {
@@ -53,7 +55,7 @@ class PublishCommand extends Command {
       const endTime = new Date().getTime();
       log.info("本次发布耗时：", Math.floor(endTime - startTime) / 1000 + "秒");
     } catch (err) {
-      log.error(err);
+      log.error(err.message);
 
       // debug模式下打印执行栈，便于调试
       if (process.env.LOG_LEVEL === "verbose") {
@@ -86,6 +88,8 @@ class PublishCommand extends Command {
       version,
       dir: projectPath,
     };
+
+    log.verbose('projectInfo', this.projectInfo);
   }
 }
 
