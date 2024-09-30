@@ -23,6 +23,7 @@ const {
   EJS_DEFAULT_IGNORE,
   DEFAULT_CLI_HOME,
   TEMPLATE_CACHE_DIR,
+  DEFAULT_NPM_REGISTRY,
 } = require("@cjp-cli-dev/utils");
 const getProjectTemplate = require("./getProjectTemplate");
 
@@ -44,6 +45,7 @@ class InitCommand extends Command {
   init() {
     this.projectName = this._args[0] || "";
     this.force = this._args[1].force || false;
+    this.registry = this._args[1].registry || DEFAULT_NPM_REGISTRY
     // debug模式下输出以下变量
     log.verbose("projectName", this.projectName);
     log.verbose("force", this.force);
@@ -260,6 +262,7 @@ class InitCommand extends Command {
       storeDir,
       packageName,
       packageVersion,
+      registry: this.registry,
     });
 
     let spinner; // 加载动画

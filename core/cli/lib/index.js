@@ -86,6 +86,7 @@ function registerCommander() {
   program
     .command("init [projectName]")
     .description("快速创建标准项目模板、自定义项目模板、组件库模板")
+    .option("-reg, --registry <registry>", "指定该参数传入npm源", "")
     .option("-f, --force", "是否强制初始化项目")
     .action(exec);
 

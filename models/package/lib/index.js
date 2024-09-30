@@ -30,6 +30,8 @@ class Package {
     this.packageName = options.packageName;
     // package版本
     this.packageVersion = options.packageVersion;
+    // npm 源
+    this.registry = options.registry,
     // npminstall会将缓存放在node_modules/.store/@组织+包名@版本号/node_modules中
     this.cacheFilePathPrefix = this.packageName.replace("/", "+");
   }
@@ -88,7 +90,7 @@ class Package {
     const installOptions = {
       root: this.targetPath,
       storeDir: this.storeDir,
-      registry: getDefaultRegistry(),
+      registry: this.registry || getDefaultRegistry(),
       pkgs: [
         {
           name: this.packageName,
@@ -113,7 +115,7 @@ class Package {
       const installOptions = {
         root: this.targetPath,
         storeDir: this.storeDir,
-        registry: getDefaultRegistry(),
+        registry: this.registry || getDefaultRegistry(),
         pkgs: [
           {
             name: this.packageName,

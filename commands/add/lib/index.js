@@ -146,7 +146,7 @@ class AddCommand extends Command {
   init() {
     // 获取add命令后面的参数
     this.templateName = this._args[0] || "";
-    this.registry = this._args[1].registry || false;
+    this.registry = this._args[1].registry || DEFAULT_NPM_REGISTRY;
 
     // debug模式下输出以下变量
     log.verbose("templateName", this.projectName);
@@ -630,7 +630,7 @@ class AddCommand extends Command {
 
     // 帮用户合并完依赖之后也自动帮用户安装好依赖（安装路径为当前项目package.json所在目录，通过path.dir来获得）
     log.info("开始安装模板所需依赖...");
-    const registry = this.registry || DEFAULT_NPM_REGISTRY;
+    const registry = this.registry;
     await this.execCommand(`npm install --registry=${registry}`, path.dirname(targetPkg.path));
     log.success("模板所需依赖安装完成");
 
@@ -674,6 +674,7 @@ class AddCommand extends Command {
       storeDir,
       packageName: npmName,
       packageVersion: version,
+      registry: this.registry,
     });
 
     let spinner; // 加载动画
