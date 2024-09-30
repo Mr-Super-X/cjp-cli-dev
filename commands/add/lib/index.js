@@ -23,6 +23,7 @@ const {
   EJS_DEFAULT_IGNORE,
   DEFAULT_CLI_HOME,
   TEMPLATE_CACHE_DIR,
+  DEFAULT_NPM_REGISTRY,
 } = require("@cjp-cli-dev/utils");
 const { getPageTemplate, getSectionTemplate } = require("./getTemplate");
 
@@ -145,10 +146,11 @@ class AddCommand extends Command {
   init() {
     // 获取add命令后面的参数
     this.templateName = this._args[0] || "";
-    this.force = this._args[1].force || false;
+    this.registry = this._args[1].registry || false;
+
     // debug模式下输出以下变量
     log.verbose("templateName", this.projectName);
-    log.verbose("force", this.force);
+    log.verbose("registry", this.registry);
   }
 
   async exec() {
@@ -628,7 +630,8 @@ class AddCommand extends Command {
 
     // 帮用户合并完依赖之后也自动帮用户安装好依赖（安装路径为当前项目package.json所在目录，通过path.dir来获得）
     log.info("开始安装模板所需依赖...");
-    await this.execCommand("npm install", path.dirname(targetPkg.path));
+    const registry = this.registry || DEFAULT_NPM_REGISTRY;
+    await this.execCommand(`npm install --registry=${registry}`, path.dirname(targetPkg.path));
     log.success("模板所需依赖安装完成");
 
     log.success("依赖合并成功");

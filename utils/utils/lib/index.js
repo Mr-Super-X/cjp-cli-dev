@@ -16,6 +16,7 @@ const {
   DEFAULT_CLI_HOME,
   DEPENDENCIES_CACHE_DIR,
   TEMPLATE_CACHE_DIR,
+  DEFAULT_NPM_REGISTRY,
 } = require("./cli-const"); // 脚手架所使用的一些公共常量配置
 
 module.exports = {
@@ -37,4 +38,5 @@ module.exports = {
   DEFAULT_CLI_HOME,
   TEMPLATE_CACHE_DIR,
   DEPENDENCIES_CACHE_DIR,
+  DEFAULT_NPM_REGISTRY,
 };

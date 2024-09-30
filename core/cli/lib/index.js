@@ -115,7 +115,7 @@ function registerCommander() {
   program
     .command("add [templateName]")
     .description("添加组件代码片段模板、页面标准模板、自定义页面模板到本地项目")
-    .option("-f, --force", "是否强制添加复用代码")
+    .option("-reg, --registry <registry>", "指定该参数传入npm源", "")
     .action(exec);
 
   // 清除缓存
