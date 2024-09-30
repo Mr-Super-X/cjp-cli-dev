@@ -103,6 +103,7 @@ function registerCommander() {
       "npm run build"
     )
     .option("-prod, --production", "是否正式发布", false)
+    .option("-reg, --registry <registry>", "指定该参数传入npm源", "")
     .option("-su, --sshUser <sshUser>", "指定该参数传入模板服务器用户名", "")
     .option("-si, --sshIp <sshIp>", "指定该参数传入模板服务器IP或域名", "")
     .option("-sp, --sshPath <sshPath>", "指定该参数传入模板服务器上传路径", "")

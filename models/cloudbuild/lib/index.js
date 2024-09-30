@@ -34,11 +34,13 @@ function parseMsg(msg) {
 
 class CloudBuild {
   constructor(git, options) {
-    const { buildCmd, production } = options;
+    const { type, buildCmd, production, registry } = options;
 
     this.git = git; // 当前simpleGit实例（@cjp-cli-dev/git）
+    this.type = type; // 静态资源服务器类型 github/gitee/...
     this.buildCmd = buildCmd; // 自定义构建命令
     this.production = production; // 是否正式发布
+    this.registry = registry; // npm源
     this.timeout = TIMEOUT; // 云构建任务超时时间
     this.timer = null; // socket连接超时延时器
     this.socket = null; // socket对象
@@ -80,8 +82,10 @@ class CloudBuild {
     }
   }
 
+  // 初始化云构建
   init() {
     return new Promise((resolve, reject) => {
+      // 使用socket与服务端通信，将必要参数传递给服务端
       const socket = io(WS_SERVER, {
         query: {
           repo: this.git.remote, // 仓库远程地址
@@ -90,6 +94,7 @@ class CloudBuild {
           version: this.git.version, // 版本号
           buildCmd: this.buildCmd, // 自定义构建命令
           prod: this.production, // 是否正式发布
+          registry: this.registry, // npm源
         },
       });
 

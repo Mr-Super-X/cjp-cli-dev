@@ -1,7 +1,5 @@
 "use strict";
 
-// 第三方库
-const fse = require("fs-extra"); // 用于文件操作
 // 内置库
 const path = require("path");
 const fs = require("fs");
@@ -9,18 +7,20 @@ const fs = require("fs");
 const Command = require("@cjp-cli-dev/command");
 const Git = require("@cjp-cli-dev/git");
 const log = require("@cjp-cli-dev/log");
-const { fse } = require('@cjp-cli-dev/utils')
+const { fse } = require("@cjp-cli-dev/utils");
 
 class PublishCommand extends Command {
   init() {
     log.verbose("publish", this._cmd, this._args);
 
+    // publish命令的参数
     const {
       refreshGitServer,
       refreshGitToken,
       refreshGitOwner,
       buildCmd,
       production,
+      registry,
       sshUser,
       sshIp,
       sshPath,
@@ -33,12 +33,13 @@ class PublishCommand extends Command {
       refreshGitOwner: refreshGitOwner || false,
       buildCmd,
       production,
+      registry,
       sshUser,
       sshIp,
       sshPath,
     };
 
-    log.verbose("options", this.options)
+    log.verbose("options", this.options);
   }
 
   async exec() {
@@ -89,7 +90,7 @@ class PublishCommand extends Command {
       dir: projectPath,
     };
 
-    log.verbose('projectInfo', this.projectInfo);
+    log.verbose("projectInfo", this.projectInfo);
   }
 }
 

@@ -98,6 +98,7 @@ class Git {
       refreshGitOwner = false,
       buildCmd = "",
       production = false,
+      registry = "",
       sshUser = "",
       sshIp = "",
       sshPath = "",
@@ -130,6 +131,7 @@ class Git {
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
     this.buildCmd = buildCmd; // 自定义构建命令
     this.production = production; // 是否正式发布
+    this.registry = registry; // npm安装源
     this.sshUser = sshUser; // ssh用户
     this.sshIp = sshIp; // ssh IP
     this.sshPath = sshPath; // ssh 路径
@@ -417,6 +419,7 @@ class Git {
         type: this.gitPublish, // 静态资源服务器类型
         buildCmd: this.buildCmd, // 构建命令
         production: this.production, // 是否正式发布
+        registry: this.registry, // npm源
       });
       // 准备云构建任务
       await cloudBuild.prepare();
@@ -495,6 +498,7 @@ class Git {
       throw new Error("上传组件信息失败");
     }
     // 2. 将组件多预览页面上传至oss
+    // TODO 功能暂未写完
 
     // 告诉下一步，当前这一步完成了
     return true;
@@ -507,7 +511,8 @@ class Git {
       log.info("开始发布npm包");
       await this.checkNpmSource();
       // 执行发布操作
-      cp.execSync("npm publish", {
+      const registry = this.registry || "https://registry.npmjs.com/"; // 对publish命令--registry参数进行支持
+      cp.execSync(`npm publish --registry=${registry}`, {
         cwd: this.dir, // 在当前源码目录下执行
         stdio: "inherit",
       });
@@ -696,7 +701,7 @@ class Git {
         const uploadCmd = `scp -r ${templateFilePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`;
         log.verbose("uploadCmd", uploadCmd);
         const result = cp.execSync(uploadCmd);
-        console.log(result.toString());
+        console.log(result.toString()); // 打印服务端日志
         log.success("模板文件上传成功");
         fse.emptyDirSync(ossTempDir); // 上传模板成功后清空缓存目录
       }
