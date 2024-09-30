@@ -8,6 +8,7 @@ const path = require("path"); // 用于获取路径
 const colors = require("colors/safe"); // 用于给log信息添加颜色
 const dotenv = require("dotenv"); // 用于将环境变量从 .env 文件加载到 process.env 中
 const commander = require("commander"); // 用于解析输入命令和参数
+const rootCheck = require("root-check"); // 用于降级root用户，解决权限导致的问题
 // 自建库
 const log = require("@cjp-cli-dev/log"); // 用于给log信息添加各种自定义风格
 const getCommandRandomFunnyQuote = require("@cjp-cli-dev/log/lib/commandFunnyQuote"); // 生成错误命令搞笑语录
@@ -18,6 +19,7 @@ const {
   prompt,
   semver,
   fse,
+  CLI_NAME,
   DEFAULT_CLI_HOME,
   DEPENDENCIES_CACHE_DIR,
 } = require("@cjp-cli-dev/utils"); // 工具方法
@@ -64,7 +66,7 @@ function registerCommander() {
     // option方法参数说明：1：参数简写和全写，后面加[]表示非必传，加<>表示必传，2：参数描述，3：默认值
     // 在program后调用option表示添加全局参数，在program.command后面调用option表示给当前命令添加参数
     // 支持debug模式
-    .option("-d, --debug", "是否开启调试模式", false)
+    .option("-dbg, --debug", "是否开启调试模式", false)
     // 支持指定本地调试文件路径
     .option("-tp, --targetPath <targetPath>", "指定本地调试文件路径", "");
 
@@ -121,8 +123,39 @@ function registerCommander() {
     .command("clean")
     .description("清空缓存文件")
     .option("-a, --all", "清空全部缓存", false)
-    .option("--dep", "仅清空依赖缓存", false)
-    .action((options) => {
+    .option("-d, --dep", "仅清空依赖缓存", false)
+    .action((options, command) => {
+      const requireKeys = ["all", "dep"];
+
+      // 检查是否没传参数
+      function checkKeys(keys, obj) {
+        let result = false;
+
+        keys.forEach((key) => {
+          if (obj[key] === true) {
+            result = true;
+          }
+        });
+
+        return result;
+      }
+
+      // 找出所需要的参数
+      const commandOptions = command.options.map((item) => ({
+        flag: item.flags,
+        description: item.description,
+      }));
+
+      if (!checkKeys(requireKeys, options)) {
+        log.warn(
+          `请指定参数确认您想清除的内容，支持以下参数：\n\n${commandOptions
+            .map((option) => `['${option.flag}'：${option.description}]`)
+            .join(
+              "\n"
+            )}\n\n您可以输入 ${CLI_NAME} ${command.name()} -h 查看使用帮助`
+        );
+      }
+
       if (options.all) {
         cleanAll();
       } else if (options.dep) {
@@ -148,7 +181,7 @@ function registerCommander() {
 
   // 高级功能：对未知命令进行监听
   program.on("command:*", function (cmdObj) {
-    const availableCommands = program.commands.map(cmd => ({
+    const availableCommands = program.commands.map((cmd) => ({
       command: cmd.name(),
       description: cmd.description(),
     }));
@@ -159,7 +192,13 @@ function registerCommander() {
     // 提醒可用命令
     if (availableCommands.length > 0) {
       log.error(
-        colors.red("请使用以下可用命令：\n\n" + availableCommands.map(item => `[${item.command}: ${item.description}]`).join('\n') + "\n\n您可以输入 [脚手架 具体命令 -h] 查看命令使用帮助，如：\ncjp-cli-dev -h\ncjp-cli-dev init --help")
+        colors.red(
+          "请使用以下可用命令：\n\n" +
+            availableCommands
+              .map((item) => `[${item.command}: ${item.description}]`)
+              .join("\n") +
+            `\n\n您可以输入 [脚手架 具体命令 -h] 查看命令使用帮助，如：\n${CLI_NAME} -h\n${CLI_NAME} init --help`
+        )
       );
     }
   });
@@ -180,7 +219,7 @@ async function prepare() {
   checkPkgVersion();
   // 2. 检查node版本（放到models/command中）
   // checkNodeVersion();
-  // 3. 检查root用户，如果是root用户则尝试切换为普通用户，解决因权限提示带来的各种问题
+  // 3. 检查root用户，如果是root用户则尝试切换为普通用户，解决因权限带来的各种问题
   checkRoot();
   // 4. 检查用户主目录
   checkUserHome();
@@ -192,6 +231,7 @@ async function prepare() {
 }
 
 async function checkGlobalUpdate() {
+  log.verbose(`检查 ${CLI_NAME} 最新版本`);
   // 1. 获取当前版本号和模块名
   const currentVersion = pkg.version;
   const npmName = pkg.name;
@@ -209,17 +249,24 @@ async function checkGlobalUpdate() {
   }
 }
 
+// 检查用户主目录下的.env文件
 function checkEnv() {
+  log.verbose("检查用户主目录下的.env文件");
   const dotenvPath = path.resolve(homedir, ".env");
+  // 确保目录存在，不存在自动创建
   if (pathExists(dotenvPath)) {
+    // 注册用户主目录下的.env文件中的变量到process.env中
     dotenv.config({
       path: dotenvPath,
     });
   }
-  createDefaultConfig();
+  const config = createDefaultConfig();
+  // 调试模式下输出环境变量
+  log.verbose("当前环境变量", config);
 }
 
 function createDefaultConfig() {
+  log.verbose("创建 cli 默认配置");
   const cliConfig = {
     home: homedir,
   };
@@ -227,16 +274,17 @@ function createDefaultConfig() {
   if (process.env.CLI_HOME) {
     cliConfig["cliHome"] = path.join(homedir, process.env.CLI_HOME);
   } else {
-    cliConfig["cliHome"] = path.join(
-      homedir,
-      DEFAULT_CLI_HOME
-    );
+    cliConfig["cliHome"] = path.join(homedir, DEFAULT_CLI_HOME);
   }
 
+  // 将cli主目录挂在到环境变量上
   process.env.CLI_HOME_PATH = cliConfig.cliHome;
+
+  return cliConfig;
 }
 
 function checkUserHome() {
+  log.verbose("检查用户主目录");
   // 获取用户主目录
   const userHome = homedir;
   if (!userHome || !pathExists(userHome)) {
@@ -245,8 +293,8 @@ function checkUserHome() {
 }
 
 function checkRoot() {
+  log.verbose("检查是否root用户，尝试降级为普通用户");
   // 如果是root用户，会自动降级为普通用户
-  const rootCheck = require("root-check");
   rootCheck();
 }
 
@@ -268,7 +316,7 @@ async function getConfirmClean(msg) {
 
 // 清空所有缓存
 async function cleanAll() {
-  if(!fs.existsSync(process.env.CLI_HOME_PATH)) {
+  if (!fs.existsSync(process.env.CLI_HOME_PATH)) {
     log.warn("缓存路径不存在", process.env.CLI_HOME_PATH);
     return;
   }

@@ -12,6 +12,7 @@ const { spawn, spawnAsync } = require("./spawn"); // 执行耗时命令任务
 const { readFile, writeFile } = require("./file"); // 自定义读写文件方法
 const { isObject, sleep } = require("./util"); // 其它工具方法
 const {
+  CLI_NAME,
   DEFAULT_CLI_HOME,
   DEPENDENCIES_CACHE_DIR,
   TEMPLATE_CACHE_DIR,
@@ -31,6 +32,7 @@ module.exports = {
   fse,
   glob,
   ejs,
+  CLI_NAME,
   DEFAULT_CLI_HOME,
   TEMPLATE_CACHE_DIR,
   DEPENDENCIES_CACHE_DIR,
