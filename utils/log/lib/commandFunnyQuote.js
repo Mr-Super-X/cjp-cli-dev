@@ -1,3 +1,4 @@
+// 执行命令错误相关log搞笑语录，由文心一言生成
 const funnyQuotes = [
   "哇哦，你的输入简直比量子计算还难以理解，确定不是来自外太空的代码吗？",
   "哎呀妈呀，这串字符是想让我召唤神龙吗？可惜我不是魔法师，请重新输入正常的命令吧！",
@@ -15,7 +16,7 @@ const funnyQuotes = [
  * 随机抽取一条搞笑文案
  * @returns
  */
-function generateRandomFunnyQuote() {
+function generateCommandRandomFunnyQuote() {
   // 生成一个0到数组长度减1之间的随机索引
   const randomIndex = Math.floor(Math.random() * funnyQuotes.length);
   // 返回对应索引的搞笑文案
@@ -23,4 +24,4 @@ function generateRandomFunnyQuote() {
 }
 
 
-module.exports = generateRandomFunnyQuote
+module.exports = generateCommandRandomFunnyQuote

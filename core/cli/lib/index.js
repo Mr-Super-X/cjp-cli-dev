@@ -10,6 +10,7 @@ const dotenv = require("dotenv"); // 用于将环境变量从 .env 文件加载�
 const commander = require("commander"); // 用于解析输入命令和参数
 // 自建库
 const log = require("@cjp-cli-dev/log"); // 用于给log信息添加各种自定义风格
+const getCommandRandomFunnyQuote = require("@cjp-cli-dev/log/lib/commandFunnyQuote"); // 生成错误命令搞笑语录
 const exec = require("@cjp-cli-dev/exec"); // 用于执行动态初始化命令
 const { getNpmSemverVersion } = require("@cjp-cli-dev/get-npm-info"); // 用于获取npm包信息
 const {
@@ -21,8 +22,6 @@ const {
   DEPENDENCIES_CACHE_DIR,
 } = require("@cjp-cli-dev/utils"); // 工具方法
 const pkg = require("../package.json");
-const constant = require("./const");
-const generateRandomFunnyQuote = require("./generateFunnyQuote");
 
 // 全局变量
 const homedir = os.homedir(); // 用户主目录
@@ -150,7 +149,7 @@ function registerCommander() {
   // 高级功能：对未知命令进行监听
   program.on("command:*", function (cmdObj) {
     const availableCommands = program.commands.map((cmd) => cmd.name());
-    log.error(colors.red(generateRandomFunnyQuote()));
+    log.error(colors.red(getCommandRandomFunnyQuote()));
     if (availableCommands.length > 0) {
       log.error(
         colors.red("请使用以下可用命令：\n" + availableCommands.join("\n"))
@@ -221,10 +220,9 @@ function createDefaultConfig() {
   if (process.env.CLI_HOME) {
     cliConfig["cliHome"] = path.join(homedir, process.env.CLI_HOME);
   } else {
-    // 双重保险，防止删除DEFAULT_CLI_HOME导致程序异常
     cliConfig["cliHome"] = path.join(
       homedir,
-      DEFAULT_CLI_HOME || constant.DEFAULT_CLI_HOME
+      DEFAULT_CLI_HOME
     );
   }
 
