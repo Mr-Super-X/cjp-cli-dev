@@ -20,6 +20,7 @@ const {
   fse,
   glob,
   ejs,
+  EJS_DEFAULT_IGNORE,
   DEFAULT_CLI_HOME,
   TEMPLATE_CACHE_DIR,
 } = require("@cjp-cli-dev/utils");
@@ -134,7 +135,7 @@ class InitCommand extends Command {
 
     // ejs忽略文件夹，默认node_modules，可在数据库中配置ignore属性（数组）
     const templateIgnore = this.templateInfo.ignore || [];
-    const ignore = ["**/node_modules/**", ...templateIgnore];
+    const ignore = [...EJS_DEFAULT_IGNORE, ...templateIgnore];
     // 模板安装完成后进行ejs渲染，替换掉ejs变量
     await this.ejsRender({ ignore });
 

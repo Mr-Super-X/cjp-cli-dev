@@ -20,6 +20,7 @@ const {
   fse,
   glob,
   ejs,
+  EJS_DEFAULT_IGNORE,
   DEFAULT_CLI_HOME,
   TEMPLATE_CACHE_DIR,
 } = require("@cjp-cli-dev/utils");
@@ -518,7 +519,7 @@ class AddCommand extends Command {
     // 将模板路径的所有文件拷贝到目标路径中
     fse.copySync(templatePath, targetPath);
     // 使用ejs渲染目标路径中的文件
-    await this.ejsRender({ targetPath });
+    await this.ejsRender({ targetPath, ignore: EJS_DEFAULT_IGNORE });
     // 如果拷贝的模板中有依赖外部node_modules包，需要检查和合并依赖
     // 合并依赖完成后自动帮用户重新安装依赖
     await this.mergeDependencies({ templatePath, targetPath });
