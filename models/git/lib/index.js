@@ -409,8 +409,17 @@ class Git {
     let result = false;
     // 如果是组件，发布npm流程，如果是项目则执行云构建和云发布流程
     if (this.isComponent()) {
+      // 1. 将组件发布信息上传至mysql数据库
+      // TODO 2. 将组件多预览页面上传至oss（暂未完成）
       log.info("开始发布组件");
       result = await this.saveComponentToDB();
+      // 生产发布需要将组件发布npm
+      if (this.production) {
+        await this.uploadComponentToNpm();
+      }
+      if (result) {
+        log.success("组件发布成功");
+      }
     } else {
       log.info("开始发布项目");
       await this.preparePublish();
@@ -430,14 +439,14 @@ class Git {
       // 获取云构建结果，上传模板
       if (result) {
         await this.uploadTemplate();
+        log.success("项目发布成功");
       }
     }
 
     // 公共流程
 
-    // 如果是生产发布则执行以下流程
+    // 如果是生产发布且前面的结果都正确则执行以下流程
     if (this.production && result) {
-      await this.uploadComponentToNpm();
       await this.runCreateTagTask();
 
       // // 自动删除和打新tag
@@ -456,9 +465,7 @@ class Git {
   }
 
   async saveComponentToDB() {
-    // 1. 将组件信息上传至数据库 RDS
-    // 2. 将组件多预览页面上传至oss
-    log.info("正在上传组件信息至OSS和写入数据库");
+    log.info("正在将组件信息写入MySQL数据库");
     const componentFile = this.isComponent();
     // 获取源码目录下.componentrc中的examplePath，在MongoDB中配置
     let componentExamplePath = path.resolve(
@@ -496,8 +503,10 @@ class Git {
       },
     });
     if (!data) {
-      throw new Error("上传组件信息失败");
+      throw new Error("组件信息写入MySQL数据库失败");
     }
+
+    log.success("组件信息写入MySQL数据库成功");
 
     // 告诉下一步，当前这一步完成了
     return true;
@@ -506,17 +515,15 @@ class Git {
   // 上传组件到npm
   async uploadComponentToNpm() {
     // 3. 完成组件上传npm
-    if (this.isComponent()) {
-      log.info("开始发布npm包");
-      await this.checkNpmSource();
-      // 执行发布操作
-      const registry = this.registry || "https://registry.npmjs.com/"; // 对publish命令--registry参数进行支持
-      cp.execSync(`npm publish --registry=${registry}`, {
-        cwd: this.dir, // 在当前源码目录下执行
-        stdio: "inherit",
-      });
-      log.success("npm包发布成功");
-    }
+    log.info("开始发布npm包");
+    await this.checkNpmSource();
+    // 执行发布操作
+    const registry = this.registry || "https://registry.npmjs.com/"; // 对publish命令--registry参数进行支持
+    cp.execSync(`npm publish --registry=${registry}`, {
+      cwd: this.dir, // 在当前源码目录下执行
+      stdio: "inherit",
+    });
+    log.success("npm包发布成功");
   }
 
   // 检测用户当前npm源
