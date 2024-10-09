@@ -5,7 +5,11 @@ const path = require("path");
 // 自建库
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
-const { spawn, DEPENDENCIES_CACHE_DIR, DEFAULT_NPM_REGISTRY } = require("@cjp-cli-dev/utils");
+const {
+  spawn,
+  DEPENDENCIES_CACHE_DIR,
+  DEFAULT_NPM_REGISTRY,
+} = require("@cjp-cli-dev/utils");
 
 // 全局变量
 const SETTINGS = {
@@ -17,7 +21,7 @@ const SETTINGS = {
 
 async function exec() {
   const homePath = process.env.CLI_HOME_PATH;
-  let targetPath = process.env.CLI_TARGET_PATH;
+  let targetPath = process.env.CLI_TARGET_PATH || "";
   let storeDir = "";
   let pkg = null;
   // 在debug模式输出
@@ -29,7 +33,7 @@ async function exec() {
   const cmdName = cmdObj.name();
   // 获取命令参数
   const cmdOpts = cmdObj.opts();
-  log.verbose('命令参数', cmdOpts);
+  log.verbose("命令参数", cmdOpts);
   // 获取命令对应的包名（可以放在服务端通过接口获取，这样可以扩展动态配置）
   const packageName = SETTINGS[cmdName];
   // 获取版本号，默认获取最新版本
@@ -70,7 +74,7 @@ async function exec() {
 
   // 找到入口执行文件并执行
   const rootFile = pkg.getRootFilePath();
-  log.verbose('rootFile', rootFile);
+  log.verbose("rootFile", rootFile);
   if (rootFile) {
     // 捕获异步throw err
     try {
@@ -105,7 +109,7 @@ async function exec() {
         stdio: "inherit", // 将输出流交给父进程，可以看到执行动画和打印内容
       });
       child.on("error", (e) => {
-        handleError(cmdOpts, e, "命令执行失败：")
+        handleError(cmdOpts, e, "命令执行失败：");
         process.exit(e.code);
       });
       child.on("exit", (c) => {
