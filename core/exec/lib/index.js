@@ -20,7 +20,7 @@ const SETTINGS = {
 };
 
 async function exec() {
-  const homePath = process.env.CLI_HOME_PATH;
+  const homePath = process.env.CLI_HOME_PATH || "";
   let targetPath = process.env.CLI_TARGET_PATH || "";
   let storeDir = "";
   let pkg = null;
