@@ -45,7 +45,7 @@ class InitCommand extends Command {
   init() {
     this.projectName = this._args[0] || "";
     this.force = this._args[1].force || false;
-    this.registry = this._args[1].registry || DEFAULT_NPM_REGISTRY
+    this.registry = this._args[1].registry || DEFAULT_NPM_REGISTRY;
     // debug模式下输出以下变量
     log.verbose("projectName", this.projectName);
     log.verbose("force", this.force);
@@ -247,7 +247,11 @@ class InitCommand extends Command {
     this.templateInfo = templateInfo;
 
     // 生成包安装路径信息
-    const targetPath = path.resolve(userHome, process.env.CLI_HOME_PATH || DEFAULT_CLI_HOME, TEMPLATE_CACHE_DIR);
+    const targetPath = path.resolve(
+      userHome,
+      process.env.CLI_HOME_PATH || DEFAULT_CLI_HOME,
+      TEMPLATE_CACHE_DIR
+    );
     const storeDir = path.resolve(
       userHome,
       process.env.CLI_HOME_PATH || DEFAULT_CLI_HOME,
@@ -379,9 +383,23 @@ class InitCommand extends Command {
   }
 
   async prepare() {
-    // 请求接口，判断项目模板是否存在，没有则中断执行
-    const template = await getProjectTemplate();
+    let template;
+    // 支持本地项目模板数据配置
+    const projectLocalPath = path.resolve(
+      userHome,
+      DEFAULT_CLI_HOME,
+      "data",
+      "project.json"
+    );
+    // 判断本地项目模板配置是否存在，存在则优先使用本地配置
+    if (fs.existsSync(projectLocalPath)) {
+      template = fse.readJSONSync(projectLocalPath);
+    } else {
+      // 本地模板不存在则请求接口获取数据
+      template = await getProjectTemplate();
+    }
 
+    // 判断项目模板是否存在，没有则中断执行
     if (!template || template.length === 0) {
       throw new Error("项目模板不存在");
     }
