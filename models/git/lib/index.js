@@ -516,9 +516,16 @@ class Git {
   async uploadComponentToNpm() {
     // 3. 完成组件上传npm
     log.info("开始发布npm包");
-    await this.checkNpmSource();
+    // 如果用户有指定源，直接提示即可
+    if (this.registry) {
+      log.verbose("当前指定源为：" + this.registry);
+    } else {
+      await this.checkNpmSource();
+    }
     // 执行发布操作
-    const registry = this.registry || "https://registry.npmjs.com/"; // 对publish命令--registry参数进行支持
+    const localRegistry = (await this.getNpmRegistry()).trim(); // 获得用户本地源地址
+    const registry = this.registry || localRegistry; // 对publish命令--registry参数进行支持
+    log.info(`执行npm发布命令：npm publish --registry=${registry}`);
     cp.execSync(`npm publish --registry=${registry}`, {
       cwd: this.dir, // 在当前源码目录下执行
       stdio: "inherit",
