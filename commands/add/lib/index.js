@@ -631,7 +631,10 @@ class AddCommand extends Command {
     // 帮用户合并完依赖之后也自动帮用户安装好依赖（安装路径为当前项目package.json所在目录，通过path.dir来获得）
     log.info("开始安装模板所需依赖...");
     const registry = this.registry;
-    await this.execCommand(`npm install --registry=${registry}`, path.dirname(targetPkg.path));
+    await this.execCommand(
+      `npm install --registry=${registry}`,
+      path.dirname(targetPkg.path)
+    );
     log.success("模板所需依赖安装完成");
 
     log.success("依赖合并成功");
@@ -656,7 +659,11 @@ class AddCommand extends Command {
 
   async downloadTemplate(addMode = ADD_MODE_PAGE) {
     // 缓存文件夹
-    const targetPath = path.resolve(USER_HOME, DEFAULT_CLI_HOME, TEMPLATE_CACHE_DIR);
+    const targetPath = path.resolve(
+      USER_HOME,
+      DEFAULT_CLI_HOME,
+      TEMPLATE_CACHE_DIR
+    );
     // 缓存真实路径
     const storeDir = path.resolve(
       USER_HOME,
@@ -717,10 +724,35 @@ class AddCommand extends Command {
 
   async getTemplate(addMode = ADD_MODE_PAGE) {
     const title = addMode === ADD_MODE_PAGE ? "页面" : "代码片段";
-    // 通过接口API获取模板列表
-    const fetchTemplate =
-      addMode === ADD_MODE_PAGE ? getPageTemplate : getSectionTemplate;
-    const templateData = await fetchTemplate();
+    let templateData;
+
+    // 支持本地项目模板数据配置
+    const pageLocalPath = path.resolve(
+      USER_HOME,
+      DEFAULT_CLI_HOME,
+      "data",
+      "page.json"
+    );
+    const sectionLocalPath = path.resolve(
+      USER_HOME,
+      DEFAULT_CLI_HOME,
+      "data",
+      "section.json"
+    );
+
+    // 根据类型来获取本地配置
+    const localConfigPath =
+      addMode === ADD_MODE_PAGE ? pageLocalPath : sectionLocalPath;
+
+    // 判断本地项目模板配置是否存在，存在则优先使用本地配置
+    if (fs.existsSync(localConfigPath)) {
+      templateData = fse.readJSONSync(localConfigPath);
+    } else {
+      // 通过接口API获取模板列表
+      const fetchTemplate =
+        addMode === ADD_MODE_PAGE ? getPageTemplate : getSectionTemplate;
+      templateData = await fetchTemplate();
+    }
 
     const { templateName } = await prompt({
       type: "list",
