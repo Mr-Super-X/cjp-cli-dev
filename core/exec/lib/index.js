@@ -7,6 +7,7 @@ const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
 const {
   spawn,
+  DEFAULT_CLI_HOME,
   DEPENDENCIES_CACHE_DIR,
   DEFAULT_NPM_REGISTRY,
 } = require("@cjp-cli-dev/utils");
@@ -20,8 +21,8 @@ const SETTINGS = {
 };
 
 async function exec() {
-  const homePath = process.env.CLI_HOME_PATH || "";
-  let targetPath = process.env.CLI_TARGET_PATH || "";
+  const homePath = process.env.CLI_HOME_PATH || DEFAULT_CLI_HOME; // 要给默认值，否则下面的path.resolve会报错
+  let targetPath = process.env.CLI_TARGET_PATH;
   let storeDir = "";
   let pkg = null;
   // 在debug模式输出

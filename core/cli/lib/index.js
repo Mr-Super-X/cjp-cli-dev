@@ -33,10 +33,10 @@ module.exports = cli;
 
 async function cli() {
   try {
-    // 注册commander命令
-    registerCommander();
     // 进入cli准备阶段
     await prepare();
+    // 注册commander命令
+    registerCommander();
   } catch (e) {
     log.error(e);
     // debug模式下打印执行栈
@@ -235,7 +235,7 @@ async function prepare() {
 }
 
 async function checkGlobalUpdate() {
-  log.verbose(`检查 ${CLI_NAME} 最新版本`);
+  // log.verbose(`检查 ${CLI_NAME} 最新版本`);
   // 1. 获取当前版本号和模块名
   const currentVersion = pkg.version;
   const npmName = pkg.name;
@@ -243,7 +243,7 @@ async function checkGlobalUpdate() {
   // 3. 找到最新的版本号，并与当前版本号进行对比
   // 4. 如果有新版本，则提示用户更新
   const lastVersion = await getNpmSemverVersion(currentVersion, npmName);
-  log.verbose("最新版本为", lastVersion);
+  // log.verbose("最新版本为", lastVersion);
   if (lastVersion && semver.gt(lastVersion, currentVersion)) {
     log.warn(
       "更新提示",
@@ -256,7 +256,7 @@ async function checkGlobalUpdate() {
 
 // 检查用户主目录下的.env文件
 function checkEnv() {
-  log.verbose("检查用户主目录下的.env文件");
+  // log.verbose("检查用户主目录下的.env文件");
   const dotenvPath = path.resolve(homedir, ".env");
   let config;
   // 确保目录存在，不存在自动创建
@@ -267,11 +267,12 @@ function checkEnv() {
     });
   }
   createDefaultConfig();
-  log.verbose("dotenv注入环境变量成功", config.parsed);
+  // 兼容输出，防止当前用户目录下没有.env文件导致parsed属性为undefined
+  // log.verbose("dotenv注入环境变量成功", config.parsed || config);
 }
 
 function createDefaultConfig() {
-  log.verbose("创建 cli 默认环境变量配置");
+  // log.verbose("创建 cli 默认环境变量配置");
   const cliConfig = {
     home: homedir,
   };
@@ -285,13 +286,13 @@ function createDefaultConfig() {
   // 将cli主目录挂在到环境变量上
   process.env.CLI_HOME_PATH = cliConfig.cliHome;
 
-  log.verbose("process.env.CLI_HOME_PATH", process.env.CLI_HOME_PATH);
+  // log.verbose("process.env.CLI_HOME_PATH", process.env.CLI_HOME_PATH);
 
   return cliConfig;
 }
 
 function checkUserHome() {
-  log.verbose("检查用户主目录");
+  // log.verbose("检查用户主目录");
   // 获取用户主目录
   const userHome = homedir;
   if (!userHome || !pathExists(userHome)) {
@@ -300,8 +301,9 @@ function checkUserHome() {
 }
 
 function checkRoot() {
-  log.verbose("检查是否root用户，如果是将尝试降级为普通用户");
-  // 如果是root用户，会自动降级为普通用户
+  // log.verbose("检查是否root用户，如果是将尝试自动降级为普通用户，减少潜在安全风险");
+  // root-check的主要作用是尝试使用root特权来降级进程的权限，并在失败时阻止访问。
+  // 这通常用于安全敏感的操作，以确保这些操作不会以过高的权限运行，从而减少潜在的安全风险
   rootCheck();
 }
 
