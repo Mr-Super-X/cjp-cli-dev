@@ -522,9 +522,24 @@ class Git {
     } else {
       await this.checkNpmSource();
     }
+
+    const localRegistry = await this.getNpmRegistry(); // 获得用户本地源地址
+    const registry = this.registry || localRegistry; // 对--registry参数进行支持
+
+    // 发布前检查用户是否已登录npm
+    const npmLogin = await this.checkNpmLogin();
+    // 如果没登录，自动执行npm login
+    if (!npmLogin) {
+      log.warn("请先登录npm");
+      log.info(`自动执行：npm login --registry=${registry}`);
+      cp.execSync(`npm login --registry=${registry}`, {
+        cwd: this.dir, // 在当前源码目录下执行
+        stdio: "inherit",
+      });
+      log.success("npm登录成功");
+    }
+
     // 执行发布操作
-    const localRegistry = (await this.getNpmRegistry()).trim(); // 获得用户本地源地址
-    const registry = this.registry || localRegistry; // 对publish命令--registry参数进行支持
     log.info(`执行npm发布命令：npm publish --registry=${registry}`);
     cp.execSync(`npm publish --registry=${registry}`, {
       cwd: this.dir, // 在当前源码目录下执行
@@ -533,13 +548,26 @@ class Git {
     log.success("npm包发布成功");
   }
 
+  // 检查用户是否登录npm
+  async checkNpmLogin() {
+    return new Promise((resolve, reject) => {
+      cp.exec("npm whoami", (error, stdout) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(stdout.trim());
+        }
+      });
+    });
+  }
+
   // 检测用户当前npm源
   async checkNpmSource() {
     try {
       const npmRegistry = await this.getNpmRegistry();
       const officialSource = "https://registry.npmjs.com/";
       log.verbose("npm registry：", npmRegistry);
-      if (npmRegistry.trim() === officialSource) {
+      if (npmRegistry === officialSource) {
         log.info(`当前npm源为官方源：${officialSource}`);
       } else {
         log.warn(`您当前的npm源为：${npmRegistry} `);
@@ -556,7 +584,7 @@ class Git {
         if (error) {
           reject(error);
         } else {
-          resolve(stdout);
+          resolve(stdout.trim());
         }
       });
     });
