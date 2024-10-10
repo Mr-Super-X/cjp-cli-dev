@@ -537,6 +537,8 @@ class Git {
         stdio: "inherit",
       });
       log.success("npm登录成功");
+    } else {
+      log.success("您已登录npm，可正常执行publish操作");
     }
 
     // 执行发布操作
