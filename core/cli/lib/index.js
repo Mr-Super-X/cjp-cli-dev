@@ -104,7 +104,8 @@ function registerCommander() {
       "npm run build"
     )
     .option("-prod, --production", "是否正式发布", false)
-    .option("-cnd, --componentNoDb", "发布组件信息不写入数据库", false)
+    .option("-cnd, --componentNoDb", "发布组件库信息不写入数据库", false)
+    .option("-ncb, --noCloudBuild", "发布项目不开启云构建", false)
     .option("-reg, --registry <registry>", "指定npm源地址", "")
     .option("-su, --sshUser <sshUser>", "指定模板服务器用户名", "")
     .option("-si, --sshIp <sshIp>", "指定模板服务器IP或域名", "")

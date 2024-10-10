@@ -99,6 +99,7 @@ class Git {
       buildCmd = "",
       production = false,
       componentNoDb = false,
+      noCloudBuild = false,
       registry = "",
       sshUser = "",
       sshIp = "",
@@ -132,7 +133,8 @@ class Git {
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
     this.buildCmd = buildCmd; // 自定义构建命令
     this.production = production; // 是否正式发布
-    this.componentNoDb = componentNoDb; // 不写入数据库
+    this.componentNoDb = componentNoDb; // 不写入数据库 默认写入
+    this.noCloudBuild = noCloudBuild; // 不启用云构建，默认启用
     this.registry = registry; // npm安装源
     this.sshUser = sshUser; // ssh用户
     this.sshIp = sshIp; // ssh IP
@@ -415,7 +417,7 @@ class Git {
       // TODO 2. 将组件多预览页面上传至oss（暂未完成）
       log.info("开始发布组件");
       // 如果用户传了componentNoDb为true，表示不写入数据库
-      if(this.componentNoDb === false) {
+      if (this.componentNoDb === false) {
         result = await this.saveComponentToDB();
       } else {
         log.info("您已指定组件发布信息不写入数据库");
@@ -434,20 +436,27 @@ class Git {
     } else {
       log.info("开始发布项目");
       await this.preparePublish();
-      // 创建云构建实例，将当前git实例和所需要的参数传进去
-      const cloudBuild = new CloudBuild(this, {
-        type: this.gitPublish, // 静态资源服务器类型
-        buildCmd: this.buildCmd, // 构建命令
-        production: this.production, // 是否正式发布
-        registry: this.registry, // npm源
-      });
-      // 准备云构建任务
-      await cloudBuild.prepare();
-      // 初始化云构建任务
-      await cloudBuild.init();
-      // 开始云构建
-      result = await cloudBuild.build();
-      // 获取云构建结果，上传模板
+      // 如果用户指定不开启云构建，则走本地构建流程
+      if (this.noCloudBuild === false) {
+        // 创建云构建实例，将当前git实例和所需要的参数传进去
+        const cloudBuild = new CloudBuild(this, {
+          type: this.gitPublish, // 静态资源服务器类型
+          buildCmd: this.buildCmd, // 构建命令
+          production: this.production, // 是否正式发布
+          registry: this.registry, // npm源
+        });
+        // 准备云构建任务
+        await cloudBuild.prepare();
+        // 初始化云构建任务
+        await cloudBuild.init();
+        // 开始云构建
+        result = await cloudBuild.build();
+      } else {
+        log.info("您已指定项目发布不启用云构建，开始本地构建");
+        result = await this.localBuild();
+      }
+
+      // 获取构建结果，上传模板至OSS服务器
       if (result) {
         await this.uploadTemplate();
         log.success("项目发布成功");
@@ -473,6 +482,21 @@ class Git {
       // // 删除远程开发分支
       // await this.deleteRemoteBranch();
     }
+  }
+
+  // 本地构建
+  async localBuild() {
+    // 1. 当前项目目录下执行buildCmd
+    // 2. 提示用户手动操作构建结果
+
+    cp.execSync(`${this.buildCmd}`, {
+      cwd: this.dir, // 在当前源码目录下执行
+      stdio: "inherit",
+    });
+
+    log.success("本地构建成功，请您手动处理构建结果进行发布");
+    // 上一步execSync报错会终止程序运行，如果没报错表示执行成功，返回true告知当前步骤成功
+    return true;
   }
 
   async saveComponentToDB() {
@@ -821,30 +845,35 @@ class Git {
 
     log.success("代码预检查通过");
 
-    const gitPublishPath = this.createPath(GIT_PUBLISH_FILE);
-    let gitPublish = readFile(gitPublishPath);
-    if (!gitPublish) {
-      gitPublish = (
-        await prompt({
-          type: "list",
-          name: "gitPublish",
-          message: "请选择您想要上传静态资源代码的平台：",
-          default: PUBLISH_TYPE,
-          choices: GIT_PUBLISH_TYPE_CHOICES,
-        })
-      ).gitPublish;
+    // 开启云构建才需要检查OSS服务器
+    if (this.noCloudBuild === false) {
+      const gitPublishPath = this.createPath(GIT_PUBLISH_FILE);
+      let gitPublish = readFile(gitPublishPath);
+      if (!gitPublish) {
+        gitPublish = (
+          await prompt({
+            type: "list",
+            name: "gitPublish",
+            message: "请选择您想要上传静态资源代码的平台：",
+            default: PUBLISH_TYPE,
+            choices: GIT_PUBLISH_TYPE_CHOICES,
+          })
+        ).gitPublish;
 
-      writeFile(gitPublishPath, gitPublish);
-      log.success(
-        "发布平台类型写入成功",
-        `${gitPublish}  =>  ${gitPublishPath}`
-      );
+        writeFile(gitPublishPath, gitPublish);
+        log.success(
+          "发布平台类型写入成功",
+          `${gitPublish}  =>  ${gitPublishPath}`
+        );
+      } else {
+        log.success("发布平台类型读取成功", `${gitPublish}`);
+      }
+
+      this.gitPublish = gitPublish; // 缓存到this上
+      log.verbose("gitPublish", gitPublish);
     } else {
-      log.success("发布平台类型读取成功", `${gitPublish}`);
+      log.verbose("已关闭云构建");
     }
-
-    this.gitPublish = gitPublish; // 缓存到this上
-    log.verbose("gitPublish", gitPublish);
   }
 
   // 获取项目package.json
