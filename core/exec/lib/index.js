@@ -2,6 +2,7 @@
 
 // 内置库
 const path = require("path");
+const os = require("os");
 // 自建库
 const Package = require("@cjp-cli-dev/package");
 const log = require("@cjp-cli-dev/log");
@@ -20,8 +21,11 @@ const SETTINGS = {
   add: "@cjp-cli-dev/add",
 };
 
+const USER_HOME = os.homedir(); // 用户主目录
+
 async function exec() {
-  const homePath = process.env.CLI_HOME_PATH || DEFAULT_CLI_HOME; // 要给默认值，否则下面的path.resolve会报错
+  const defaultCliHomePath = path.join(USER_HOME, DEFAULT_CLI_HOME);
+  const homePath = process.env.CLI_HOME_PATH || defaultCliHomePath; // 要给默认值，否则下面的path.resolve会报错
   let targetPath = process.env.CLI_TARGET_PATH;
   let storeDir = "";
   let pkg = null;
