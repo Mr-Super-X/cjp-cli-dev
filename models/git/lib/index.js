@@ -98,6 +98,7 @@ class Git {
       refreshGitOwner = false,
       buildCmd = "",
       production = false,
+      componentNoDb = false,
       registry = "",
       sshUser = "",
       sshIp = "",
@@ -131,6 +132,7 @@ class Git {
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
     this.buildCmd = buildCmd; // 自定义构建命令
     this.production = production; // 是否正式发布
+    this.componentNoDb = componentNoDb; // 不写入数据库
     this.registry = registry; // npm安装源
     this.sshUser = sshUser; // ssh用户
     this.sshIp = sshIp; // ssh IP
@@ -412,11 +414,20 @@ class Git {
       // 1. 将组件发布信息上传至mysql数据库
       // TODO 2. 将组件多预览页面上传至oss（暂未完成）
       log.info("开始发布组件");
-      result = await this.saveComponentToDB();
+      // 如果用户传了componentNoDb为true，表示不写入数据库
+      if(this.componentNoDb === false) {
+        result = await this.saveComponentToDB();
+      } else {
+        log.info("您已指定组件发布信息不写入数据库");
+        result = true;
+      }
       // 生产发布需要将组件发布npm
       if (this.production) {
         await this.uploadComponentToNpm();
       }
+
+      // TODO 优化点：如果不指定production表示测试发布，应该增加测试发布的相关内容，如将测试发布的构建结果上传到OSS
+
       if (result) {
         log.success("组件发布成功");
       }
