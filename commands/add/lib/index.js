@@ -308,18 +308,17 @@ class AddCommand extends Command {
     // 6.插入代码片段的import语句
     // 找到源码中script的位置（去除头尾空格，防止不规范编写导致找不到）
     const scriptIndex = codeLines.findIndex(
-      (linCode) => linCode.replace(/\s/g, "") === "<script>"
+      (linCode) => /\s*<\s*script\b[^>]*>/g.test(linCode)
     );
+    // 测试代码
+    // console.log(/\s*<\s*script\b[^>]*>/g.test(' < script >'))
+    // console.log(/\s*<\s*script\b[^>]*>/g.test('   <  script setup name="home" >'))
+    // console.log(/\s*<\s*script\b[^>]*>/g.test('   <script src="main.js">'))
 
     if (scriptIndex === -1) {
       throw new Error(`在 ${codeFile} 源码中找不到 <script> 标签！`);
     }
 
-    // 测试代码
-    // console.log('<script>'.replace(/\s/g, "") === "<script>")
-    // console.log(' <script>'.replace(/\s/g, "") === "<script>")
-    // console.log('<script> '.replace(/\s/g, "") === "<script>")
-    // console.log('  <script> '.replace(/\s/g, "") === "<script>")
     // 向script中插入import导入语句，路径为当前目录下components/输入的片段名/index.vue
     // TODO 后续优化，为用户提供按需导入还是直接导入选择
     codeLines.splice(
