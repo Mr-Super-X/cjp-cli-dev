@@ -50,12 +50,16 @@ class Gitee extends GitServer {
   createOrgRepo(name, login) {
     return this.request.post(`/orgs/${login}/repos`, {
       name,
-    })
+    });
   }
 
   // 获取远程地址
   getRemote(login, name) {
-    return `git@gitee.com:${login}/${name}.git`;
+    // https方式默认使用443端口，下面一种方式使用ssh连接默认22端口（可能需要添加id_rsa.pub）
+    // 22端口特别容易出现GitError ssh: connect to host gitee.com port 22: Connection refused错误
+    // 因此替换成https协议来尝试解决问题
+    return `https://gitee.com/${login}/${name}.git`;
+    // return `git@gitee.com:${login}/${name}.git`;
   }
 
   // 返回生成Token的url
