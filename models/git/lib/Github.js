@@ -54,16 +54,20 @@ class Github extends GitServer {
 
   // 获取远程地址
   getRemote(login, name) {
-    // https方式默认使用443端口，下面一种方式使用ssh连接默认22端口（可能需要添加id_rsa.pub）
-    // 22端口特别容易出现GitError ssh: connect to host github.com port 22: Connection refused错误
-    // 因此替换成https协议来尝试解决问题
-    return `https://github.com/${login}/${name}.git`;
-    // return `git@github.com:${login}/${name}.git`;
+    // token对https协议有效
+    // 公钥对ssh协议有效
+    // return `https://github.com/${login}/${name}.git`;
+    return `git@github.com:${login}/${name}.git`;
   }
 
   // 返回生成Token的url
   getTokenUrl() {
     return "https://github.com/settings/tokens";
+  }
+
+  // 返回生成ssh key的url
+  getSshKeyUrl() {
+    return "https://github.com/settings/ssh/new";
   }
 
   // 返回生成token帮助文档链接

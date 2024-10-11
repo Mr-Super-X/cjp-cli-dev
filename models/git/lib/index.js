@@ -38,6 +38,8 @@ const GIT_OWNER_FILE = ".git_owner"; // git owner登录类型缓存文件
 const GIT_LOGIN_FILE = ".git_login"; // git login缓存文件
 const GIT_IGNORE_FILE = ".gitignore"; // .gitignore缓存文件
 const GIT_PUBLISH_FILE = ".git_publish"; // 缓存发布文件
+const OLD_GIT_SSH_KEY_FILE = "id_rsa.pub"; // git ssh公钥（旧版）
+const NEW_GIT_SSH_KEY_FILE = "id_ed25519.pub"; // git ssh公钥（新版）
 
 const GITHUB = "github";
 const GETEE = "gitee";
@@ -149,10 +151,109 @@ class Git {
     await this.checkGitToken(); // 检查远程仓库token
     await this.getUserAndOrgs(); // 获取远程仓库用户和组织信息
     await this.checkGitOwner(); // 确认远程仓库登录类型是组织还是个人
+    await this.checkSSHKey(); // 检查ssh公钥配置
     await this.checkRepo(); // 检查并创建远程仓库
     await this.checkGitIgnore(); // 检查并创建.gitignore
     await this.checkComponent(); // 检查组件合法性
     await this.init(); // 完成本地git仓库初始化
+  }
+
+  // 检查和生成ssh公钥（用于拉取和提交代码）
+  async checkSSHKey() {
+    // 查找旧和新版的ssh公钥是否存在
+    const oldSshKeyPath = path.resolve(
+      os.homedir(),
+      ".ssh",
+      OLD_GIT_SSH_KEY_FILE
+    );
+    const newSshKeyPath = path.resolve(
+      os.homedir(),
+      ".ssh",
+      NEW_GIT_SSH_KEY_FILE
+    );
+    let sshKey = readFile(oldSshKeyPath) || readFile(newSshKeyPath);
+    log.verbose("sshKey", sshKey);
+    // 公钥不存在，自动生成公钥，提醒用户将公钥添加到托管平台，询问用户是否已添加，确认后继续
+    if (!sshKey) {
+      log.warn(`${this.gitServer.type} ssh key未生成，将为您生成ssh key`);
+
+      // 询问用户使用新版还是旧版生成key的方式
+      const { sshKeyType } = await prompt({
+        type: "list",
+        name: "sshKeyType",
+        message: "您希望ssh key使用新版本还是旧版本生成？",
+        default: OLD_GIT_SSH_KEY_FILE, // 默认旧版本
+        choices: [
+          { name: "新版本（ed25519）", value: NEW_GIT_SSH_KEY_FILE },
+          { name: "旧版本（rsa）", value: OLD_GIT_SSH_KEY_FILE },
+        ],
+      });
+
+      // 确定生成key的方式
+      const oldCmd = `ssh-keygen -t rsa -C "${this.gitServer.type} SSH Key"`;
+      const newCmd = `ssh-keygen -t ed25519 -C "${this.gitServer.type} SSH Key"`;
+      const createKeyCmd =
+        sshKeyType === OLD_GIT_SSH_KEY_FILE ? oldCmd : newCmd;
+
+      log.info(`自动执行：${createKeyCmd}，中间一路按回车确定即可`);
+      cp.execSync(createKeyCmd, {
+        cwd: this.dir, // 在当前源码目录下执行
+        stdio: "inherit",
+      });
+
+      // 公钥已生成，提醒用户将公钥添加到托管平台
+      const sshKeyPath =
+        sshKeyType === OLD_GIT_SSH_KEY_FILE ? oldSshKeyPath : newSshKeyPath;
+      sshKey = readFile(sshKeyPath);
+      log.info("公钥内容", sshKey);
+      log.notice(
+        `请您将上面的公钥内容复制，并添加到您的 ${
+          this.gitServer.type
+        } 托管平台上。链接：\n${this.gitServer.getSshKeyUrl()}}`
+      );
+
+      // 提示用户进行确认
+      log.info(
+        `请先将ssh公钥添加到${this.gitServer.type}托管平台中，否则您可能没有足够的权限拉取仓库和提交代码`
+      );
+
+      await prompt({
+        type: "confirm",
+        name: "sshKeyConfirm",
+        message: `您是否已将ssh公钥添加到${this.gitServer.type}托管平台？`,
+        default: true, // 直接按回车默认继续
+      });
+
+      // 测试能否正确使用ssh连接gitee/github
+      await this.checkGitSSHConnection();
+    } else {
+      // 公钥存在，测试能否正确连接
+      await this.checkGitSSHConnection();
+    }
+  }
+
+  // 检查能否正确使用ssh协议连接到gitee/github
+  async checkGitSSHConnection() {
+    try {
+      const stdout = cp.execSync(`ssh -T git@${this.gitServer.type}.com`);
+      log.verbose("checkGitSSHConnection stdout", stdout.toString());
+      if (stdout.toString().includes("Hi")) {
+        log.info("Git SSH连接测试通过", stdout.toString());
+        return true;
+      } else {
+        throw new Error(
+          `Git SSH连接测试失败，请检查您的公钥和网络，确认您已将公钥添加到${
+            this.gitServer.type
+          }托管平台中。链接：\n${this.gitServer.getSshKeyUrl()}`
+        );
+      }
+    } catch (error) {
+      throw new Error(
+        `Git SSH连接测试失败，请检查您的公钥和网络，确认您已将公钥添加到${
+          this.gitServer.type
+        }托管平台中。链接：\n${this.gitServer.getSshKeyUrl()}`
+      );
+    }
   }
 
   // 检查组件合法性
@@ -255,10 +356,9 @@ class Git {
     // 如果没有找到token，或者用户输入强制更换token指令，就让用户输入
     if (!token || this.refreshGitToken) {
       log.warn(
-        `${this.gitServer.type} token未生成，请先生成token。${terminalLink(
-          "链接：\n",
-          this.gitServer.getTokenUrl()
-        )}`
+        `${
+          this.gitServer.type
+        } token未生成，请先生成token。链接：\n${this.gitServer.getTokenUrl()}}`
       );
       // 让用户输入token
       token = (
@@ -1211,16 +1311,16 @@ class Git {
 
   // 获取远程仓库地址
   async getRemote() {
-    log.info(`检查${GIT_ROOT_DIR}目录是否存在`);
+    log.info(`检查 ${GIT_ROOT_DIR} 目录是否存在`);
     const gitPath = path.resolve(this.dir, GIT_ROOT_DIR);
     // 将remote缓存到this中
     this.remote = this.gitServer.getRemote(this.login, this.name);
 
     if (fs.existsSync(gitPath)) {
-      log.info(`${GIT_ROOT_DIR}目录已存在`);
+      log.info(`${GIT_ROOT_DIR} 目录已存在`);
       return true;
     } else {
-      log.warn(`${GIT_ROOT_DIR}目录不存在，将自动创建该目录`);
+      log.warn(`${GIT_ROOT_DIR} 目录不存在，将自动创建该目录`);
     }
   }
 
@@ -1231,12 +1331,13 @@ class Git {
     log.success("git init初始化成功");
     log.info("添加git remote");
     const remotes = await this.git.getRemotes();
-    log.success("git remote添加成功");
     log.verbose("git remote：", remotes);
 
     if (!remotes.find((item) => item.name === "origin")) {
       await this.git.addRemote("origin", this.remote);
     }
+
+    log.success("git remote添加成功");
   }
 
   // 获取远程仓库用户和组织信息
