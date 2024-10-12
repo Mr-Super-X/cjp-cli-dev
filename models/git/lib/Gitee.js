@@ -71,6 +71,11 @@ class Gitee extends GitServer {
     return "https://gitee.com/profile/sshkeys";
   }
 
+  // 返回生成ssh key的帮助url
+  getSshKeyHelpUrl() {
+    return "https://gitee.com/help/articles/4181#article-header0";
+  }
+
   // 返回生成token帮助文档链接
   getTokenHelpUrl() {
     return "https://gitee.com/help/articles/4191";

@@ -70,6 +70,11 @@ class Github extends GitServer {
     return "https://github.com/settings/ssh/new";
   }
 
+  // 返回生成ssh key的帮助url
+  getSshKeyHelpUrl() {
+    return "https://docs.github.com/zh/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent";
+  }
+
   // 返回生成token帮助文档链接
   getTokenHelpUrl() {
     return "https://docs.github.com/zh/authentication/connecting-to-github-with-ssh";

@@ -160,6 +160,7 @@ class Git {
 
   // 检查和生成ssh公钥（用于拉取和提交代码）
   async checkSSHKey() {
+    log.info("开始检查Git SSH Key配置");
     // 查找旧和新版的ssh公钥是否存在
     const oldSshKeyPath = path.resolve(
       os.homedir(),
@@ -177,12 +178,14 @@ class Git {
     if (!sshKey) {
       log.warn(`${this.gitServer.type} ssh key未生成，将为您生成ssh key`);
 
+      log.info(`若您对生成ssh key的版本有疑问，请查看以下文档，链接：\n${this.gitServer.getSshKeyHelpUrl()}`);
+
       // 询问用户使用新版还是旧版生成key的方式
       const { sshKeyType } = await prompt({
         type: "list",
         name: "sshKeyType",
         message: "您希望ssh key使用新版本还是旧版本生成？",
-        default: OLD_GIT_SSH_KEY_FILE, // 默认旧版本
+        default: NEW_GIT_SSH_KEY_FILE, // 默认新版本
         choices: [
           { name: "新版本（ed25519）", value: NEW_GIT_SSH_KEY_FILE },
           { name: "旧版本（rsa）", value: OLD_GIT_SSH_KEY_FILE },
@@ -195,7 +198,7 @@ class Git {
       const createKeyCmd =
         sshKeyType === OLD_GIT_SSH_KEY_FILE ? oldCmd : newCmd;
 
-      log.info(`自动执行：${createKeyCmd}，中间一路按回车确定即可`);
+      log.info(`自动执行：${createKeyCmd}，中间过程一路按回车确定即可`);
       cp.execSync(createKeyCmd, {
         cwd: this.dir, // 在当前源码目录下执行
         stdio: "inherit",
@@ -209,7 +212,7 @@ class Git {
       log.notice(
         `请您将上面的公钥内容复制，并添加到您的 ${
           this.gitServer.type
-        } 托管平台上。链接：\n${this.gitServer.getSshKeyUrl()}}`
+        } 托管平台上。链接：\n${this.gitServer.getSshKeyUrl()}`
       );
 
       // 提示用户进行确认
@@ -238,7 +241,7 @@ class Git {
       const stdout = cp.execSync(`ssh -T git@${this.gitServer.type}.com`);
       log.verbose("checkGitSSHConnection stdout", stdout.toString());
       if (stdout.toString().includes("Hi")) {
-        log.info("Git SSH连接测试通过", stdout.toString());
+        log.success("Git SSH连接测试通过");
         return true;
       } else {
         throw new Error(
@@ -1320,7 +1323,7 @@ class Git {
       log.info(`${GIT_ROOT_DIR} 目录已存在`);
       return true;
     } else {
-      log.warn(`${GIT_ROOT_DIR} 目录不存在，将自动创建该目录`);
+      log.warn(`${GIT_ROOT_DIR} 目录不存在，自动为您创建该目录`);
     }
   }
 
