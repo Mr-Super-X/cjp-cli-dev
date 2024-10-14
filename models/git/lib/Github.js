@@ -53,11 +53,14 @@ class Github extends GitServer {
   }
 
   // 获取远程地址
-  getRemote(login, name) {
-    // token对https协议有效
-    // 公钥对ssh协议有效
-    // return `https://github.com/${login}/${name}.git`;
-    return `git@github.com:${login}/${name}.git`;
+  getRemote(login, name, type, token) {
+    // token对https协议
+    // 公钥对ssh协议
+    if(type === "ssh") {
+      return `git@github.com:${login}/${name}.git`;
+    }else {
+      return `https://${login}:${token}@github.com/${login}/${name}.git`
+    }
   }
 
   // 返回生成Token的url
