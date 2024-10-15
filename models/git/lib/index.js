@@ -469,15 +469,15 @@ class Git {
         await cloudBuild.init();
         // 开始云构建
         result = await cloudBuild.build();
+
+        // 获取云构建结果，上传模板至OSS服务器
+        if (result) {
+          await this.uploadTemplate();
+          log.success("项目发布成功");
+        }
       } else {
         log.info("您已指定项目发布不启用云构建，开始本地构建");
-        result = await this.localBuild();
-      }
-
-      // 获取构建结果，上传模板至OSS服务器
-      if (result) {
-        await this.uploadTemplate();
-        log.success("项目发布成功");
+        await this.localBuild();
       }
     }
 
