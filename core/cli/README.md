@@ -1,11 +1,147 @@
-# `core`
+# 前端统一研发脚手架
 
-> TODO: description
+## About
 
-## Usage
+前端通用脚手架
 
+## Getting Started
+
+### 安装
+
+```bash
+npm install -g @cjp-cli-dev/core
 ```
-const core = require('core');
 
-// TODO: DEMONSTRATE API
+### 创建项目
+
+项目/组件初始化
+
+```bash
+cjp-cli-dev init
+```
+
+强制清空当前文件夹并初始化
+
+```bash
+cjp-cli-dev init --force
+```
+
+指定安装源
+
+```bash
+cjp-cli-dev init --registry https://registry.npmmirror.com/
+```
+
+### 发布项目
+
+发布项目/组件
+
+```bash
+cjp-cli-dev publish
+```
+
+指定发布源
+
+```bash
+cjp-cli-dev publish --registry https://registry.npmmirror.com/
+```
+
+发布并更新git托管平台
+
+```bash
+cjp-cli-dev publish --refreshGitServer
+```
+
+发布并更新git token
+
+```bash
+cjp-cli-dev publish --refreshGitToken
+```
+
+发布并更新git登录类型
+
+```bash
+cjp-cli-dev publish --refreshGitOwner
+```
+
+正式发布
+
+```bash
+cjp-cli-dev publish --production
+```
+
+手动指定build命令
+
+```bash
+cjp-cli-dev publish --buildCmd "npm run build:test"
+```
+
+发布项目不开启云构建
+
+```bash
+cjp-cli-dev publish --noCloudBuild
+```
+
+发布组件不上传数据库
+
+```bash
+cjp-cli-dev publish --componentNoDb
+```
+
+指定模板服务器用户名
+
+```bash
+cjp-cli-dev publish --sshUser root
+```
+
+指定模板服务器IP或域名
+
+```bash
+cjp-cli-dev publish --sshIp 1xx.xx.xx.xx:8888
+```
+
+指定模板服务器上传路径
+
+```bash
+cjp-cli-dev publish --sshPath /data/apps
+```
+
+添加页面/组件代码片段
+
+```bash
+cjp-cli-dev add
+```
+
+指定安装源
+
+```bash
+cjp-cli-dev add --registry https://registry.npmmirror.com/
+```
+
+## More
+
+清空本地全部缓存：
+
+```bash
+cjp-cli-dev clean --all
+```
+
+清空本地依赖缓存：
+
+```bash
+cjp-cli-dev clean --dep
+```
+
+DEBUG 模式：
+
+```bash
+cjp-cli-dev --debug
+```
+
+调试本地包：
+
+```bash
+cjp-cli-dev init --targetPath /Users/cjp-cli-dev/packages/init
+cjp-cli-dev publish --targetPath /Users/cjp-cli-dev/packages/publish
+cjp-cli-dev add --targetPath /Users/cjp-cli-dev/packages/add
 ```
