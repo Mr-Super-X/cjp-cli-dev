@@ -46,19 +46,19 @@ cjp-cli-dev publish
 cjp-cli-dev publish --registry https://registry.npmmirror.com/
 ```
 
-发布并更新git托管平台
+更新git托管平台
 
 ```bash
 cjp-cli-dev publish --refreshGitServer
 ```
 
-发布并更新git token
+更新git token
 
 ```bash
 cjp-cli-dev publish --refreshGitToken
 ```
 
-发布并更新git登录类型
+更新git登录类型
 
 ```bash
 cjp-cli-dev publish --refreshGitOwner
@@ -135,13 +135,13 @@ cjp-cli-dev clean --dep
 DEBUG 模式：
 
 ```bash
-cjp-cli-dev --debug
+cjp-cli-dev <command> --debug
 ```
 
 调试本地包：
 
 ```bash
-cjp-cli-dev init --targetPath /Users/cjp-cli-dev/packages/init
-cjp-cli-dev publish --targetPath /Users/cjp-cli-dev/packages/publish
-cjp-cli-dev add --targetPath /Users/cjp-cli-dev/packages/add
+cjp-cli-dev init --targetPath /path/cjp-cli-dev/commands/init
+cjp-cli-dev publish --targetPath /path/cjp-cli-dev/commands/publish
+cjp-cli-dev add --targetPath /path/cjp-cli-dev/commands/add
 ```
