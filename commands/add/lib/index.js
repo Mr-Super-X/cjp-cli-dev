@@ -307,8 +307,8 @@ class AddCommand extends Command {
 
     // 6.插入代码片段的import语句
     // 找到源码中script的位置（去除头尾空格，防止不规范编写导致找不到）
-    const scriptIndex = codeLines.findIndex(
-      (linCode) => /\s*<\s*script\b[^>]*>/g.test(linCode)
+    const scriptIndex = codeLines.findIndex((linCode) =>
+      /\s*<\s*script\b[^>]*>/g.test(linCode)
     );
     // 测试代码
     // console.log(/\s*<\s*script\b[^>]*>/g.test(' < script >'))
@@ -743,10 +743,15 @@ class AddCommand extends Command {
     const localConfigPath =
       addMode === ADD_MODE_PAGE ? pageLocalPath : sectionLocalPath;
 
+    log.verbose("localConfigPath", localConfigPath);
+
     // 判断本地项目模板配置是否存在，存在则优先使用本地配置
     if (fs.existsSync(localConfigPath)) {
       templateData = fse.readJSONSync(localConfigPath);
     } else {
+      log.warn(
+        `本地模板配置路径 ${localConfigPath} 不存在！将发起http请求后端接口获取模板数据`
+      );
       // 通过接口API获取模板列表
       const fetchTemplate =
         addMode === ADD_MODE_PAGE ? getPageTemplate : getSectionTemplate;

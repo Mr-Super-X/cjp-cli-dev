@@ -391,10 +391,16 @@ class InitCommand extends Command {
       "data",
       "project.json"
     );
+
+    log.verbose("projectLocalPath", projectLocalPath);
+
     // 判断本地项目模板配置是否存在，存在则优先使用本地配置
     if (fs.existsSync(projectLocalPath)) {
       template = fse.readJSONSync(projectLocalPath);
     } else {
+      log.warn(
+        `本地模板配置路径 ${projectLocalPath} 不存在！将发起http请求后端接口获取模板数据`
+      );
       // 本地模板不存在则请求接口获取数据
       template = await getProjectTemplate();
     }

@@ -17,7 +17,7 @@ npm install -g @cjp-cli-dev/core
 项目/组件初始化
 
 ```bash
-cjp-cli-dev init
+cjp-cli-dev init [name]
 ```
 
 强制清空当前文件夹并初始化
