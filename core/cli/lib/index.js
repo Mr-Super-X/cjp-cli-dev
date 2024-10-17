@@ -114,6 +114,19 @@ function registerCommander() {
       exec(...args); // 这种写法也可以
     });
 
+  // 发布回滚
+  program
+    .command("rollback")
+    .description("快速创建标准项目模板、自定义项目模板、组件库模板")
+    // 命令中间有空格需使用引号包裹
+    .option(
+      "-bc, --buildCmd <buildCmd>",
+      "指定自定义构建命令",
+      "npm run build"
+    )
+    .option("-ns, --noServer", "回滚构建内容不上传服务器", false)
+    .action(exec);
+
   // 添加复用代码
   program
     .command("add [templateName]")
