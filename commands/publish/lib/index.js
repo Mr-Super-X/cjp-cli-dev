@@ -75,7 +75,7 @@ class PublishCommand extends Command {
     const pkgPath = path.join(projectPath, "package.json");
     log.verbose("package.json路径：", pkgPath);
     if (!fs.existsSync(pkgPath)) {
-      throw new Error("package.json不存在！");
+      throw new Error("package.json不存在！这不是一个标准的node项目");
     }
     // 2. 确认是否包含name、version、build命令
     const pkg = fse.readJsonSync(pkgPath);

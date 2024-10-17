@@ -14,11 +14,12 @@ class RollbackCommand extends Command {
     log.verbose("rollback", this._cmd, this._args);
 
     // rollback命令的参数
-    const { buildCmd, sshUser, sshIp, sshPath } = this._args[0];
+    const { buildCmd, buildPath, sshUser, sshIp, sshPath } = this._args[0];
 
     // 保存用户输入的参数
     this.options = {
       buildCmd,
+      buildPath,
       sshUser,
       sshIp,
       sshPath,
@@ -55,7 +56,7 @@ class RollbackCommand extends Command {
     log.verbose("package.json路径：", pkgPath);
     if (!fs.existsSync(pkgPath)) {
       throw new Error(
-        "这不是一个标准的node项目，可能不是通过脚手架publish命令发布的"
+        "package.json不存在！这不是一个标准的node项目"
       );
     }
 

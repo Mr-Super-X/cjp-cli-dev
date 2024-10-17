@@ -98,11 +98,7 @@ function registerCommander() {
     .option("-rgt, --refreshGitToken", "更新Git托管平台token", false)
     .option("-rgo, --refreshGitOwner", "更新Git仓库登录类型", false)
     // 命令中间有空格需使用引号包裹
-    .option(
-      "-bc, --buildCmd <buildCmd>",
-      "指定自定义构建命令",
-      "npm run build"
-    )
+    .option("-bc, --buildCmd <buildCmd>", "指定自定义构建命令", "npm run build")
     .option("-prod, --production", "是否正式发布", false)
     .option("-cnd, --componentNoDb", "发布组件库信息不写入数据库", false)
     .option("-ncb, --noCloudBuild", "发布项目不开启云构建", false)
@@ -119,11 +115,8 @@ function registerCommander() {
     .command("rollback")
     .description("快速创建标准项目模板、自定义项目模板、组件库模板")
     // 命令中间有空格需使用引号包裹
-    .option(
-      "-bc, --buildCmd <buildCmd>",
-      "指定自定义构建命令",
-      "npm run build"
-    )
+    .option("-bc, --buildCmd <buildCmd>", "指定自定义构建命令", "npm run build")
+    .option("-bp, --buildPath <buildPath>", "指定构建结果路径", "dist")
     .option("-su, --sshUser <sshUser>", "指定模板服务器用户名", "")
     .option("-si, --sshIp <sshIp>", "指定模板服务器IP或域名", "")
     .option("-sp, --sshPath <sshPath>", "指定模板服务器上传路径", "")

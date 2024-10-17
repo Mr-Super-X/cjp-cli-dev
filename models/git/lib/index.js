@@ -114,6 +114,7 @@ class Git {
       refreshGitToken = false,
       refreshGitOwner = false,
       buildCmd = "",
+      buildPath = "",
       production = false,
       componentNoDb = false,
       noCloudBuild = false,
@@ -153,6 +154,7 @@ class Git {
     this.refreshGitToken = refreshGitToken; // 是否强制更新git token
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
     this.buildCmd = buildCmd; // 自定义构建命令
+    this.buildPath = buildPath; // 构建结果输出路径
     this.production = production; // 是否正式发布
     this.componentNoDb = componentNoDb; // 不写入数据库 默认写入
     this.noCloudBuild = noCloudBuild; // 不启用云构建，默认启用
@@ -250,9 +252,10 @@ class Git {
     // 没指定这三个参数时会跳过上传
     if (this.sshUser && this.sshIp && this.sshPath) {
       log.info("开始上传构建结果至模板服务器");
-      const templateFilePath = path.resolve(this.dir, "dist");
+      const buildPath = this.buildPath || "dist"; // 用户未指定buildPath时默认使用dist
+      const filePath = path.resolve(this.dir, buildPath);
       // 上传dist
-      const uploadCmd = `scp -r ${templateFilePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`;
+      const uploadCmd = `scp -r ${filePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`;
       log.verbose("uploadCmd", uploadCmd);
       const result = cp.execSync(uploadCmd);
       console.log(result.toString()); // 打印服务端日志
