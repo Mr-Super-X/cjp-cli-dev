@@ -5,7 +5,6 @@ const fs = require("fs"); // 用于文件操作
 const os = require("os"); // 用于获取系统信息
 const path = require("path"); // 用于获取路径
 // 第三方库
-const colors = require("colors/safe"); // 用于给log信息添加颜色
 const dotenv = require("dotenv"); // 用于将环境变量从 .env 文件加载到 process.env 中
 const commander = require("commander"); // 用于解析输入命令和参数
 const rootCheck = require("root-check"); // 用于降级root用户，解决权限导致的问题
@@ -19,6 +18,7 @@ const {
   prompt,
   semver,
   fse,
+  colors,
   CLI_NAME,
   DEFAULT_CLI_HOME,
   DEPENDENCIES_CACHE_DIR,
@@ -213,7 +213,7 @@ function registerCommander() {
             availableCommands
               .map((item) => `[${item.command}: ${item.description}]`)
               .join("\n") +
-            `\n\n您可以输入 [脚手架 具体命令 -h] 查看命令使用帮助，如：\n${CLI_NAME} -h\n${CLI_NAME} init --help`
+            `\n\n您可以输入 [脚手架 具体命令 --help] 查看命令使用帮助，如：\n${CLI_NAME} -h\n${CLI_NAME} <command> --help`
         )
       );
     }

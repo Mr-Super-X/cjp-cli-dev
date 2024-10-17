@@ -294,7 +294,7 @@ class Git {
       log.error(
         `检测到本地存在回滚备份分支：${hasRollback} ，请合并并删除该分支后重试`
       )
-      process.exit(0); // 退出程序执行，不输出内容
+      process.exit(1); // 直接退出程序执行，不需要被try catch捕获
     }
 
     log.success("本地检查通过");
@@ -313,7 +313,7 @@ class Git {
       log.error(
         `检测到远程存在回滚备份分支：${hasRollback} ，请合并并删除该分支后重试`
       )
-      process.exit(0); // 退出程序执行，不输出内容
+      process.exit(1); // 直接退出程序执行，不需要被try catch捕获
     }
 
     log.success("远程检查通过");
