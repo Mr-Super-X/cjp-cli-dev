@@ -121,7 +121,6 @@ class Git {
       sshUser = "",
       sshIp = "",
       sshPath = "",
-      noServer = false,
     }
   ) {
     // 将当前类使用到的属性都定义出来，可读性更高
@@ -161,7 +160,6 @@ class Git {
     this.sshUser = sshUser; // ssh用户
     this.sshIp = sshIp; // ssh IP
     this.sshPath = sshPath; // ssh 路径
-    this.noServer = noServer; // 是否不使用静态资源服务器
 
     log.verbose("ssh配置：", this.sshUser, this.sshIp, this.sshPath);
   }
@@ -217,12 +215,8 @@ class Git {
     await this.resetHardTagForce("master", this.rollbackTag);
     // 构建新的静态资源包
     await this.localBuild();
-    if (this.noServer === false) {
-      // 上传到静态资源服务器
-      await this.uploadDistToServer();
-    } else {
-      log.info("您已指定构建结果不上传静态资源服务器，跳过上传操作");
-    }
+    // 上传到静态资源服务器
+    await this.uploadDistToServer();
     log.success(`回滚 ${this.rollbackTag} 版本成功，请修复bug后再次发布新版本`);
   }
 
@@ -253,14 +247,17 @@ class Git {
 
   // 上传打包结果到服务器
   async uploadDistToServer() {
-    log.info("开始上传模板文件至服务器");
-    const templateFilePath = path.resolve(this.dir, "dist");
-    // 上传模板文件
-    const uploadCmd = `scp -r ${templateFilePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`;
-    log.verbose("uploadCmd", uploadCmd);
-    const result = cp.execSync(uploadCmd);
-    console.log(result.toString()); // 打印服务端日志
-    log.success("模板文件上传成功");
+    // 没指定这三个参数时会跳过上传
+    if (this.sshUser && this.sshIp && this.sshPath) {
+      log.info("开始上传构建结果至模板服务器");
+      const templateFilePath = path.resolve(this.dir, "dist");
+      // 上传dist
+      const uploadCmd = `scp -r ${templateFilePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`;
+      log.verbose("uploadCmd", uploadCmd);
+      const result = cp.execSync(uploadCmd);
+      console.log(result.toString()); // 打印服务端日志
+      log.success("上传构建结果至模板服务器成功");
+    }
   }
 
   // 回退代码
@@ -293,7 +290,7 @@ class Git {
     if (hasRollback.length > 0) {
       log.error(
         `检测到本地存在回滚备份分支：${hasRollback} ，请合并并删除该分支后重试`
-      )
+      );
       process.exit(1); // 直接退出程序执行，不需要被try catch捕获
     }
 
@@ -302,8 +299,8 @@ class Git {
 
   // 检查远程是否存在回滚备份分支
   async checkRemoteRollbackBranch() {
-    log.info('检查远程是否已存在回滚备份分支');
-    const remoteBranchList = await this.git.branch(['-r']);
+    log.info("检查远程是否已存在回滚备份分支");
+    const remoteBranchList = await this.git.branch(["-r"]);
 
     const hasRollback = remoteBranchList.all.find((item) =>
       item.includes(`backup/master/${ROLLBACK_VERSION}-`)
@@ -312,7 +309,7 @@ class Git {
     if (hasRollback.length > 0) {
       log.error(
         `检测到远程存在回滚备份分支：${hasRollback} ，请合并并删除该分支后重试`
-      )
+      );
       process.exit(1); // 直接退出程序执行，不需要被try catch捕获
     }
 
@@ -667,7 +664,7 @@ class Git {
         // 开始云构建
         result = await cloudBuild.build();
 
-        // 获取云构建结果，上传模板至OSS服务器
+        // 获取云构建结果，上传模板至静态资源服务器
         if (result) {
           await this.uploadTemplate();
           log.success("项目发布成功");

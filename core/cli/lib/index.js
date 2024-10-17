@@ -124,7 +124,9 @@ function registerCommander() {
       "指定自定义构建命令",
       "npm run build"
     )
-    .option("-ns, --noServer", "回滚构建内容不上传服务器", false)
+    .option("-su, --sshUser <sshUser>", "指定模板服务器用户名", "")
+    .option("-si, --sshIp <sshIp>", "指定模板服务器IP或域名", "")
+    .option("-sp, --sshPath <sshPath>", "指定模板服务器上传路径", "")
     .action(exec);
 
   // 添加复用代码

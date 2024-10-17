@@ -14,12 +14,14 @@ class RollbackCommand extends Command {
     log.verbose("rollback", this._cmd, this._args);
 
     // rollback命令的参数
-    const { noServer, buildCmd } = this._args[0];
+    const { buildCmd, sshUser, sshIp, sshPath } = this._args[0];
 
     // 保存用户输入的参数
     this.options = {
-      noServer: noServer || false,
       buildCmd,
+      sshUser,
+      sshIp,
+      sshPath,
     };
 
     log.verbose("options", this.options);
