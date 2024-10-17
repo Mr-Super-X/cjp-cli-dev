@@ -1,6 +1,6 @@
 {
   "name": "@cjp-cli-dev/core",
-  "version": "1.0.12",
+  "version": "1.1.1",
   "description": "cjp-cli-dev core",
   "author": "v_jpch <v_jpch.digitalgd.com>",
   "homepage": "",
@@ -33,7 +33,6 @@
     "@cjp-cli-dev/init": "file:../../commands/init",
     "@cjp-cli-dev/log": "file:../../utils/log",
     "@cjp-cli-dev/utils": "file:../../utils/utils",
-    "colors": "^1.4.0",
     "commander": "^11.0.0",
     "dotenv": "^16.4.5",
     "import-local": "^3.2.0",

@@ -53,13 +53,29 @@ class Github extends GitServer {
   }
 
   // 获取远程地址
-  getRemote(login, name) {
-    return `git@github.com:${login}/${name}.git`;
+  getRemote(login, name, type, token) {
+    // token对https协议
+    // 公钥对ssh协议
+    if(type === "ssh") {
+      return `git@github.com:${login}/${name}.git`;
+    }else {
+      return `https://${login}:${token}@github.com/${login}/${name}.git`
+    }
   }
 
   // 返回生成Token的url
   getTokenUrl() {
     return "https://github.com/settings/tokens";
+  }
+
+  // 返回生成ssh key的url
+  getSshKeyUrl() {
+    return "https://github.com/settings/ssh/new";
+  }
+
+  // 返回生成ssh key的帮助url
+  getSshKeyHelpUrl() {
+    return "https://docs.github.com/zh/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent";
   }
 
   // 返回生成token帮助文档链接

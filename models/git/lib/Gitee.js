@@ -50,17 +50,33 @@ class Gitee extends GitServer {
   createOrgRepo(name, login) {
     return this.request.post(`/orgs/${login}/repos`, {
       name,
-    })
+    });
   }
 
   // 获取远程地址
-  getRemote(login, name) {
-    return `git@gitee.com:${login}/${name}.git`;
+  getRemote(login, name, type, token) {
+    // token对https协议
+    // 公钥对ssh协议
+    if(type === "ssh") {
+      return `git@gitee.com:${login}/${name}.git`;
+    }else {
+      return `https://${login}:${token}@gitee.com/${login}/${name}.git`
+    }
   }
 
   // 返回生成Token的url
   getTokenUrl() {
     return "https://gitee.com/personal_access_tokens";
+  }
+
+  // 返回生成ssh key的url
+  getSshKeyUrl() {
+    return "https://gitee.com/profile/sshkeys";
+  }
+
+  // 返回生成ssh key的帮助url
+  getSshKeyHelpUrl() {
+    return "https://gitee.com/help/articles/4181#article-header0";
   }
 
   // 返回生成token帮助文档链接

@@ -38,13 +38,18 @@ const GIT_OWNER_FILE = ".git_owner"; // git owner登录类型缓存文件
 const GIT_LOGIN_FILE = ".git_login"; // git login缓存文件
 const GIT_IGNORE_FILE = ".gitignore"; // .gitignore缓存文件
 const GIT_PUBLISH_FILE = ".git_publish"; // 缓存发布文件
+const OLD_GIT_SSH_KEY_FILE = "id_rsa.pub"; // git ssh公钥（旧版）
+const NEW_GIT_SSH_KEY_FILE = "id_ed25519.pub"; // git ssh公钥（新版）
 
 const GITHUB = "github";
 const GETEE = "gitee";
+const SSH = "ssh";
+const HTTPS = "https";
 const REPO_OWNER_USER = "user"; // 登录类型：个人
 const REPO_OWNER_ORG = "org"; // 登录类型：组织
 const RELEASE_VERSION = "release"; // 发布分支
 const DEVELOP_VERSION = "develop"; // 开发分支
+const ROLLBACK_VERSION = "rollback"; // 回滚分支
 const PUBLISH_TYPE = "oss"; // 默认发布平台
 const TEMPLATE_TEMP_DIR = "oss-temp"; // 从oss下载的模板缓存目录
 const COMPONENT_FILE = ".componentrc"; // 组件配置文件
@@ -89,6 +94,18 @@ const GIT_PUBLISH_TYPE_CHOICES = [
   },
 ];
 
+// git克隆仓库的方式
+const GIT_CLONE_TYPE_CHOICES = [
+  {
+    name: "SSH",
+    value: SSH,
+  },
+  {
+    name: "HTTPS",
+    value: HTTPS,
+  },
+];
+
 class Git {
   constructor(
     { name, version, dir },
@@ -125,9 +142,13 @@ class Git {
     this.owner = null; // 登录类型是个人还是组织
     this.login = null; // 登录名
     this.repo = null; // 远程仓库信息
+    this.cloneType = null; // 克隆仓库方式 https ssh
+    this.token = null; // Git token
     this.remote = null; // 远程地址
     this.branch = null; // 本地开发分支
     this.gitPublish = null; // 静态资源服务器类型
+    this.rollbackTag = null; // 用户选择的回滚版本
+    this.rollbackBackupMasterBranch = null; // 回滚时的master最新备份分支
     this.refreshGitServer = refreshGitServer; // 是否强制更新git托管平台
     this.refreshGitToken = refreshGitToken; // 是否强制更新git token
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
@@ -155,6 +176,197 @@ class Git {
     await this.init(); // 完成本地git仓库初始化
   }
 
+  // 回滚
+  async rollback() {
+    // 创建master分支上回滚版本之后的提交存储分支，如backup/master/rollback-release/1.0.0
+    const rollbackBackupMasterBranch = `backup/master/${ROLLBACK_VERSION}-${this.rollbackTag}`;
+    this.rollbackBackupMasterBranch = rollbackBackupMasterBranch; // 缓存到this上
+    log.warn(
+      `确认回滚将为您备份 master 分支到 ${rollbackBackupMasterBranch} 分支，以便您修复缺陷后继续发布版本`
+    );
+
+    const { rollbackConfirm } = await prompt({
+      type: "confirm",
+      name: "rollbackConfirm",
+      message: "确认回滚master分支提交记录吗？",
+      default: true, // 直接按回车默认取出
+    });
+
+    if (!rollbackConfirm) {
+      log.notice("回滚操作已取消");
+      return;
+    }
+
+    // 检查当前分支有没有未提交代码，进行提交
+    await this.checkNotCommitted();
+    // 切换本地master分支
+    await this.checkoutLocalBranch("master");
+    // 同步远程master分支代码
+    await this.pullRemoteRepo("master");
+    // 合并完检查冲突
+    await this.checkConflicted();
+    // 基于master分支创建新的回滚备份分支
+    await this.checkoutLocalBranch(rollbackBackupMasterBranch);
+    // 将回滚备份分支推送到远端
+    await this.pushRemoteRepo(rollbackBackupMasterBranch);
+    // 切换本地master分支
+    await this.checkoutLocalBranch("master");
+    // 强制回退master分支
+    await this.resetHardTagForce("master", this.rollbackTag);
+    // 构建新的静态资源包
+    await this.localBuild();
+    // 上传到静态资源服务器
+    await this.uploadDistToServer();
+    log.success(`回滚 ${this.rollbackTag} 版本成功，请修复bug后再次发布新版本`);
+  }
+
+  // 回滚版本预检查
+  async prepareRollback() {
+    log.info("开始进行版本回滚前预检查");
+    // 拉取远端最新信息
+    await this.checkRemoteAllUpdate();
+
+    // 检查回滚备份分支是否存在，存在则停止本次回滚操作
+    await this.checkLocalRollbackBranch(); // 检查本地
+    await this.checkRemoteRollbackBranch(); // 检查远程
+
+    // 检查release/tag是否存在
+    const tagList = await this.checkReleaseTags();
+    log.verbose("tagList", tagList);
+
+    log.success("回滚前预检查通过");
+
+    // 拿到用户选择的tag
+    const tag = await this.getChoicesTag(
+      this.createTagChoices(tagList, RELEASE_VERSION)
+    );
+    log.verbose("用户选择的tag", tag);
+    // 将回滚tag缓存到this上
+    this.rollbackTag = tag;
+  }
+
+  // 上传打包结果到服务器
+  async uploadDistToServer() {
+    // 没指定这三个参数时会跳过上传
+    if (this.sshUser && this.sshIp && this.sshPath) {
+      log.info("开始上传构建结果至模板服务器");
+      const templateFilePath = path.resolve(this.dir, "dist");
+      // 上传dist
+      const uploadCmd = `scp -r ${templateFilePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`;
+      log.verbose("uploadCmd", uploadCmd);
+      const result = cp.execSync(uploadCmd);
+      console.log(result.toString()); // 打印服务端日志
+      log.success("上传构建结果至模板服务器成功");
+    }
+  }
+
+  // 回退代码
+  async resetHardTagForce(branchName, tag) {
+    log.info(`开始回滚 ${branchName} 分支代码`);
+    // 2、基于master分支的commit id，进行reset --hard回退
+    await this.git.reset(["--hard", tag]);
+    log.verbose(`执行 git reset --hard ${tag} 成功`);
+    await this.git.push(["origin", branchName, "--force"]);
+    log.verbose(`执行 git push origin ${branchName} --force 成功`);
+    log.success(`回滚 ${branchName} 分支代码成功`);
+  }
+
+  // 检查远端所有更新
+  async checkRemoteAllUpdate() {
+    log.info("检查远端最新信息");
+    await this.git.fetch(["origin", "--prune"]);
+    log.verbose("执行 git fetch origin --prune");
+    log.success("拉取远端最新信息成功");
+  }
+
+  // 检查本地是否存在回滚备份分支
+  async checkLocalRollbackBranch() {
+    log.info("检查本地是否已存在回滚备份分支");
+    const localBranchList = await this.git.branchLocal();
+    const hasRollback = localBranchList.all.find((item) =>
+      item.includes(`backup/master/${ROLLBACK_VERSION}-`)
+    );
+
+    if (hasRollback.length > 0) {
+      log.error(
+        `检测到本地存在回滚备份分支：${hasRollback} ，请合并并删除该分支后重试`
+      );
+      process.exit(1); // 直接退出程序执行，不需要被try catch捕获
+    }
+
+    log.success("本地检查通过");
+  }
+
+  // 检查远程是否存在回滚备份分支
+  async checkRemoteRollbackBranch() {
+    log.info("检查远程是否已存在回滚备份分支");
+    const remoteBranchList = await this.git.branch(["-r"]);
+
+    const hasRollback = remoteBranchList.all.find((item) =>
+      item.includes(`backup/master/${ROLLBACK_VERSION}-`)
+    );
+
+    if (hasRollback.length > 0) {
+      log.error(
+        `检测到远程存在回滚备份分支：${hasRollback} ，请合并并删除该分支后重试`
+      );
+      process.exit(1); // 直接退出程序执行，不需要被try catch捕获
+    }
+
+    log.success("远程检查通过");
+  }
+
+  // 检查并返回已发布tag列表
+  async checkReleaseTags() {
+    log.info("获取远程 release tag 列表");
+    const remotes = await this.git.listRemote(["--refs"]);
+    if (!remotes)
+      throw new Error("远程 release tag 列表不存在，您可能还未发布过版本");
+
+    log.success("获取远程 release tag 列表成功");
+
+    let reg = new RegExp(
+      `.+?refs/tags/${RELEASE_VERSION}/(\\d+\\.\\d+\\.\\d+)`,
+      "g"
+    );
+    // reg = /.+?refs\/tags\/release\/(\d+\.\d+\.\d+)/g
+
+    // 对返回版本列表进行处理
+    return remotes
+      .split("\n")
+      .map((remote) => {
+        const match = reg.exec(remote);
+        reg.lastIndex = 0; // 有多个版本的情况下置为0才会重新进行匹配
+
+        if (match && semver.valid(match[1])) {
+          return match[1];
+        }
+      })
+      .filter((_) => _) // 过滤结果为true的数据
+      .sort((a, b) => semver.compare(b, a)); // 排序，从大到小，防止数据没有按预期顺序返回
+  }
+
+  // 创建tag选项
+  createTagChoices(data, type) {
+    return data.map((item) => ({
+      name: `${type}/${item}`,
+      value: `${type}/${item}`,
+    }));
+  }
+
+  // 获取用户选择的tag
+  async getChoicesTag(choices) {
+    const { tag } = await prompt({
+      type: "list",
+      name: "tag",
+      message: "您想回滚到哪个版本？",
+      default: "",
+      choices,
+    });
+
+    return tag;
+  }
+
   // 检查组件合法性
   async checkComponent() {
     let componentFile = this.isComponent();
@@ -163,8 +375,8 @@ class Git {
       // 如果没有配置构建命令则默认npm run build
       if (!this.buildCmd) {
         const defaultBuildCmd = "npm run build";
-        log.warn(
-          `当前没有配置构建命令，将使用默认 ${defaultBuildCmd} 命令进行构建`
+        log.info(
+          `当前没有指定构建命令，将使用默认 ${defaultBuildCmd} 命令进行构建`
         );
         this.buildCmd = defaultBuildCmd;
       }
@@ -255,10 +467,9 @@ class Git {
     // 如果没有找到token，或者用户输入强制更换token指令，就让用户输入
     if (!token || this.refreshGitToken) {
       log.warn(
-        `${this.gitServer.type} token未生成，请先生成token。${terminalLink(
-          "链接：\n",
-          this.gitServer.getTokenUrl()
-        )}`
+        `${
+          this.gitServer.type
+        } token未生成，请先生成token。链接：\n${this.gitServer.getTokenUrl()}}`
       );
       // 让用户输入token
       token = (
@@ -386,6 +597,7 @@ class Git {
     if (await this.getRemote()) {
       return;
     }
+    await this.initCloneType(); // 初始化克隆方式
     await this.initAndAddRemote(); // 初始化git并添加远程地址
     await this.initCommit(); // 初始化提交
   }
@@ -451,15 +663,15 @@ class Git {
         await cloudBuild.init();
         // 开始云构建
         result = await cloudBuild.build();
-      } else {
-        log.info("您已指定项目发布不启用云构建，开始本地构建");
-        result = await this.localBuild();
-      }
 
-      // 获取构建结果，上传模板至OSS服务器
-      if (result) {
-        await this.uploadTemplate();
-        log.success("项目发布成功");
+        // 获取云构建结果，上传模板至静态资源服务器
+        if (result) {
+          await this.uploadTemplate();
+          log.success("项目发布成功");
+        }
+      } else {
+        log.info("您已指定项目发布不启用云构建");
+        result = await this.localBuild();
       }
     }
 
@@ -488,6 +700,16 @@ class Git {
   async localBuild() {
     // 1. 当前项目目录下执行buildCmd
     // 2. 提示用户手动操作构建结果
+    log.info("开始进行本地构建");
+
+    // 如果没有配置构建命令则默认npm run build
+    if (!this.buildCmd) {
+      const defaultBuildCmd = "npm run build";
+      log.info(
+        `当前没有指定构建命令，将使用默认 ${defaultBuildCmd} 命令进行构建`
+      );
+      this.buildCmd = defaultBuildCmd;
+    }
 
     cp.execSync(`${this.buildCmd}`, {
       cwd: this.dir, // 在当前源码目录下执行
@@ -1013,11 +1235,11 @@ class Git {
     if (localBranchList.all.includes(branchName)) {
       log.info(`本地分支 ${branchName} 存在，将自动切换到该分支`);
       await this.git.checkout(branchName);
-      log.success(`自动切换到 ${branchName} 分支成功`);
+      log.success(`自动切换到本地 ${branchName} 分支成功`);
     } else {
       log.info(`本地分支 ${branchName} 不存在，将自动创建并切换到该分支`);
       await this.git.checkoutLocalBranch(branchName); // 创建并切换到该分支
-      log.success(`自动创建并切换 ${branchName} 分支成功`);
+      log.success(`自动创建并切换本地 ${branchName} 分支成功`);
     }
   }
 
@@ -1040,7 +1262,7 @@ class Git {
 
     // 合并代码后检查冲突
     await this.checkConflicted();
-    log.info("检查远程开发分支");
+    log.info("检查远程分支");
     const remoteBranchList = await this.getRemoteBranchList();
     if (remoteBranchList.includes(this.version)) {
       log.info(
@@ -1211,16 +1433,21 @@ class Git {
 
   // 获取远程仓库地址
   async getRemote() {
-    log.info(`检查${GIT_ROOT_DIR}目录是否存在`);
+    log.info(`检查 ${GIT_ROOT_DIR} 目录是否存在`);
     const gitPath = path.resolve(this.dir, GIT_ROOT_DIR);
     // 将remote缓存到this中
-    this.remote = this.gitServer.getRemote(this.login, this.name);
+    this.remote = this.gitServer.getRemote(
+      this.login,
+      this.name,
+      this.cloneType,
+      this.token
+    );
 
     if (fs.existsSync(gitPath)) {
-      log.info(`${GIT_ROOT_DIR}目录已存在`);
+      log.info(`${GIT_ROOT_DIR} 目录已存在`);
       return true;
     } else {
-      log.warn(`${GIT_ROOT_DIR}目录不存在，将自动创建该目录`);
+      log.warn(`${GIT_ROOT_DIR} 目录不存在，自动为您创建该目录`);
     }
   }
 
@@ -1231,11 +1458,165 @@ class Git {
     log.success("git init初始化成功");
     log.info("添加git remote");
     const remotes = await this.git.getRemotes();
-    log.success("git remote添加成功");
     log.verbose("git remote：", remotes);
 
     if (!remotes.find((item) => item.name === "origin")) {
       await this.git.addRemote("origin", this.remote);
+    }
+
+    log.success("git remote添加成功");
+  }
+
+  // 初始化克隆使用https方式克隆仓库还是ssh方式
+  async initCloneType() {
+    const cloneType = await this.getCloneType();
+    log.verbose("cloneType", cloneType);
+
+    // 如果使用ssh方式克隆仓库，则需要检查ssh公钥
+    if (cloneType === SSH) {
+      await this.checkSSHKey(); // 检查ssh公钥配置
+    }
+
+    log.info(`后续将为您使用 ${cloneType} 方式拉取和提交代码`);
+    this.cloneType = cloneType; // 缓存克隆方式
+  }
+
+  // async checkHttps() {
+  //   log.info(
+  //     `检查远程地址是否符合token提交要求：https://<用户名>:<token>@${this.gitServer.type}.com/<用户名>/<仓库名>.git`
+  //   );
+  //   if (
+  //     /https:\/\/([^/:]+):([^@]+)@([^.]+)\.com\/([^/]+)\/([^.]+)\.git/.test(
+  //       this.remote
+  //     )
+  //   ) {
+  //     log.success("检查通过，您当前仓库远程地址符合token提交的https方式");
+  //   } else {
+  //     throw new Error(
+  //       `您的远程仓库地址不符合token提交的要求，请检查您的git remote`
+  //     );
+  //   }
+  // }
+
+  // 获取git仓库克隆方式
+  async getCloneType() {
+    const { cloneType } = await prompt({
+      type: "list",
+      name: "cloneType",
+      message: "请选择您希望克隆远程仓库的方式？",
+      default: "https", // 默认使用https
+      choices: GIT_CLONE_TYPE_CHOICES,
+    });
+
+    return cloneType;
+  }
+
+  // 检查和生成ssh公钥（用于拉取和提交代码）
+  async checkSSHKey() {
+    log.info("开始检查Git SSH Key配置");
+    // 查找旧和新版的ssh公钥是否存在
+    const oldSshKeyPath = path.resolve(
+      os.homedir(),
+      ".ssh",
+      OLD_GIT_SSH_KEY_FILE
+    );
+    const newSshKeyPath = path.resolve(
+      os.homedir(),
+      ".ssh",
+      NEW_GIT_SSH_KEY_FILE
+    );
+    let sshKey = readFile(oldSshKeyPath) || readFile(newSshKeyPath);
+    log.verbose("sshKey", sshKey);
+    // 公钥不存在，自动生成公钥，提醒用户将公钥添加到托管平台，询问用户是否已添加，确认后继续
+    if (!sshKey) {
+      log.warn(`${this.gitServer.type} ssh key未生成，将为您生成ssh key`);
+
+      log.info(
+        `若您对生成ssh key的版本有疑问，请查看以下文档，链接：\n${this.gitServer.getSshKeyHelpUrl()}`
+      );
+
+      // 询问用户使用新版还是旧版生成key的方式
+      const { sshKeyType } = await prompt({
+        type: "list",
+        name: "sshKeyType",
+        message: "您希望ssh key使用新版本还是旧版本生成？",
+        default: NEW_GIT_SSH_KEY_FILE, // 默认新版本
+        choices: [
+          { name: "新版本（ed25519）", value: NEW_GIT_SSH_KEY_FILE },
+          { name: "旧版本（rsa）", value: OLD_GIT_SSH_KEY_FILE },
+        ],
+      });
+
+      // 确定生成key的方式
+      const oldCmd = `ssh-keygen -t rsa -C "${this.gitServer.type} SSH Key"`;
+      const newCmd = `ssh-keygen -t ed25519 -C "${this.gitServer.type} SSH Key"`;
+      const createKeyCmd =
+        sshKeyType === OLD_GIT_SSH_KEY_FILE ? oldCmd : newCmd;
+
+      log.info(`自动执行：${createKeyCmd}，中间过程一路按回车确定即可`);
+      cp.execSync(createKeyCmd, {
+        cwd: this.dir, // 在当前源码目录下执行
+        stdio: "inherit",
+      });
+
+      // 公钥已生成，提醒用户将公钥添加到托管平台
+      const sshKeyPath =
+        sshKeyType === OLD_GIT_SSH_KEY_FILE ? oldSshKeyPath : newSshKeyPath;
+      sshKey = readFile(sshKeyPath);
+      log.info("公钥内容", sshKey);
+      log.notice(
+        `请您将上面的公钥内容复制，并添加到您的 ${
+          this.gitServer.type
+        } 托管平台上。链接：\n${this.gitServer.getSshKeyUrl()}`
+      );
+
+      // 提示用户进行确认
+      log.info(
+        `请先将ssh公钥添加到${this.gitServer.type}托管平台中，否则您可能没有足够的权限拉取仓库和提交代码`
+      );
+
+      const { sshKeyConfirm } = await prompt({
+        type: "confirm",
+        name: "sshKeyConfirm",
+        message: `您是否已将ssh公钥添加到${this.gitServer.type}托管平台？`,
+        default: true, // 直接按回车默认继续
+      });
+
+      if (sshKeyConfirm) {
+        // 测试能否正确使用ssh连接gitee/github
+        await this.checkGitSSHConnection();
+      } else {
+        log.error(
+          `您暂未将ssh公钥添加到 ${this.gitServer.type} 托管平台中，请先添加并确认后再执行代码同步操作。`
+        );
+      }
+    } else {
+      // 公钥存在，测试能否正确连接
+      await this.checkGitSSHConnection();
+    }
+  }
+
+  // 检查能否正确使用ssh协议连接到gitee/github
+  async checkGitSSHConnection() {
+    try {
+      const stdout = cp.execSync(`ssh -T git@${this.gitServer.type}.com`);
+      log.verbose("checkGitSSHConnection stdout", stdout.toString());
+      if (stdout.toString().includes("Hi")) {
+        log.success("Git SSH连接测试通过");
+        return true;
+      } else {
+        throw new Error(
+          `Git SSH连接测试失败，请检查您的公钥和网络，确认您已将公钥添加到${
+            this.gitServer.type
+          }托管平台中。链接：\n${this.gitServer.getSshKeyUrl()}`
+        );
+      }
+    } catch (error) {
+      throw new Error(
+        `Git SSH连接测试失败，请检查您的公钥和网络，确认您已将公钥添加到${
+          this.gitServer.type
+        }托管平台中。链接：\n${this.gitServer.getSshKeyUrl()}`
+      );
     }
   }
 

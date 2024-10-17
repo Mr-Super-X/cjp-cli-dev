@@ -5,7 +5,6 @@ const fs = require("fs"); // 用于文件操作
 const os = require("os"); // 用于获取系统信息
 const path = require("path"); // 用于获取路径
 // 第三方库
-const colors = require("colors/safe"); // 用于给log信息添加颜色
 const dotenv = require("dotenv"); // 用于将环境变量从 .env 文件加载到 process.env 中
 const commander = require("commander"); // 用于解析输入命令和参数
 const rootCheck = require("root-check"); // 用于降级root用户，解决权限导致的问题
@@ -19,6 +18,7 @@ const {
   prompt,
   semver,
   fse,
+  colors,
   CLI_NAME,
   DEFAULT_CLI_HOME,
   DEPENDENCIES_CACHE_DIR,
@@ -114,6 +114,21 @@ function registerCommander() {
       exec(...args); // 这种写法也可以
     });
 
+  // 发布回滚
+  program
+    .command("rollback")
+    .description("快速创建标准项目模板、自定义项目模板、组件库模板")
+    // 命令中间有空格需使用引号包裹
+    .option(
+      "-bc, --buildCmd <buildCmd>",
+      "指定自定义构建命令",
+      "npm run build"
+    )
+    .option("-su, --sshUser <sshUser>", "指定模板服务器用户名", "")
+    .option("-si, --sshIp <sshIp>", "指定模板服务器IP或域名", "")
+    .option("-sp, --sshPath <sshPath>", "指定模板服务器上传路径", "")
+    .action(exec);
+
   // 添加复用代码
   program
     .command("add [templateName]")
@@ -200,7 +215,7 @@ function registerCommander() {
             availableCommands
               .map((item) => `[${item.command}: ${item.description}]`)
               .join("\n") +
-            `\n\n您可以输入 [脚手架 具体命令 -h] 查看命令使用帮助，如：\n${CLI_NAME} -h\n${CLI_NAME} init --help`
+            `\n\n您可以输入 [脚手架 具体命令 --help] 查看命令使用帮助，如：\n${CLI_NAME} -h\n${CLI_NAME} <command> --help`
         )
       );
     }

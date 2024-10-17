@@ -19,6 +19,7 @@ const SETTINGS = {
   init: "@cjp-cli-dev/init",
   publish: "@cjp-cli-dev/publish",
   add: "@cjp-cli-dev/add",
+  rollback: "@cjp-cli-dev/rollback",
 };
 
 const USER_HOME = os.homedir(); // 用户主目录

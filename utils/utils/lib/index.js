@@ -4,6 +4,7 @@
 const semver = require("./semver"); // 用于判断版本号
 const fse = require("./fs-extra"); // 更方便的文件操作
 const ejs = require("./ejs"); // 渲染ejs模板
+const colors = require("./colors"); // 输出log添加颜色
 const spinners = require("./spinner"); // 终端loading
 const pathExists = require("./path-exists"); // 检查路径是否存在
 const { glob, EJS_DEFAULT_IGNORE } = require("./glob"); // 用 shell 使用的模式匹配文件
@@ -33,6 +34,7 @@ module.exports = {
   fse,
   glob,
   ejs,
+  colors,
   EJS_DEFAULT_IGNORE,
   CLI_NAME,
   DEFAULT_CLI_HOME,
