@@ -116,10 +116,6 @@ function registerCommander() {
     .description("快速回滚master分支代码")
     // 命令中间有空格需使用引号包裹
     .option("-bc, --buildCmd <buildCmd>", "指定自定义构建命令", "npm run build")
-    .option("-bp, --buildPath <buildPath>", "指定构建结果路径", "dist")
-    .option("-su, --sshUser <sshUser>", "指定模板服务器用户名", "")
-    .option("-si, --sshIp <sshIp>", "指定模板服务器IP或域名", "")
-    .option("-sp, --sshPath <sshPath>", "指定模板服务器上传路径", "")
     .action(exec);
 
   // 添加复用代码

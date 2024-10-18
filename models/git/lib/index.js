@@ -114,7 +114,6 @@ class Git {
       refreshGitToken = false,
       refreshGitOwner = false,
       buildCmd = "",
-      buildPath = "",
       production = false,
       componentNoDb = false,
       noCloudBuild = false,
@@ -154,7 +153,6 @@ class Git {
     this.refreshGitToken = refreshGitToken; // 是否强制更新git token
     this.refreshGitOwner = refreshGitOwner; // 是否强制更新登录类型
     this.buildCmd = buildCmd; // 自定义构建命令
-    this.buildPath = buildPath; // 构建结果输出路径
     this.production = production; // 是否正式发布
     this.componentNoDb = componentNoDb; // 不写入数据库 默认写入
     this.noCloudBuild = noCloudBuild; // 不启用云构建，默认启用
@@ -185,10 +183,8 @@ class Git {
     await this.checkRollbackBranch();
     // 回滚代码构建新的静态资源包
     await this.localBuild();
-    // 上传到静态资源服务器
-    await this.uploadDistToServer();
     log.success(
-      `回滚 ${this.rollbackTag} 版本成功，发布新版本前请修复bug后将代码合并到 master 并删除 ${this.rollbackBackupMasterBranch} 分支`
+      `回滚 ${this.rollbackTag} 版本成功，请修复bug后将代码合并到 master 并删除 ${this.rollbackBackupMasterBranch} 分支再次发布新版本`
     );
   }
 
@@ -249,7 +245,9 @@ class Git {
     log.info(`检查 ${GIT_ROOT_DIR} 目录是否存在`);
     const gitPath = path.resolve(this.dir, GIT_ROOT_DIR);
     if (!fs.existsSync(gitPath)) {
-      throw new Error(`检测到 ${GIT_ROOT_DIR} 目录不存在，当前项目不是一个git仓库`);
+      throw new Error(
+        `检测到 ${GIT_ROOT_DIR} 目录不存在，当前项目不是一个git仓库`
+      );
     } else {
       log.success(`检测到 ${GIT_ROOT_DIR} 目录存在，当前项目是一个git仓库`);
     }
@@ -268,22 +266,6 @@ class Git {
     log.verbose("用户选择的tag", tag);
     // 将回滚tag缓存到this上
     this.rollbackTag = tag;
-  }
-
-  // 上传打包结果到服务器
-  async uploadDistToServer() {
-    // 没指定这三个参数时会跳过上传
-    if (this.sshUser && this.sshIp && this.sshPath) {
-      log.info("开始上传构建结果至模板服务器");
-      const buildPath = this.buildPath || "dist"; // 用户未指定buildPath时默认使用dist
-      const filePath = path.resolve(this.dir, buildPath);
-      // 上传dist
-      const uploadCmd = `scp -r ${filePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`;
-      log.verbose("uploadCmd", uploadCmd);
-      const result = cp.execSync(uploadCmd);
-      console.log(result.toString()); // 打印服务端日志
-      log.success("上传构建结果至模板服务器成功");
-    }
   }
 
   // 回退分支
@@ -727,15 +709,6 @@ class Git {
     // 1. 当前项目目录下执行buildCmd
     // 2. 提示用户手动操作构建结果
     log.info("开始进行本地构建");
-
-    // 如果没有配置构建命令则默认npm run build
-    if (!this.buildCmd) {
-      const defaultBuildCmd = "npm run build";
-      log.info(
-        `当前没有指定构建命令，将使用默认 ${defaultBuildCmd} 命令进行构建`
-      );
-      this.buildCmd = defaultBuildCmd;
-    }
 
     cp.execSync(`${this.buildCmd}`, {
       cwd: this.dir, // 在当前源码目录下执行
