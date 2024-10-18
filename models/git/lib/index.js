@@ -232,13 +232,13 @@ class Git {
   // 回滚版本预检查
   async rollbackPrepare() {
     log.info("开始进行版本回滚前预检查");
-    // 检查 .git 目录是否存在，不存在表示这不是一个git仓库，中断并提示
+    // 1. 检查 .git 目录是否存在，不存在表示这不是一个git仓库，中断并提示
     await this.checkIsGitRepo();
-    // 检查当前分支有没有未提交代码，进行提交
+    // 2. 检查当前分支有没有未提交代码，进行提交
     await this.checkNotCommitted();
-    // 拉取远端最新信息
+    // 3. 拉取远端最新信息
     await this.checkRemoteAllUpdate();
-    // 检查回滚备份分支是否存在，存在则停止本次回滚操作
+    // 4. 检查回滚备份分支是否存在，存在则停止本次回滚操作
     await this.checkLocalRollbackBranch(); // 检查本地
     await this.checkRemoteRollbackBranch(); // 检查远程
     log.success("回滚前预检查通过");
@@ -742,7 +742,7 @@ class Git {
       stdio: "inherit",
     });
 
-    log.success("本地构建成功，请您手动处理构建结果进行发布");
+    log.success("本地构建成功");
     // 上一步execSync报错会终止程序运行，如果没报错表示执行成功，返回true告知当前步骤成功
     return true;
   }

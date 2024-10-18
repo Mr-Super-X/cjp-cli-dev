@@ -113,7 +113,7 @@ function registerCommander() {
   // 发布回滚
   program
     .command("rollback")
-    .description("快速创建标准项目模板、自定义项目模板、组件库模板")
+    .description("快速回滚生产代码分支")
     // 命令中间有空格需使用引号包裹
     .option("-bc, --buildCmd <buildCmd>", "指定自定义构建命令", "npm run build")
     .option("-bp, --buildPath <buildPath>", "指定构建结果路径", "dist")
