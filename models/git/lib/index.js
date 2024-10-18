@@ -179,6 +179,8 @@ class Git {
 
   // 回滚
   async rollback() {
+    // 检查并生成回滚tag版本选项
+    await this.checkRollbackTag();
     // 检查并创建回滚备份分支
     await this.checkRollbackBranch();
     // 回滚代码构建新的静态资源包
@@ -239,9 +241,6 @@ class Git {
     // 检查回滚备份分支是否存在，存在则停止本次回滚操作
     await this.checkLocalRollbackBranch(); // 检查本地
     await this.checkRemoteRollbackBranch(); // 检查远程
-
-    // 检查并生成回滚tag
-    await this.checkRollbackTag();
     log.success("回滚前预检查通过");
   }
 
