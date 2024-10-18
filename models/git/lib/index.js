@@ -175,7 +175,6 @@ class Git {
     await this.checkRepo(); // 检查并创建远程仓库
     await this.checkGitIgnore(); // 检查并创建.gitignore
     await this.checkComponent(); // 检查组件合法性
-    await this.init(); // 完成本地git仓库初始化
   }
 
   // 回滚
@@ -229,8 +228,10 @@ class Git {
   }
 
   // 回滚版本预检查
-  async prepareRollback() {
+  async rollbackPrepare() {
     log.info("开始进行版本回滚前预检查");
+    // 检查 .git 目录是否存在，不存在表示这不是一个git仓库，中断并提示
+    await this.checkIsGitRepo();
     // 检查当前分支有没有未提交代码，进行提交
     await this.checkNotCommitted();
     // 拉取远端最新信息
@@ -242,6 +243,17 @@ class Git {
     // 检查并生成回滚tag
     await this.checkRollbackTag();
     log.success("回滚前预检查通过");
+  }
+
+  // 检查是不是一个git仓库
+  async checkIsGitRepo() {
+    log.info(`检查 ${GIT_ROOT_DIR} 目录是否存在`);
+    const gitPath = path.resolve(this.dir, GIT_ROOT_DIR);
+    if (!fs.existsSync(gitPath)) {
+      throw new Error(`检测到 ${GIT_ROOT_DIR} 目录不存在，当前项目不是一个git仓库`);
+    } else {
+      log.success(`检测到 ${GIT_ROOT_DIR} 目录存在，当前项目是一个git仓库`);
+    }
   }
 
   // 检查并生成回滚tag

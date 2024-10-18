@@ -35,7 +35,8 @@ class RollbackCommand extends Command {
       await this.prepare();
       // 2. git 回滚自动化
       const git = new Git(this.projectInfo, this.options);
-      await git.prepareRollback(); // 回滚前预检查
+      await git.prepare(); // git自动化准备
+      await git.rollbackPrepare(); // 回滚前预检查
       await git.rollback(); // 执行回滚操作
       const endTime = new Date().getTime();
       log.info("本次回滚耗时：", Math.floor(endTime - startTime) / 1000 + "秒");
