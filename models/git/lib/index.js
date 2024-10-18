@@ -180,6 +180,19 @@ class Git {
 
   // 回滚
   async rollback() {
+    // 检查并创建回滚备份分支
+    await this.checkRollbackBranch();
+    // 回滚代码构建新的静态资源包
+    await this.localBuild();
+    // 上传到静态资源服务器
+    await this.uploadDistToServer();
+    log.success(
+      `回滚 ${this.rollbackTag} 版本成功，发布新版本前请修复bug后将代码合并到 master 并删除 ${this.rollbackBackupMasterBranch} 分支`
+    );
+  }
+
+  // 检查并创建回滚备份分支
+  async checkRollbackBranch() {
     // 创建master分支上回滚版本之后的提交存储分支，如backup/master/rollback-release/1.0.0
     const rollbackBackupMasterBranch = `backup/master/${ROLLBACK_VERSION}-${this.rollbackTag}`;
     this.rollbackBackupMasterBranch = rollbackBackupMasterBranch; // 缓存到this上
@@ -196,11 +209,9 @@ class Git {
 
     if (!rollbackConfirm) {
       log.notice("回滚操作已取消");
-      return;
+      process.exit(0); // 结束进程，后面代码不会执行
     }
 
-    // 检查当前分支有没有未提交代码，进行提交
-    await this.checkNotCommitted();
     // 切换本地master分支
     await this.checkoutLocalBranch("master");
     // 同步远程master分支代码
@@ -215,28 +226,29 @@ class Git {
     await this.checkoutLocalBranch("master");
     // 强制回退master分支
     await this.resetHardTagForce("master", this.rollbackTag);
-    // 构建新的静态资源包
-    await this.localBuild();
-    // 上传到静态资源服务器
-    await this.uploadDistToServer();
-    log.success(`回滚 ${this.rollbackTag} 版本成功，请修复bug后再次发布新版本`);
   }
 
   // 回滚版本预检查
   async prepareRollback() {
     log.info("开始进行版本回滚前预检查");
+    // 检查当前分支有没有未提交代码，进行提交
+    await this.checkNotCommitted();
     // 拉取远端最新信息
     await this.checkRemoteAllUpdate();
-
     // 检查回滚备份分支是否存在，存在则停止本次回滚操作
     await this.checkLocalRollbackBranch(); // 检查本地
     await this.checkRemoteRollbackBranch(); // 检查远程
 
+    // 检查并生成回滚tag
+    await this.checkRollbackTag();
+    log.success("回滚前预检查通过");
+  }
+
+  // 检查并生成回滚tag
+  async checkRollbackTag() {
     // 检查release/tag是否存在
     const tagList = await this.checkReleaseTags();
     log.verbose("tagList", tagList);
-
-    log.success("回滚前预检查通过");
 
     // 拿到用户选择的tag
     const tag = await this.getChoicesTag(
@@ -263,7 +275,7 @@ class Git {
     }
   }
 
-  // 回退代码
+  // 回退分支
   async resetHardTagForce(branchName, tag) {
     log.info(`开始回滚 ${branchName} 分支代码`);
     // 2、基于master分支的commit id，进行reset --hard回退
@@ -290,7 +302,7 @@ class Git {
       item.includes(`backup/master/${ROLLBACK_VERSION}-`)
     );
 
-    if (hasRollback.length > 0) {
+    if (hasRollback) {
       log.error(
         `检测到本地存在回滚备份分支：${hasRollback} ，请合并并删除该分支后重试`
       );
@@ -309,7 +321,7 @@ class Git {
       item.includes(`backup/master/${ROLLBACK_VERSION}-`)
     );
 
-    if (hasRollback.length > 0) {
+    if (hasRollback) {
       log.error(
         `检测到远程存在回滚备份分支：${hasRollback} ，请合并并删除该分支后重试`
       );
