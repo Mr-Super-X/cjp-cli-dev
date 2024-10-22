@@ -11,19 +11,9 @@ module.exports = async function (name, options, command) {
   // 定义分支名称
   let branchName = name;
 
-  // 找出所需要的参数
-  const commandOptions = command.options.map((item) => ({
-    flag: item.flags,
-    description: item.description,
-  }));
-
   if (!branchName) {
     log.warn(
-      `请指定您想删除的分支名称，支持以下参数：\n\n${commandOptions
-        .map((option) => `['${option.flag}'：${option.description}]`)
-        .join(
-          "\n"
-        )}\n\n您可以输入 ${CLI_NAME} ${command.name()} -h 查看使用帮助`
+      `请指定您想删除的分支名称\n\n您可以输入 ${CLI_NAME} ${command.name()} -h 查看使用帮助`
     );
     return;
   }
