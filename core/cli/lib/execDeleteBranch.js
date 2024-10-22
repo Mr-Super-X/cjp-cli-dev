@@ -8,13 +8,8 @@ const { prompt, CLI_NAME } = require("@cjp-cli-dev/utils"); // 工具方法
 const git = simpleGit(process.cwd());
 
 module.exports = async function (name, options, command) {
-  // 定义分支名称，接收命令后面直接传参和指定参数--branch传参
-  let branchName = "";
-  if (name) {
-    branchName = name;
-  } else {
-    branchName = options.branch;
-  }
+  // 定义分支名称
+  let branchName = name;
 
   // 找出所需要的参数
   const commandOptions = command.options.map((item) => ({
@@ -61,11 +56,9 @@ module.exports = async function (name, options, command) {
 async function checkLocalBranch(branchName) {
   log.info("检查本地是否存在分支：" + branchName);
   const localBranchList = await git.branchLocal();
-  const hasRollback = localBranchList.all.find((item) =>
-    item.includes(branchName)
-  );
+  const hasBranch = localBranchList.all.find((item) => item === branchName);
 
-  if (!hasRollback) {
+  if (!hasBranch) {
     log.info(`本地分支 ${branchName} 不存在，跳过删除分支`);
     return false;
   } else {
@@ -80,11 +73,9 @@ async function checkRemoteBranch(branchName) {
   log.info("检查远程是否存在分支：" + branchName);
   const remoteBranchList = await git.branch(["-r"]);
 
-  const hasRollback = remoteBranchList.all.find((item) =>
-    item.includes(branchName)
-  );
+  const hasBranch = remoteBranchList.all.find((item) => item === branchName);
 
-  if (!hasRollback) {
+  if (!hasBranch) {
     log.info(`远程分支 ${branchName} 不存在，跳过删除分支`);
     return false;
   } else {

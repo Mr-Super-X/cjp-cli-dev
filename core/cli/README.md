@@ -120,6 +120,12 @@ cjp-cli-dev add --registry https://registry.npmmirror.com/
 
 ## More
 
+DEBUG 模式：
+
+```bash
+cjp-cli-dev <command> --debug
+```
+
 清空本地全部缓存：
 
 ```bash
@@ -132,10 +138,16 @@ cjp-cli-dev clean --all
 cjp-cli-dev clean --dep
 ```
 
-DEBUG 模式：
+快速删除本地和远程分支
 
 ```bash
-cjp-cli-dev <command> --debug
+cjp-cli-dev delete-branch [branchName]
+```
+
+强制删除本地和远程分支
+
+```bash
+cjp-cli-dev delete-branch --force
 ```
 
 调试本地包：
