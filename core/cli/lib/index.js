@@ -129,6 +129,7 @@ function registerCommander() {
     .command("delete-branch [branchName]")
     .description("快速删除本地和远程分支")
     .option("-f, --force", "是否强制删除分支", false)
+    .option("-m, --multiple", "是否删除多个分支", false)
     .action((name, options, command) => {
       execDeleteBranch(name, options, command);
     });

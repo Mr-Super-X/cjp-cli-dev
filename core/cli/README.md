@@ -150,6 +150,12 @@ cjp-cli-dev delete-branch [branchName]
 cjp-cli-dev delete-branch --force
 ```
 
+删除多个分支
+
+```bash
+cjp-cli-dev delete-branch --multiple
+```
+
 调试本地包：
 
 ```bash
