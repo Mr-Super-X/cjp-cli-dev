@@ -23,6 +23,7 @@ const pkg = require("../package.json"); // 脚手架package.json
 // 简单命令
 const execClean = require("./execClean"); // 执行清除缓存命令
 const execDeleteBranch = require("./execDeleteBranch"); // 执行删除分支命令
+const execGitFlow = require("./execGitFlow"); // 执行初始化git flow分支模型命令
 
 // 全局变量
 const homedir = os.homedir(); // 用户主目录
@@ -116,13 +117,22 @@ function registerCommander() {
     .option("-reg, --registry <registry>", "指定npm源地址", "")
     .action(exec);
 
-  // 回滚master
+  // 回滚版本
   program
     .command("rollback")
-    .description("快速回滚master分支代码")
+    .description("快速回滚生产版本代码")
     // 命令中间有空格需使用引号包裹
     .option("-bc, --buildCmd <buildCmd>", "指定自定义构建命令", "npm run build")
     .action(exec);
+
+  // 快速初始化git flow分支模型
+  program
+    .command("init-git-flow")
+    .description("快速初始化git flow分支模型")
+    .option("-f, --force", "是否强制初始化分支模型", false)
+    .action((options, command) => {
+      execGitFlow(options, command);
+    });
 
   // 快速删除本地和远程分支
   program

@@ -11,19 +11,13 @@ const { glob, EJS_DEFAULT_IGNORE } = require("./glob"); // 用 shell 使用的�
 const { prompt } = require("./inquirer"); // 用于终端询问式交互
 const { spawn, spawnAsync } = require("./spawn"); // 执行耗时命令任务
 const { readFile, writeFile } = require("./file"); // 自定义读写文件方法
-const { isObject, sleep } = require("./util"); // 其它工具方法
-const {
-  CLI_NAME,
-  DEFAULT_CLI_HOME,
-  DEPENDENCIES_CACHE_DIR,
-  TEMPLATE_CACHE_DIR,
-  DEFAULT_NPM_REGISTRY,
-} = require("./cli-const"); // 脚手架所使用的一些公共常量配置
+const util = require("./util"); // 其它工具方法
+const constant = require("./cli-const"); // 脚手架所使用的一些公共常量配置
 
 module.exports = {
-  isObject,
+  ...util,
+  ...constant,
   spinners,
-  sleep,
   spawn,
   spawnAsync,
   readFile,
@@ -36,9 +30,4 @@ module.exports = {
   ejs,
   colors,
   EJS_DEFAULT_IGNORE,
-  CLI_NAME,
-  DEFAULT_CLI_HOME,
-  TEMPLATE_CACHE_DIR,
-  DEPENDENCIES_CACHE_DIR,
-  DEFAULT_NPM_REGISTRY,
 };

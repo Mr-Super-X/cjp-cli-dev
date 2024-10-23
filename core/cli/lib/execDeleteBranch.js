@@ -7,11 +7,26 @@ const { prompt, CLI_NAME } = require("@cjp-cli-dev/utils"); // 工具方法
 // 将当前进程执行的上下文路径传给simpleGit
 const git = simpleGit(process.cwd());
 
+/**
+ * 快速删除本地和远端分支（支持多选）
+ * 1. 支持参数，branchName、force、multiple
+ * 2. multiple参数为true，列出所有本地和远端分支供用户选择
+ * 3. multiple为false，单删模式，输入命令 + branchName即可
+ * 4. 检查force参数，单删和多删都生效，为true则不进行二次确认直接删除，false则进行二次确认
+ * 5. 检查本地和远端要删除的分支是否存在，存在则删除，不存在则跳过
+ * 6. 完成删除功能
+ * @param {*} name 分支名称参数
+ * @param {*} options command参数
+ * @param {*} command command实例
+ * @returns
+ */
 module.exports = async function (name, options, command) {
   // 定义分支名称
   let branchName = name;
   // 获取参数
   const { force, multiple } = options;
+  log.verbose("force", force);
+  log.verbose("multiple", multiple);
 
   // 删除多个分支
   if (multiple) {
@@ -85,6 +100,8 @@ module.exports = async function (name, options, command) {
 async function checkLocalBranch(branchName) {
   log.info("检查本地是否存在分支：" + branchName);
   const localBranchList = await git.branchLocal();
+  log.verbose("localBranchList", localBranchList);
+
   const hasBranch = localBranchList.all.find((item) => item === branchName);
 
   if (!hasBranch) {
@@ -101,6 +118,7 @@ async function checkLocalBranch(branchName) {
 async function checkRemoteBranch(branchName) {
   log.info("检查远程是否存在分支：" + branchName);
   const remoteBranchList = await git.branch(["-r"]);
+  log.verbose("remoteBranchList", remoteBranchList);
 
   const hasBranch = remoteBranchList.all.find((item) => item === branchName);
 
@@ -124,7 +142,9 @@ async function deleteLocalBranch(branchName) {
 // 删除远程开发分支
 async function deleteRemoteBranch(branchName) {
   // 删除远程分支时不需要开头的origin/，简单处理兼容一下
-  branchName = branchName.startsWith('origin/') ? branchName.replace(/^origin\//, "") : branchName;
+  branchName = branchName.startsWith("origin/")
+    ? branchName.replace(/^origin\//, "")
+    : branchName;
   log.info("开始删除远程分支", branchName);
   await git.push(["origin", "--delete", branchName]);
   log.success(`删除远程分支 ${branchName} 成功`);
@@ -171,6 +191,8 @@ async function createBranchChoices() {
       value: item,
     })),
   ];
+
+  log.verbose("allBranches", allBranches);
   return allBranches;
 }
 

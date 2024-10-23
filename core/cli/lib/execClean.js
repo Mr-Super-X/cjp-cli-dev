@@ -13,6 +13,8 @@ const {
 module.exports = function (options, command) {
   const requireKeys = ["all", "dep"];
 
+  log.verbose("options", options);
+
   // 检查是否没传参数
   function checkKeys(keys, obj) {
     let result = false;
@@ -49,7 +51,6 @@ module.exports = function (options, command) {
     cleanDep();
   }
 };
-
 
 async function getConfirmClean(msg) {
   // 二次确认
