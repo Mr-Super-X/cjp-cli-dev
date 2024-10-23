@@ -88,22 +88,10 @@ cjp-cli-dev publish --noCloudBuild
 cjp-cli-dev publish --componentNoDb
 ```
 
-指定模板服务器用户名
+指定上传模板服务器
 
 ```bash
-cjp-cli-dev publish --sshUser root
-```
-
-指定模板服务器IP或域名
-
-```bash
-cjp-cli-dev publish --sshIp 1xx.xx.xx.xx:8888
-```
-
-指定模板服务器上传路径
-
-```bash
-cjp-cli-dev publish --sshPath /data/apps
+cjp-cli-dev publish --sshUser root --sshIp 1xx.xx.xx.xx:8888 --sshPath /data/apps
 ```
 
 ### 回滚版本
