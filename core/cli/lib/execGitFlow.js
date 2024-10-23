@@ -10,6 +10,7 @@ const {
   prompt,
   spawnAsync,
   isCommandAvailable,
+  CLI_NAME,
 } = require("@cjp-cli-dev/utils"); // 工具方法
 
 const GIT_ROOT_DIR = ".git"; // git根目录
@@ -72,7 +73,7 @@ async function checkGitFlowIsInit(force) {
     const result = await spawnAsync("git", ["flow", "config", "list"]);
 
     if (result === 0) {
-      log.warn("当前项目已经初始化过 git flow 分支模型");
+      log.warn(`当前项目已经初始化过 git flow 分支模型，如您需要强制重新初始化，请指定--force参数\n\n示例：${CLI_NAME} init-git-flow --force`);
       process.exit(0);
     } else {
       log.success("检查通过，当前项目未初始化 git flow分支模型");
