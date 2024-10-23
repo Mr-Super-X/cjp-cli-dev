@@ -106,6 +106,22 @@ cjp-cli-dev publish --sshIp 1xx.xx.xx.xx:8888
 cjp-cli-dev publish --sshPath /data/apps
 ```
 
+### 回滚版本
+
+回滚版本
+
+```bash
+cjp-cli-dev rollback
+```
+
+手动指定回滚版本构建命令
+
+```bash
+cjp-cli-dev rollback --buildCmd "npm run build:test"
+```
+
+### 添加页面或组件
+
 添加页面/组件代码片段
 
 ```bash
@@ -120,23 +136,43 @@ cjp-cli-dev add --registry https://registry.npmmirror.com/
 
 ## More
 
-DEBUG 模式：
+### debug调试
+
+DEBUG 模式
 
 ```bash
 cjp-cli-dev <command> --debug
 ```
 
-清空本地全部缓存：
+### 清除缓存
+
+清空本地全部缓存
 
 ```bash
 cjp-cli-dev clean --all
 ```
 
-清空本地依赖缓存：
+清空本地依赖缓存
 
 ```bash
 cjp-cli-dev clean --dep
 ```
+
+### Git Flow
+
+初始化Git Flow分支模型
+
+```bash
+cjp-cli-dev init-git-flow
+```
+
+强制重新初始化Git Flow分支模型
+
+```bash
+cjp-cli-dev init-git-flow --force
+```
+
+### 删除分支
 
 快速删除本地和远程分支
 
@@ -156,7 +192,9 @@ cjp-cli-dev delete-branch --force
 cjp-cli-dev delete-branch --multiple
 ```
 
-调试本地包：
+### 本地调试
+
+调试本地包
 
 ```bash
 cjp-cli-dev init --targetPath /path/cjp-cli-dev/commands/init
