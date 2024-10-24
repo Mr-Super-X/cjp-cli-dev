@@ -24,6 +24,7 @@ const pkg = require("../package.json"); // 脚手架package.json
 const execClean = require("./execClean"); // 执行清除缓存命令
 const execDeleteBranch = require("./execDeleteBranch"); // 执行删除分支命令
 const execGitFlow = require("./execGitFlow"); // 执行初始化git flow分支模型命令
+const execRelease = require("./execRelease"); // 执行升级版本&自动生成CHANGELOG.md命令
 
 // 全局变量
 const homedir = os.homedir(); // 用户主目录
@@ -58,7 +59,7 @@ function registerCommander() {
     .usage("<command> [options]")
     // 程序描述
     .description(
-      "前端工程化统一研发脚手架，支持以下功能：\n\n1. init：快速创建各种项目或组件模板，包括默认项目模板创建、自定义项目模板创建、组件库模板创建、模板自动安装和启动。\n2. publish：一键发布项目或组件库，包括测试发布和正式发布、自动在代码托管平台创建仓库、Git Flow自动化、自动构建、自动发布。 支持项目云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、静态资源上传OSS、自动Git Flow分支管理、自动同步代码、自动创建版本Tag。 \n3. add：支持快速添加组件代码片段模板、标准页面模板、自定义页面模板到本地项目。其中组件支持自动写入代码到指定位置，自动导入并注册局部组件等。\n4. rollback：支持快速回滚生产版本，支持回滚master分支到指定release tag，自动本地构建回滚版本。\n5. init-git-flow：支持快速为项目创建Git Flow分支模型，自动检查系统是否安装对应工具并返回帮助文档。\n6. delete-branch：支持快速删除本地和远端分支，可多选删除。\n7. clean：支持清除脚手架依赖缓存或全部缓存文件。"
+      "前端工程化统一研发脚手架，支持以下功能：\n\n1. init：快速创建各种项目或组件模板，包括默认项目模板创建、自定义项目模板创建、组件库模板创建、模板自动安装和启动。\n2. publish：一键发布项目或组件库，包括测试发布和正式发布、自动在代码托管平台创建仓库、Git Flow自动化、自动构建、自动发布。 支持项目云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、静态资源上传OSS、自动Git Flow分支管理、自动同步代码、自动创建版本Tag。 \n3. add：支持快速添加组件代码片段模板、标准页面模板、自定义页面模板到本地项目。其中组件支持自动写入代码到指定位置，自动导入并注册局部组件等。\n4. rollback：支持快速回滚生产版本，支持回滚master分支到指定release tag，自动本地构建回滚版本。\n5. release：支持快速自动升级项目版本，自动生成git变更记录文档。\n6. init-git-flow：支持快速为项目创建Git Flow分支模型，自动检查系统是否安装对应工具并返回帮助文档。\n7. delete-branch：支持快速删除本地和远端分支，可多选删除。\n8. clean：支持清除脚手架依赖缓存或全部缓存文件。"
     )
     // 版本号
     .version(pkg.version)
@@ -85,7 +86,7 @@ function registerCommander() {
   // 初始化项目
   program
     .command("init [projectName]")
-    .description("快速创建标准项目模板、自定义项目模板、组件库模板")
+    .description("创建标准项目模板、自定义项目模板、组件库模板")
     .option("-reg, --registry <registry>", "指定npm源地址", "")
     .option("-f, --force", "是否强制初始化项目")
     .action(exec);
@@ -120,7 +121,7 @@ function registerCommander() {
   // 回滚版本
   program
     .command("rollback")
-    .description("快速回滚生产版本代码")
+    .description("回滚生产版本代码")
     // 命令中间有空格需使用引号包裹
     .option("-bc, --buildCmd <buildCmd>", "指定自定义构建命令", "npm run build")
     .action(exec);
@@ -128,16 +129,28 @@ function registerCommander() {
   // 快速初始化git flow分支模型
   program
     .command("init-git-flow")
-    .description("快速初始化git flow分支模型")
+    .description("初始化git flow分支模型")
     .option("-f, --force", "是否强制初始化分支模型", false)
     .action((options, command) => {
       execGitFlow(options, command);
     });
 
+  // 升级版本&自动生成CHANGELOG.md
+  program
+    .command("release")
+    .description("升级项目版本&自动生成git变更记录文档")
+    .option("-i, --init", "为当前项目安装release-it功能", false)
+    .option("-pa, --patch", "自动升级patch版本，示例：1.0.0 => 1.0.1", false)
+    .option("-mi, --minor", "自动升级minor版本，示例：1.0.0 => 1.1.0", false)
+    .option("-ma, --major", "自动升级major版本，示例：1.0.0 => 2.0.0", false)
+    .action((options, command) => {
+      execRelease(options, command);
+    });
+
   // 快速删除本地和远程分支
   program
     .command("delete-branch [branchName]")
-    .description("快速删除本地和远程分支")
+    .description("删除本地和远程分支")
     .option("-f, --force", "是否强制删除分支", false)
     .option("-m, --multiple", "是否删除多个分支", false)
     .action((name, options, command) => {

@@ -6,6 +6,9 @@ const CLI_NAME = "cjp-cli-dev";
 // 定义 cli home路径
 const DEFAULT_CLI_HOME = ".cjp-cli-dev";
 
+// 定义脚手架最低node版本要求
+const LOWEST_NODE_VERSION = "16.0.0";
+
 // 定义依赖缓存目录
 const DEPENDENCIES_CACHE_DIR = "dependencies";
 
@@ -21,4 +24,5 @@ module.exports = {
   DEPENDENCIES_CACHE_DIR, // 依赖缓存目录
   TEMPLATE_CACHE_DIR, // 模板缓存目录
   DEFAULT_NPM_REGISTRY, // 默认 npm 源
+  LOWEST_NODE_VERSION, // 最低 node 版本要求
 };

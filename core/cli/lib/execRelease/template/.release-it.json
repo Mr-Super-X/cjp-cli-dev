@@ -1,0 +1,51 @@
+{
+  "hooks": {
+    "after:bump": "auto-changelog -p"
+  },
+  "git": {
+    "changelog": "auto-changelog --stdout --commit-limit false",
+    "requireCleanWorkingDir": false,
+    "requireUpstream": false,
+    "requireCommits": false,
+    "addUntrackedFiles": false,
+    "commit": false,
+    "commitMessage": "chore: release v${version}",
+    "commitArgs": "",
+    "tag": false,
+    "tagName": "v${version}",
+    "tagAnnotation": "Release v${version}",
+    "tagArgs": "",
+    "push": false,
+    "pushArgs": "--follow-tags",
+    "pushRepo": "origin"
+  },
+  "npm": {
+    "publish": false,
+    "publishPath": "",
+    "access": null,
+    "otp": null
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "infile": "CHANGELOG.md",
+      "preset": {
+        "name": "conventionalcommits",
+        "header": "# 📋 更新历史 \n\n",
+        "types": [
+          { "type": "feat", "section": "✨ Features | 新特性" },
+          { "type": "fix", "section": "🐛 Bug Fixes | Bug 修复" },
+          { "type": "perf", "section": "⚡ Performance Improvements | 性能优化" },
+          { "type": "revert", "section": "⏪ Reverts | 代码回退" },
+          { "type": "chore", "section": "🚀 Chores | 其余更新" },
+          { "type": "docs", "section": "📝 Documentation | 文档修改" },
+          { "type": "style", "section": "💄 Styles | 代码格式调整", "hidden": true },
+          { "type": "refactor", "section": "♻️ Code Refactoring | 代码重构" },
+          { "type": "test", "section": "🚨 Tests | 测试用例" },
+          { "type": "build", "section": "‍📦️ Build System | 构建" },
+          { "type": "ci", "section": "👷 Continuous Integration | CI 配置" }
+        ],
+        "commitUrlFormat": "{{host}}/{{owner}}/{{repository}}/commit/{{hash}}"
+      }
+    }
+  }
+}
