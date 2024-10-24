@@ -30,6 +30,8 @@ module.exports = async function (options, command) {
 
   // 准备工作
   const pkgJson = await prepare(options, command);
+  // 检查当前项目中是否安装release-it
+  const hasReleaseIt = await checkReleaseIt(pkgJson);
 
   // 命令选项策略
   const optionStrategy = {
@@ -38,14 +40,20 @@ module.exports = async function (options, command) {
       // 检查node版本，获取对应版本可用package信息
       const packages = await checkNodeVersion();
       // 安装release-it相关包
-      await installPackage(pkgJson, packages);
+      await installPackage(pkgJson, packages, hasReleaseIt);
     },
     // --patch
-    async patch() {},
+    async patch() {
+      await execRelease("patch", pkgJson, hasReleaseIt);
+    },
     // --minor
-    async minor() {},
+    async minor() {
+      await execRelease("minor", pkgJson, hasReleaseIt);
+    },
     // --major
-    async major() {},
+    async major() {
+      await execRelease("major", pkgJson, hasReleaseIt);
+    },
   };
 
   // 遍历options，找到为true且在命令选项策略中的方法进行调用
@@ -70,46 +78,119 @@ async function prepare(options, command) {
 
   // 2. 拿到package.json并返回json
   const pkgJson = fse.readJsonSync(pkgPath);
-  log.verbose("pkgJson", pkgJson);
 
+  // 检查必要字段
+  const { version } = pkgJson;
+  if (!version) {
+    log.notice(`当前项目package.json中缺少version字段，自动为您创建该字段`);
+    const v = await getVersion();
+    pkgJson.version = v;
+    // 将版本写入项目package.json中
+    fse.writeJsonSync(pkgPath, pkgJson, { spaces: 2 });
+  }
+
+  log.verbose("pkgJson", pkgJson);
   return pkgJson;
 }
 
-async function installPackage(pkgJson, packages) {
-  log.info("开始安装release-it功能相关依赖");
+// 获取version
+async function getVersion() {
+  const { version } = await prompt({
+    type: "input",
+    name: "version",
+    message: "请输入新版本号：",
+    validate: (input) => {
+      if (!semver.valid(input)) {
+        return "版本号不合法，请输入语义化版本号格式（x.y.z），如：1.0.0";
+      }
+      return true;
+    },
+  });
+
+  return version;
+}
+
+// 检查是否已安装release-it
+async function checkReleaseIt(pkgJson) {
+  log.info("检查当前项目中是否已安装release-it");
   const { devDependencies } = pkgJson;
   log.verbose("devDependencies", devDependencies);
 
-  // 这三个包存在任意一个则认为已安装相关包
-  if (
-    devDependencies["release-it"] ||
-    devDependencies["@release-it/conventional-changelog"] ||
-    devDependencies["auto-changelog"]
-  ) {
-    const reinstall = await getConfirmReinstall();
-    if (reinstall) {
-      // 3. 执行安装命令
-      await execInstallPackages(packages);
-      // 3.1 生成.release-it.json配置
-      await createReleaseItConfig();
-      // 3.2 修改script，添加配置
-      await modifyPackageScripts(pkgJson);
-    } else {
-      log.notice("已取消安装release-it功能");
-    }
+  // 包存在则认为已安装相关包
+  if (devDependencies["release-it"]) {
+    log.success("当前项目中已安装release-it");
+    return true;
   } else {
+    log.success("当前项目中未安装release-it");
+    return false;
+  }
+}
+
+async function installPackage(pkgJson, packages, hasReleaseIt) {
+  log.info("开始安装release-it功能相关依赖");
+  log.verbose("hasReleaseIt", hasReleaseIt);
+
+  async function installSetup() {
     // 3. 执行安装命令
     await execInstallPackages(packages);
     // 3.1 生成.release-it.json配置
     await createReleaseItConfig();
-    // 3.2 修改script，添加配置
+    // 3.2 修改scripts，添加配置
     await modifyPackageScripts(pkgJson);
   }
 
+  // 包存在则认为已安装相关包
+  if (hasReleaseIt) {
+    const reinstall = await getConfirmReinstall();
+    if (reinstall) {
+      await installSetup();
+    } else {
+      log.notice("已取消安装release-it功能");
+    }
+  } else {
+    await installSetup();
+  }
 
   log.success(
-    `release-it功能安装完成\n\n功能说明：执行对应命令后会自动修改package.json的version字段并生成git提交信息changelog版本记录文档\n\n您可以通过以下方式进行使用：\n\n方式一：通过npm运行\n\nnpm run release:patch（示例：1.0.0 => 1.0.1）\nnpm run release:minor（示例：1.0.0 => 1.1.0）\nnpm run release:major（示例：1.0.0 => 2.0.0）\n\n方式二：通过脚手架命令运行\n\n${CLI_NAME} ${COMMAND_NAME} --patch（示例：1.0.0 => 1.0.1）\n${CLI_NAME} ${COMMAND_NAME} --minor（示例：1.0.0 => 1.1.0）\n${CLI_NAME} ${COMMAND_NAME} --major（示例：1.0.0 => 2.0.0）\n\n查阅官方帮助文档：https://github.com/release-it/release-it`
+    `release-it功能安装完成\n\n功能说明：执行对应命令后会自动修改package.json的version字段并生成git提交信息changelog版本记录文档\n\n您可以通过以下方式进行使用：\n\n方式一：通过脚手架命令运行\n\n${CLI_NAME} ${COMMAND_NAME} --patch（示例：1.0.0 => 1.0.1）\n${CLI_NAME} ${COMMAND_NAME} --minor（示例：1.0.0 => 1.1.0）\n${CLI_NAME} ${COMMAND_NAME} --major（示例：1.0.0 => 2.0.0）\n\n方式二：通过npm运行\n\nnpm run release:patch（示例：1.0.0 => 1.0.1）\nnpm run release:minor（示例：1.0.0 => 1.1.0）\nnpm run release:major（示例：1.0.0 => 2.0.0）\n\n查阅官方帮助文档：https://github.com/release-it/release-it`
   );
+}
+
+// 执行release-it
+async function execRelease(option, pkgJson, hasReleaseIt) {
+  log.verbose("hasReleaseIt", hasReleaseIt);
+  // 检查未安装release-it的情况
+  if (hasReleaseIt === false) {
+    throw new Error(
+      `请先执行 ${CLI_NAME} ${COMMAND_NAME} --init 命令安装release-it功能`
+    );
+  }
+  // 目前仅支持这三种命令参数
+  const enumType = {
+    patch: "patch",
+    minor: "minor",
+    major: "major",
+  };
+
+  const type = enumType[option];
+  if (!type) {
+    throw new Error(`不支持的参数：${option}`);
+  }
+
+  const { version } = pkgJson;
+
+  log.info(
+    `开始升级 ${option} 版本`,
+    `${version} => ${semver.inc(version, option)}`
+  );
+
+  // 通过npx执行命令
+  await spawnAsync("npx", ["release-it", type], {
+    stdio: "inherit",
+    cwd: process.cwd(),
+  });
+
+  log.success("版本升级完成，当前项目版本", semver.inc(version, option));
 }
 
 // 执行安装包程序
@@ -165,7 +246,7 @@ async function modifyPackageScripts(pkgJson) {
     "release:major": "release-it major",
     "release:minor": "release-it minor",
     "release:patch": "release-it patch",
-  }
+  };
 
   // 为当前项目添加script配置
   pkgJson.scripts = scripts;
