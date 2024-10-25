@@ -122,18 +122,27 @@ function registerCommander() {
     .option("-bc, --buildCmd <buildCmd>", "指定自定义构建命令", "npm run build")
     .action(exec);
 
-  // 快速初始化git flow分支模型
+  // 初始化Git Flow分支模型
   program
     .command("gitflow")
-    .description("初始化git flow分支模型")
+    .description("初始化Git Flow分支模型")
     .option("-f, --force", "是否强制初始化分支模型", false)
+    .action(exec);
+
+  // 项目Git Hooks脚本配置
+  program
+    .command("husky")
+    .description("Git Hooks脚本配置")
+    .option("-i, --install", "为当前项目安装husky功能", false)
+    .option("-a, --add <addContent>", "添加新的Git Hook脚本", "")
+    .option("-s, --set <setContent>", "设置Git Hook脚本内容", "")
     .action(exec);
 
   // 升级版本&自动生成CHANGELOG.md
   program
     .command("release")
-    .description("自动升级项目版本&自动生成git变更记录文档")
-    .option("-in, --install", "为当前项目安装release-it功能", false)
+    .description("自动升级项目版本&自动生成Git版本变更记录文档")
+    .option("-i, --install", "为当前项目安装release-it功能", false)
     .option("-pa, --patch", "自动升级patch版本，示例：1.0.0 => 1.0.1", false)
     .option("-mi, --minor", "自动升级minor版本，示例：1.0.0 => 1.1.0", false)
     .option("-ma, --major", "自动升级major版本，示例：1.0.0 => 2.0.0", false)
@@ -150,7 +159,7 @@ function registerCommander() {
   // 清除缓存
   program
     .command("clean")
-    .description("清空缓存文件")
+    .description("清空脚手架缓存文件")
     .option("-a, --all", "清空全部缓存", false)
     .option("-d, --dep", "仅清空依赖缓存", false)
     .action((options, command) => {

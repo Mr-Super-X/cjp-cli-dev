@@ -319,7 +319,7 @@ class ReleaseCommand extends Command {
     } else {
       // 如果没匹配到，安装默认最新版
       releaseItPackages =
-        "release-it @release-it/conventional-changelog auto-changelog";
+        "release-it@latest @release-it/conventional-changelog@latest auto-changelog@latest";
     }
 
     log.verbose("releaseItPackages", releaseItPackages);
