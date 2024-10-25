@@ -1,5 +1,9 @@
 "use strict";
 
+// 内置库
+const os = require("os");
+const fs = require("fs");
+const path = require("path");
 // 自建库
 const Command = require("@cjp-cli-dev/command");
 const log = require("@cjp-cli-dev/log"); // 用于给log信息添加各种自定义风格
@@ -24,8 +28,6 @@ const git = simpleGit(CWD);
  * 4.1. 选择默认，执行git flow init -d初始化默认分支模型（master/develop/release/feature/hotfix/bugfix/support...）
  * 4.2. 选择自定义，执行git flow init让用户输入自定义分支模型
  * 4.3. 完成git flow分支模型初始化
- * @param {*} options command参数
- * @param {*} command command实例
  */
 class GitFlowCommand extends Command {
   init() {

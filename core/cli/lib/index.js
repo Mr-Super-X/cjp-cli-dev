@@ -22,7 +22,6 @@ const {
 const pkg = require("../package.json"); // 脚手架package.json
 // 简单命令
 const execClean = require("./execClean"); // 执行清除缓存命令
-const execDeleteBranch = require("./execDeleteBranch"); // 执行删除分支命令
 const execRelease = require("./execRelease"); // 执行升级版本&自动生成CHANGELOG.md命令
 
 // 全局变量
@@ -150,9 +149,7 @@ function registerCommander() {
     .description("删除本地和远程分支")
     .option("-f, --force", "是否强制删除分支", false)
     .option("-m, --multiple", "是否删除多个分支", false)
-    .action((name, options, command) => {
-      execDeleteBranch(name, options, command);
-    });
+    .action(exec);
 
   // 清除缓存
   program
