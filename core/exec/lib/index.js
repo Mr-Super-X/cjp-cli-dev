@@ -20,6 +20,7 @@ const SETTINGS = {
   publish: "@cjp-cli-dev/publish",
   add: "@cjp-cli-dev/add",
   rollback: "@cjp-cli-dev/rollback",
+  release: "@cjp-cli-dev/release",
   gitflow: "@cjp-cli-dev/gitflow",
   "delete-branch": "@cjp-cli-dev/delete-branch",
 };

@@ -20,9 +20,7 @@ const {
   DEFAULT_CLI_HOME,
 } = require("@cjp-cli-dev/utils"); // 工具方法
 const pkg = require("../package.json"); // 脚手架package.json
-// 简单命令
 const execClean = require("./execClean"); // 执行清除缓存命令
-const execRelease = require("./execRelease"); // 执行升级版本&自动生成CHANGELOG.md命令
 
 // 全局变量
 const homedir = os.homedir(); // 用户主目录
@@ -134,14 +132,12 @@ function registerCommander() {
   // 升级版本&自动生成CHANGELOG.md
   program
     .command("release")
-    .description("升级项目版本&自动生成git变更记录文档")
-    .option("-i, --init", "为当前项目安装release-it功能", false)
+    .description("自动升级项目版本&自动生成git变更记录文档")
+    .option("-in, --install", "为当前项目安装release-it功能", false)
     .option("-pa, --patch", "自动升级patch版本，示例：1.0.0 => 1.0.1", false)
     .option("-mi, --minor", "自动升级minor版本，示例：1.0.0 => 1.1.0", false)
     .option("-ma, --major", "自动升级major版本，示例：1.0.0 => 2.0.0", false)
-    .action((options, command) => {
-      execRelease(options, command);
-    });
+    .action(exec);
 
   // 快速删除本地和远程分支
   program
