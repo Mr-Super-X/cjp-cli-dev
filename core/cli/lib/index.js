@@ -23,7 +23,6 @@ const pkg = require("../package.json"); // 脚手架package.json
 // 简单命令
 const execClean = require("./execClean"); // 执行清除缓存命令
 const execDeleteBranch = require("./execDeleteBranch"); // 执行删除分支命令
-const execGitFlow = require("./execGitFlow"); // 执行初始化git flow分支模型命令
 const execRelease = require("./execRelease"); // 执行升级版本&自动生成CHANGELOG.md命令
 
 // 全局变量
@@ -128,12 +127,10 @@ function registerCommander() {
 
   // 快速初始化git flow分支模型
   program
-    .command("init-git-flow")
+    .command("gitflow")
     .description("初始化git flow分支模型")
     .option("-f, --force", "是否强制初始化分支模型", false)
-    .action((options, command) => {
-      execGitFlow(options, command);
-    });
+    .action(exec);
 
   // 升级版本&自动生成CHANGELOG.md
   program

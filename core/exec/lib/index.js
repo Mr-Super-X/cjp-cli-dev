@@ -20,6 +20,7 @@ const SETTINGS = {
   publish: "@cjp-cli-dev/publish",
   add: "@cjp-cli-dev/add",
   rollback: "@cjp-cli-dev/rollback",
+  gitflow: "@cjp-cli-dev/gitflow"
 };
 
 const USER_HOME = os.homedir(); // 用户主目录

@@ -1,6 +1,7 @@
 "use strict";
 
 // 自建库
+const simpleGit = require("./simple-git"); // 用于在node程序中运行git
 const semver = require("./semver"); // 用于判断版本号
 const fse = require("./fs-extra"); // 更方便的文件操作
 const ejs = require("./ejs"); // 渲染ejs模板
@@ -24,6 +25,7 @@ module.exports = {
   writeFile,
   prompt,
   pathExists,
+  simpleGit,
   semver,
   fse,
   glob,

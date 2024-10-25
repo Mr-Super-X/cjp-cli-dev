@@ -1,7 +1,7 @@
 {
-  "name": "@cjp-cli-dev/utils",
+  "name": "@cjp-cli-dev/gitflow",
   "version": "1.2.0",
-  "description": "cjp-cli-dev utils",
+  "description": "cjp-cli-dev gitflow",
   "author": "v_jpch <v_jpch.digitalgd.com>",
   "homepage": "",
   "license": "ISC",
@@ -22,19 +22,11 @@
     "url": "git@gitee.com:Mr_Mikey/cjp-cli-dev.git"
   },
   "scripts": {
-    "test": "node ./__tests__/utils.test.js"
+    "test": "node ./__tests__/@cjp-cli-dev/gitFlow.test.js"
   },
   "dependencies": {
-    "cli-spinner": "^0.2.10",
-    "colors": "^1.4.0",
-    "cross-spawn": "^7.0.3",
-    "ejs": "^3.1.10",
-    "fs-extra": "^11.2.0",
-    "glob": "^10.4.5",
-    "inquirer": "^8.2.4",
-    "path-exists": "^4.0.0",
-    "semver": "^7.6.3",
-    "simple-git": "^3.27.0"
-  },
-  "gitHead": "b67c081a8c62b824b50db061b9e25c272c72db09"
+    "@cjp-cli-dev/command": "file:../../models/command",
+    "@cjp-cli-dev/log": "file:../../utils/log",
+    "@cjp-cli-dev/utils": "file:../../utils/utils"
+  }
 }
