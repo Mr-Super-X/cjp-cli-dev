@@ -110,7 +110,7 @@ cjp-cli-dev rollback --buildCmd "npm run build:test"
 
 ### 添加页面或组件
 
-添加页面/组件代码片段
+添加页面模板/组件代码片段
 
 ```bash
 cjp-cli-dev add
@@ -151,13 +151,39 @@ cjp-cli-dev clean --dep
 初始化Git Flow分支模型
 
 ```bash
-cjp-cli-dev init-git-flow
+cjp-cli-dev gitflow
 ```
 
-强制重新初始化Git Flow分支模型
+强制初始化Git Flow分支模型
 
 ```bash
-cjp-cli-dev init-git-flow --force
+cjp-cli-dev gitflow --force
+```
+
+### 自动升级项目版本和生成git版本变更记录
+
+安装定制release-it功能
+
+```bash
+cjp-cli-dev release --install
+```
+
+升级patch版本
+
+```bash
+cjp-cli-dev release --patch
+```
+
+升级minor版本
+
+```bash
+cjp-cli-dev release --minor
+```
+
+升级major版本
+
+```bash
+cjp-cli-dev release --major
 ```
 
 ### 删除分支
