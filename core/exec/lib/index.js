@@ -15,12 +15,13 @@ const {
 
 // 全局变量
 const SETTINGS = {
-  // 命令配置表，已发布到npm的包名（如需本地调试可以指定targetPath，这里的配置就会被忽略）
+  // 命令配置表，已发布到npm的包名（如需本地调试可以指定targetPath）
   init: "@cjp-cli-dev/init",
   publish: "@cjp-cli-dev/publish",
   add: "@cjp-cli-dev/add",
   rollback: "@cjp-cli-dev/rollback",
   husky: "@cjp-cli-dev/husky",
+  commitlint: "@cjp-cli-dev/commitlint",
   release: "@cjp-cli-dev/release",
   gitflow: "@cjp-cli-dev/gitflow",
   "delete-branch": "@cjp-cli-dev/delete-branch",

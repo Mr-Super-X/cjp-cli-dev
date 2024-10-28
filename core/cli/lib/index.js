@@ -132,11 +132,20 @@ function registerCommander() {
   // 项目Git Hooks脚本配置
   program
     .command("husky")
-    .description("Git Hooks脚本配置")
+    .description("安装Git Hooks脚本配置工具")
     .option("-i, --install", "为当前项目安装husky功能", false)
     // option支持传递多个值，用...表示，接收的内容为数组格式
     .option("-a, --add <hook...>", "添加新的Git Hook脚本", [])
     .option("-s, --set <hook...>", "设置Git Hook脚本内容", [])
+    .action(exec);
+
+  // 一键安装commitlint、汉化版commitizen工具
+  program
+    .command("commitlint")
+    .description(
+      "安装Git提交信息Angular规范校验工具：commitlint、汉化版commitizen"
+    )
+    .option("-i, --install", "为项目安装Git提交信息Angular规范校验工具", false)
     .action(exec);
 
   // 升级版本&自动生成CHANGELOG.md
