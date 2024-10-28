@@ -18,9 +18,6 @@ const {
 const COMMAND_NAME = "commitlint"; // 命令名称
 const CWD = process.cwd(); // 当前进程执行所在目录
 
-const VERSION_STABLE = "stable"; // 稳定版（node <= 16版本推荐）
-const VERSION_LATEST = "latest"; // 最新版（node >= 18版本推荐）
-
 class CommitlintCommand extends Command {
   init() {
     this.options = this._args[0] || {};
@@ -95,7 +92,7 @@ class CommitlintCommand extends Command {
     }
 
     log.success(
-      `commitlint功能安装完成\n\n功能说明：对提交信息进行Angular规范限制，同时提供了汉化版的终端cz交互工具，可通过命令快捷选择提交类型和输入提交信息\n\n您可以通过以下方式进行使用：\n\nnpm run commit（快捷暂存代码）\nnpm run push（快捷推送代码）\n\n查阅官方帮助文档：https://github.com/commitizen/cz-cli`
+      `commitlint功能安装完成\n\n功能说明：对提交信息进行Angular规范校验，同时提供了汉化版的终端cz交互工具，可通过命令快捷选择提交类型和输入提交信息\n\n您可以通过以下方式进行使用：\n\nnpm run commit（快捷暂存代码）\nnpm run push（快捷推送代码）\n\n查阅官方帮助文档：https://github.com/commitizen/cz-cli`
     );
   }
 
