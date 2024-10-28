@@ -6,7 +6,13 @@ const fs = require("fs");
 // 自建库
 const Command = require("@cjp-cli-dev/command");
 const log = require("@cjp-cli-dev/log");
-const { fse, spawnAsync, prompt, CLI_NAME } = require("@cjp-cli-dev/utils"); // 工具方法
+const {
+  fse,
+  semver,
+  spawnAsync,
+  prompt,
+  CLI_NAME,
+} = require("@cjp-cli-dev/utils"); // 工具方法
 
 const GIT_ROOT_DIR = ".git"; // git根目录
 const HUSKY_ROOT_DIR = ".husky"; // git根目录
@@ -22,13 +28,13 @@ const huskyVersionStrategy = {
   "husky@8.0.3": {
     initCmd: "npx husky install", // 初始化命令
     prepare: "husky install", // package.json scripts prepare
-    addHookMode: "npx", // 添加hook的方式（不同版本有差异）
+    addHookMode: ADD_HOOK_MODE_8, // 添加hook的方式（不同版本有差异）
   },
   // 新版
   "husky@latest": {
     initCmd: "npx husky init", // 初始化命令
     prepare: "husky init", // package.json scripts prepare
-    addHookMode: "echo", // 添加hook的方式（不同版本有差异）
+    addHookMode: ADD_HOOK_MODE_LATEST, // 添加hook的方式（不同版本有差异）
   },
 };
 
@@ -72,17 +78,43 @@ class HuskyCommand extends Command {
           await this.installPackage();
         },
         // --add
-        add: async () => {},
+        add: async () => {
+          // 1. 检查当前husky安装版本
+          // 2. 根据版本添加hook脚本内容
+          await this.checkHuskyVersion();
+          await this.addHookScripts();
+        },
         // --set
-        set: async () => {},
+        set: async () => {
+          // 1. 检查当前husky安装版本
+          // 2. 根据版本添加hook脚本内容
+          await this.checkHuskyVersion();
+          await this.setHookScripts();
+        },
       };
 
-      // 遍历options，找到为true且在命令选项策略中的方法进行调用
-      Object.keys(this.options).forEach(async (key) => {
-        if (this.options[key] && optionStrategy[key]) {
-          await optionStrategy[key]();
-        }
-      });
+      // 找到选项策略中的方法进行调用
+      if (
+        this.options["install"] &&
+        this.options["add"].length === 0 &&
+        this.options["set"].length === 0
+      ) {
+        await optionStrategy["install"]();
+      }
+
+      if (
+        this.options["install"] === false &&
+        this.options["add"].length > 1
+      ) {
+        await optionStrategy["add"]();
+      }
+
+      if (
+        this.options["install"] === false &&
+        this.options["set"].length > 1
+      ) {
+        await optionStrategy["set"]();
+      }
     } catch (err) {
       log.error(err.message);
 
@@ -90,6 +122,76 @@ class HuskyCommand extends Command {
       if (process.env.LOG_LEVEL === "verbose") {
         console.log(err);
       }
+    }
+  }
+
+  async addHookScripts() {
+    const addCmd = this.options["add"];
+    const hook = addCmd[0];
+    const script = addCmd[1];
+
+    if (!hook || !script) {
+      log.error(
+        `请指定要添加的hook和脚本内容，示例：${CLI_NAME} ${COMMAND_NAME} --add pre-commit "npm test"`
+      );
+      process.exit(1);
+    }
+
+    log.info(`开始添加 ${hook} hook脚本内容 => .husky/${hook}`);
+    await this.upsertHookScripts(hook, script, "add");
+    log.success(`${hook} hook脚本内容添加成功`);
+  }
+
+  async setHookScripts() {
+    const addCmd = this.options["set"];
+    const hook = addCmd[0];
+    const script = addCmd[1];
+
+    if (!hook || !script) {
+      log.error(
+        `请指定要设置的hook和脚本内容，示例：${CLI_NAME} ${COMMAND_NAME} --set pre-commit "npm test"`
+      );
+      process.exit(1);
+    }
+
+    log.info(`开始设置 ${hook} hook脚本内容 => .husky/${hook}`);
+    await this.upsertHookScripts(hook, script, "set");
+    log.success(`${hook} hook脚本内容设置成功`);
+  }
+
+  async upsertHookScripts(hook, script, type = "add") {
+    // 匹配不同版本生成规则，匹配不上用最新
+    const addHookMode = huskyVersionStrategy[this.huskyVersion]
+      ? huskyVersionStrategy[this.huskyVersion].addHookMode
+      : huskyVersionStrategy["husky@latest"].addHookMode;
+
+    if (addHookMode === ADD_HOOK_MODE_8) {
+      this.upsertHuskyHooks(hook, script, type);
+    }
+
+    if (addHookMode === ADD_HOOK_MODE_LATEST) {
+      this.upsertHuskyHooks(hook, script);
+    }
+  }
+
+  async checkHuskyVersion() {
+    log.info("检查 husky 版本");
+    const { devDependencies } = this.projectInfo;
+    if (devDependencies && devDependencies["husky"]) {
+      const huskyVersion = devDependencies["husky"];
+      const semverVersion = huskyVersion.replace(/^\^|\~/, "");
+
+      if (semver.lte(semverVersion, "8.0.3")) {
+        this.huskyVersion = "husky@8.0.3";
+      } else {
+        this.huskyVersion = "husky@latest";
+      }
+
+      log.success(`检查通过，husky版本：${semverVersion}`);
+    } else {
+      throw new Error(
+        `请先通过 ${CLI_NAME} ${COMMAND_NAME} --init 命令安装husky功能`
+      );
     }
   }
 
@@ -121,7 +223,7 @@ class HuskyCommand extends Command {
     }
 
     log.success(
-      `husky安装完成\n\n功能说明：创建Git Hook脚本，可以用来执行一些自动化功能，如：代码风格检查、单元测试、校验提交格式等\n\n您可以通过以下方式进行使用：\n\n方式一：通过脚手架命令运行\n\n${CLI_NAME} ${COMMAND_NAME} --add（示例：1.0.0 => 1.0.1）\n${CLI_NAME} ${COMMAND_NAME} --minor（示例：1.0.0 => 1.1.0）\n${CLI_NAME} ${COMMAND_NAME} --major（示例：1.0.0 => 2.0.0）\n\n方式二：通过npm运行\n\nnpm run release:patch（示例：1.0.0 => 1.0.1）\nnpm run release:minor（示例：1.0.0 => 1.1.0）\nnpm run release:major（示例：1.0.0 => 2.0.0）\n\n查阅官方帮助文档：https://github.com/release-it/release-it`
+      `husky安装完成\n\n功能说明：创建Git Hook脚本，可以用来执行一些自动化功能，如：代码风格检查、单元测试、校验提交格式等\n\n您可以通过以下方式进行使用：\n\n方式一：通过脚手架命令运行\n\n${CLI_NAME} ${COMMAND_NAME} --add pre-commit "npm test"（脚本内容需使用引号包裹）\n${CLI_NAME} ${COMMAND_NAME} --set pre-commit "npm run lint"（脚本内容需使用引号包裹）\n\n方式二：8.x版本通过npx运行，最新版通过echo\n\nnpx husky add .husky/pre-commit "npm test"（8.x版本）\necho "npm run lint" > .husky/pre-commit（最新版）\n\n查阅官方帮助文档：https://typicode.github.io/husky/zh/`
     );
   }
 
@@ -236,6 +338,37 @@ class HuskyCommand extends Command {
       ? huskyVersionStrategy[this.huskyVersion].addHookMode
       : huskyVersionStrategy["husky@latest"].addHookMode;
 
+    // 清空文件
+    const preCommitFile = path.resolve(HUSKY_ROOT_DIR, "pre-commit");
+    const commitMsgFile = path.resolve(HUSKY_ROOT_DIR, "commit-msg");
+    fs.existsSync(preCommitFile) && fs.unlinkSync(preCommitFile);
+    fs.existsSync(commitMsgFile) && fs.unlinkSync(commitMsgFile);
+
+    if (addHookMode === ADD_HOOK_MODE_8) {
+      // 执行npx husky add .husky/pre-commit "npx lint-staged"
+      const defaultPreCommit = "npx lint-staged";
+      await this.upsertHuskyHooks("pre-commit", defaultPreCommit, "add");
+
+      const defaultCommitMsg = "npx --no-install commitlint --edit ${1}";
+      // 执行npx husky add .husky/commit-msg "npx --no-install commitlint --edit \$\{1\}"
+      await this.upsertHuskyHooks("commit-msg", defaultCommitMsg, "add");
+    }
+
+    if (addHookMode === ADD_HOOK_MODE_LATEST) {
+      const defaultPreCommit = "npx lint-staged";
+      // 执行echo "npx lint-staged" > .husky/pre-commit
+      await this.upsertHuskyHooks("pre-commit", defaultPreCommit);
+
+      const defaultCommitMsg = "npx --no-install commitlint --edit ${1}";
+      // 执行echo "npx --no-install commitlint --edit \$\{1\}" > .husky/commit-msg
+      await this.upsertHuskyHooks("commit-msg", defaultCommitMsg);
+    }
+
+    log.success(`生成默认Git Hook：${defaultHooks} 脚本成功`);
+  }
+
+  // 添加或插入hook脚本
+  async upsertHuskyHooks(hook, hookContent = "", type = "add") {
     const execSpawn = async (firstCmd, cmdOpts, spawnOptions = {}) => {
       await spawnAsync(firstCmd, cmdOpts, {
         stdio: "inherit",
@@ -244,55 +377,27 @@ class HuskyCommand extends Command {
       });
     };
 
-    // 清空文件
-    const preCommitFile = path.resolve(HUSKY_ROOT_DIR, "pre-commit");
-    const commitMsgFile = path.resolve(HUSKY_ROOT_DIR, "commit-msg");
-    fs.existsSync(preCommitFile) && fs.unlinkSync(preCommitFile);
-    fs.existsSync(commitMsgFile) && fs.unlinkSync(commitMsgFile);
+    // 匹配不同版本生成规则，匹配不上用最新
+    const addHookMode = huskyVersionStrategy[this.huskyVersion]
+      ? huskyVersionStrategy[this.huskyVersion].addHookMode
+      : huskyVersionStrategy["husky@latest"].addHookMode;
 
     if (addHookMode === ADD_HOOK_MODE_8) {
-      const defaultPreCommit = "npx lint-staged";
-      // 执行npx husky add .husky/pre-commit "npx lint-staged"
       await execSpawn(ADD_HOOK_MODE_8, [
         "husky",
-        "add",
-        ".husky/pre-commit",
-        defaultPreCommit,
+        type,
+        `.husky/${hook}`,
+        hookContent,
       ]);
-
-      const defaultCommitMsg = "npx --no-install commitlint --edit ${1}";
-      // 执行npx husky add .husky/commit-msg "npx --no-install commitlint --edit \$\{1\}"
-      await execSpawn(ADD_HOOK_MODE_8, [
-        "husky",
-        "add",
-        ".husky/commit-msg",
-        defaultCommitMsg,
-      ]);
-    }
-
-    if (addHookMode === ADD_HOOK_MODE_LATEST) {
-      const defaultPreCommit = "npx lint-staged";
-      // 执行echo "npx lint-staged" > .husky/pre-commit
+    } else {
       await execSpawn(
         ADD_HOOK_MODE_LATEST,
-        [defaultPreCommit, ">", ".husky/pre-commit"],
-        {
-          shell: true, // shell模式才能兼容该输出命令
-        }
-      );
-
-      const defaultCommitMsg = "npx --no-install commitlint --edit ${1}";
-      // 执行echo "npx --no-install commitlint --edit \$\{1\}" > .husky/commit-msg
-      await execSpawn(
-        ADD_HOOK_MODE_LATEST,
-        [defaultCommitMsg, ">", ".husky/commit-msg"],
+        [hookContent, ">", `.husky/${hook}`],
         {
           shell: true, // shell模式才能兼容该输出命令
         }
       );
     }
-
-    log.success(`生成默认Git Hook：${defaultHooks} 脚本成功`);
   }
 
   async prepare() {
@@ -317,17 +422,33 @@ class HuskyCommand extends Command {
 
   // 检查必传参数
   async checkRequiredKeys() {
-    const requireKeys = ["install", "add", "set"];
-
     // 检查是否没传参数
-    function checkKeys(keys, obj) {
+    function checkKeys(obj) {
       let result = false;
 
-      keys.forEach((key) => {
-        if (obj[key] === true) {
+      // 传了 install 且其它两项都没传，则认为是true
+      if (obj["install"] === true) {
+        if (obj["add"].length === 0 && obj["set"].length === 0) {
+          result = true;
+        } else {
+          log.error("install 和 add/set 参数不可同时存在");
+          result = false;
+        }
+      } else {
+        if (obj["add"].length < 2 && obj["set"].length === 0) {
+          log.error(
+            `add 传参错误，正确示例：${CLI_NAME} ${COMMAND_NAME} --add pre-commit "npm test"`
+          );
+          result = false;
+        } else if (obj["set"].length < 2 && obj["add"].length === 0) {
+          log.error(
+            `set 传参错误，正确示例：${CLI_NAME} ${COMMAND_NAME} --set pre-commit "npm test"`
+          );
+          result = false;
+        } else {
           result = true;
         }
-      });
+      }
 
       return result;
     }
@@ -338,9 +459,9 @@ class HuskyCommand extends Command {
       description: item.description,
     }));
 
-    if (!checkKeys(requireKeys, this.options)) {
+    if (!checkKeys(this.options)) {
       log.warn(
-        `请指定参数确认您想清除的内容，支持以下参数：\n\n${commandOptions
+        `请指定您想执行的操作，支持以下参数：\n\n${commandOptions
           .map((option) => `['${option.flag}'：${option.description}]`)
           .join(
             "\n"

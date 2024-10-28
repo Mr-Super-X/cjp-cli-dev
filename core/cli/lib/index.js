@@ -134,8 +134,9 @@ function registerCommander() {
     .command("husky")
     .description("Git Hooks脚本配置")
     .option("-i, --install", "为当前项目安装husky功能", false)
-    .option("-a, --add <addContent>", "添加新的Git Hook脚本", "")
-    .option("-s, --set <setContent>", "设置Git Hook脚本内容", "")
+    // option支持传递多个值，用...表示，接收的内容为数组格式
+    .option("-a, --add <hook...>", "添加新的Git Hook脚本", [])
+    .option("-s, --set <hook...>", "设置Git Hook脚本内容", [])
     .action(exec);
 
   // 升级版本&自动生成CHANGELOG.md

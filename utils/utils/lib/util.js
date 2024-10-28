@@ -10,6 +10,15 @@ function isObject(o) {
 }
 
 /**
+ * 判断是否是Boolean
+ * @param {*} b 待判断的对象
+ * @returns {boolean}
+ */
+function isBoolean(b) {
+  return Object.prototype.toString.call(b) === "[object Boolean]";
+}
+
+/**
  * 睡眠函数
  * @param {*} timeout Number 默认值 1000ms
  * @returns promise
@@ -40,6 +49,7 @@ function isCommandAvailable(command) {
 
 module.exports = {
   isObject,
+  isBoolean,
   isCommandAvailable,
   sleep,
 }

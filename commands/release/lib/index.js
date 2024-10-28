@@ -11,6 +11,7 @@ const {
   fse,
   spawnAsync,
   prompt,
+  isBoolean,
   CLI_NAME,
 } = require("@cjp-cli-dev/utils"); // 工具方法
 
@@ -160,7 +161,7 @@ class ReleaseCommand extends Command {
       await this.createReleaseItConfig();
       // 3.2 修改scripts，添加配置
       await this.modifyPackageScripts();
-    }
+    };
 
     // 包存在则认为已安装相关包
     if (this.hasReleaseIt) {
@@ -338,7 +339,7 @@ class ReleaseCommand extends Command {
       let result = false;
 
       keys.forEach((key) => {
-        if (obj[key] === true) {
+        if (isBoolean(obj[key]) && obj[key] === true) {
           result = true;
         }
       });
@@ -354,7 +355,7 @@ class ReleaseCommand extends Command {
 
     if (!checkKeys(requireKeys, this.options)) {
       log.warn(
-        `请指定参数确认您想清除的内容，支持以下参数：\n\n${commandOptions
+        `请指定参数确认您想升级什么类型的版本，支持以下参数：\n\n${commandOptions
           .map((option) => `['${option.flag}'：${option.description}]`)
           .join(
             "\n"
