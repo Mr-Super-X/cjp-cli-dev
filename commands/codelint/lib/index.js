@@ -236,7 +236,7 @@ class CodelintCommand extends Command {
     if (eslintVersion === VERSION_STABLE) {
       codelintPackages = `${VERSION_STABLE} eslint-config-prettier@9.1.0 eslint-plugin-prettier@5.2.1 @babel/eslint-parser@7.25.9 prettier@3.3.3 lint-staged@13.2.3`;
     } else {
-      codelintPackages = `${VERSION_LATEST} @eslint/js@latest @globals@latest eslint-config-prettier@latest eslint-plugin-prettier@latest prettier@latest lint-staged@latest`;
+      codelintPackages = `${VERSION_LATEST} @eslint/js@latest @globals eslint-config-prettier@latest eslint-plugin-prettier@latest prettier@latest lint-staged@latest`;
     }
 
     log.verbose("codelintPackages", codelintPackages);
