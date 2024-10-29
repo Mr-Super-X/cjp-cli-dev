@@ -146,6 +146,42 @@ cjp-cli-dev clean --all
 cjp-cli-dev clean --dep
 ```
 
+### 安装Git Hook脚本配置工具
+
+安装工具
+
+```bash
+cjp-cli-dev husky --install
+```
+
+添加hook
+
+```bash
+cjp-cli-dev husky --add pre-commit "npm test"
+```
+
+设置hook
+
+```bash
+cjp-cli-dev husky --set pre-commit "npm run lint"
+```
+
+### 统一代码格式规范（eslint/prettier/lint-staged）
+
+安装工具
+
+```bash
+cjp-cli-dev codelint --install
+```
+
+### 统一提交格式规范（Angular提交规范/commitlint/汉化commitizen）
+
+安装工具
+
+```bash
+cjp-cli-dev commitlint --install
+```
+
 ### Git Flow
 
 初始化Git Flow分支模型
@@ -160,7 +196,7 @@ cjp-cli-dev gitflow
 cjp-cli-dev gitflow --force
 ```
 
-### 自动升级项目版本和生成git版本变更记录
+### 自动升级项目版本、生成git版本变更记录
 
 安装定制release-it功能
 
