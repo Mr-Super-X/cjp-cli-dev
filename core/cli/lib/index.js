@@ -267,7 +267,7 @@ async function checkGlobalUpdate() {
     log.warn(
       "更新提示",
       colors.yellow(
-        `检测到npm包 ${npmName} 有新版本，当前安装版本为：${lastVersion}，最新版本为：${lastVersion}，请在终端手动输入 npm install ${npmName} -g 命令进行更新`
+        `检测到脚手架有新版本：${lastVersion}，请运行 npm install -g ${npmName} 命令进行更新`
       )
     );
   }
