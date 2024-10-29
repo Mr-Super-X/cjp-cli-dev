@@ -176,7 +176,13 @@ class HuskyCommand extends Command {
 
   async checkHuskyVersion() {
     log.info("检查 husky 版本");
-    const { devDependencies } = this.projectInfo;
+    let { devDependencies } = this.projectInfo;
+
+    // 初始化devDependencies
+    if (!devDependencies) {
+      devDependencies = {};
+    }
+
     if (devDependencies && devDependencies["husky"]) {
       const huskyVersion = devDependencies["husky"];
       const semverVersion = huskyVersion.replace(/^\^|\~/, "");
@@ -223,7 +229,7 @@ class HuskyCommand extends Command {
     }
 
     log.success(
-      `husky安装完成\n\n功能说明：创建Git Hook脚本，可以用来执行一些自动化功能，如：代码风格检查、单元测试、校验提交格式等\n\n您可以通过以下方式进行使用：\n\n方式一：通过脚手架命令运行\n\n${CLI_NAME} ${COMMAND_NAME} --add pre-commit "npm test"（脚本内容需使用引号包裹）\n${CLI_NAME} ${COMMAND_NAME} --set pre-commit "npm run lint"（脚本内容需使用引号包裹）\n\n方式二：8.x版本通过npx运行，最新版通过echo\n\nnpx husky add .husky/pre-commit "npm test"（8.x版本）\necho "npm run lint" > .husky/pre-commit（最新版）\n\n查阅官方帮助文档：https://typicode.github.io/husky/zh/`
+      `husky安装完成\n\n功能说明：创建Git Hook脚本，可以用来执行一些自动化功能，如：代码风格检查、单元测试、校验提交格式等\n\n您可以通过以下方式进行使用：\n\n方式一：通过脚手架命令运行\n\n${CLI_NAME} ${COMMAND_NAME} --add pre-commit "npm test"（脚本内容需使用引号包裹）\n${CLI_NAME} ${COMMAND_NAME} --set pre-commit "npm run lint"（脚本内容需使用引号包裹）\n\n方式二：稳定版（小于等于8.x）通过npx运行，最新版（大于9.0）通过echo\n\nnpx husky add .husky/pre-commit "npm test"（8.x版本）\necho "npm run lint" > .husky/pre-commit（最新版）\n\n查阅官方帮助文档：https://typicode.github.io/husky/zh/`
     );
   }
 
@@ -247,6 +253,12 @@ class HuskyCommand extends Command {
     if (result === 0) {
       log.success("安装husky依赖成功");
     }
+
+    const pkgPath = path.join(CWD, "package.json");
+    // 拿到package.json并返回json
+    const projectInfo = fse.readJsonSync(pkgPath);
+    // 安装完成写入新的依赖后，更新projectInfo
+    this.projectInfo = projectInfo;
   }
 
   // 创建husky配置
@@ -491,7 +503,7 @@ class HuskyCommand extends Command {
       default: "",
       choices: [
         {
-          name: "8.x版本（node <= 16版本推荐）",
+          name: "稳定版（node <= 16版本推荐）",
           value: "husky@8.0.3",
         },
         {

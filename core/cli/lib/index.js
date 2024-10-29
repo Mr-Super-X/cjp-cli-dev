@@ -55,7 +55,7 @@ function registerCommander() {
     .usage("<command> [options]")
     // 程序描述
     .description(
-      "前端工程化统一研发脚手架，支持以下功能：\n\n1. init：快速创建各种项目或组件模板，包括默认项目模板创建、自定义项目模板创建、组件库模板创建、模板自动安装和启动。\n2. publish：一键发布项目或组件库，包括测试发布和正式发布、自动在代码托管平台创建仓库、Git Flow自动化、自动构建、自动发布。 支持项目云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、静态资源上传OSS、自动Git Flow分支管理、自动同步代码、自动创建版本Tag。 \n3. add：支持快速添加组件代码片段模板、标准页面模板、自定义页面模板到本地项目。其中组件支持自动写入代码到指定位置，自动导入并注册局部组件等。\n4. rollback：支持快速回滚生产版本，支持回滚master分支到指定release tag，自动本地构建回滚版本。\n5. release：支持快速自动升级项目版本，自动生成git变更记录文档。\n6. init-git-flow：支持快速为项目创建Git Flow分支模型，自动检查系统是否安装对应工具并返回帮助文档。\n7. delete-branch：支持快速删除本地和远端分支，可多选删除。\n8. clean：支持清除脚手架依赖缓存或全部缓存文件。"
+      "前端工程化统一研发脚手架，支持以下功能：\n\n1. init：快速创建各种项目或组件模板，包括默认项目模板创建、自定义项目模板创建、组件库模板创建、模板自动安装和启动。\n2. publish：一键发布项目或组件库，包括测试发布和正式发布、自动在代码托管平台创建仓库、Git Flow自动化、自动构建、自动发布。 支持项目云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、静态资源上传OSS、自动Git Flow分支管理、自动同步代码、自动创建版本Tag。 \n3. add：支持快速添加组件代码片段模板、标准页面模板、自定义页面模板到本地项目。其中组件支持自动写入代码到指定位置，自动导入并注册局部组件等。\n4. rollback：支持快速回滚生产版本，支持回滚master分支到指定release tag，自动本地构建回滚版本。\n5. husky：支持快速为项目安装可用的Git Hooks配置工具，兼容稳定版和最新版。\n6. codelint：支持快速为项目安装统一代码规范和代码格式校验工具，支持仅校验暂存文件，包含eslint、prettier、lint-staged功能，优先使用prettier美化和格式化代码。\n7. commitlint：支持快速为项目安装统一提交信息规范校验工具，使用Angular提交规范，配套汉化版终端交互工具，终端调用命令选择规范提交类型和输入提交信息。\n8. release：支持快速自动升级项目版本，自动生成git变更记录文档。\n9. gitflow：支持快速为项目创建Git Flow分支模型，自动检查系统是否安装对应工具并返回帮助文档。\n10. delete-branch：支持快速删除本地和远端分支，可多选删除。\n11. clean：支持清除脚手架依赖缓存或全部缓存文件。"
     )
     // 版本号
     .version(pkg.version)
@@ -122,28 +122,28 @@ function registerCommander() {
     .option("-bc, --buildCmd <buildCmd>", "指定自定义构建命令", "npm run build")
     .action(exec);
 
-  // 初始化Git Flow分支模型
-  program
-    .command("gitflow")
-    .description("初始化Git Flow分支模型")
-    .option("-f, --force", "是否强制初始化分支模型", false)
-    .action(exec);
-
   // 项目Git Hooks脚本配置
   program
     .command("husky")
-    .description("安装Git Hooks脚本配置工具")
+    .description("Git Hooks脚本配置工具")
     .option("-i, --install", "为当前项目安装husky功能", false)
     // option支持传递多个值，用...表示，接收的内容为数组格式
     .option("-a, --add <hook...>", "添加新的Git Hook脚本", [])
     .option("-s, --set <hook...>", "设置Git Hook脚本内容", [])
     .action(exec);
 
-  // 一键安装commitlint、汉化版commitizen工具
+  // 代码规范校验工具
+  program
+    .command("codelint")
+    .description("创建统一代码规范")
+    .option("-i, --install", "为项目安装代码规范校验工具", false)
+    .action(exec);
+
+  // 提交规范校验工具
   program
     .command("commitlint")
     .description(
-      "安装Git提交信息Angular规范校验工具：commitlint、汉化版commitizen"
+      "创建统一提交规范"
     )
     .option("-i, --install", "为项目安装Git提交信息Angular规范校验工具", false)
     .action(exec);
@@ -151,11 +151,18 @@ function registerCommander() {
   // 升级版本&自动生成CHANGELOG.md
   program
     .command("release")
-    .description("自动升级项目版本&自动生成Git版本变更记录文档")
+    .description("自动升级项目版本、自动生成Git版本变更记录文档")
     .option("-i, --install", "为当前项目安装release-it功能", false)
     .option("-pa, --patch", "自动升级patch版本，示例：1.0.0 => 1.0.1", false)
     .option("-mi, --minor", "自动升级minor版本，示例：1.0.0 => 1.1.0", false)
     .option("-ma, --major", "自动升级major版本，示例：1.0.0 => 2.0.0", false)
+    .action(exec);
+
+  // 初始化Git Flow分支模型
+  program
+    .command("gitflow")
+    .description("初始化Git Flow分支模型")
+    .option("-f, --force", "是否强制初始化分支模型", false)
     .action(exec);
 
   // 快速删除本地和远程分支

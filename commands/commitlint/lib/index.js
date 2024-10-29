@@ -92,7 +92,7 @@ class CommitlintCommand extends Command {
     }
 
     log.success(
-      `commitlint功能安装完成\n\n功能说明：对提交信息进行Angular规范校验，同时提供了汉化版的终端cz交互工具，可通过命令快捷选择提交类型和输入提交信息\n\n您可以通过以下方式进行使用：\n\nnpm run commit（快捷暂存代码）\nnpm run push（快捷推送代码）\n\n查阅官方帮助文档：https://github.com/commitizen/cz-cli`
+      `commitlint功能安装完成\n\n功能说明：对提交信息进行Angular规范校验，提供配套汉化版终端cz交互工具，可通过命令快捷选择提交类型和输入提交信息\n\n您可以通过以下方式进行使用：\n\nnpm run commit（快捷暂存代码）\nnpm run push（快捷推送代码）\n\n查阅官方帮助文档：https://github.com/commitizen/cz-cli`
     );
   }
 
@@ -186,6 +186,12 @@ class CommitlintCommand extends Command {
     if (result === 0) {
       log.success("安装commitlint相关依赖成功");
     }
+
+    const pkgPath = path.join(CWD, "package.json");
+    // 拿到package.json并返回json
+    const projectInfo = fse.readJsonSync(pkgPath);
+    // 安装完成写入新的依赖后，更新projectInfo
+    this.projectInfo = projectInfo;
   }
 
   async getConfirmReinstall() {
@@ -294,8 +300,13 @@ class CommitlintCommand extends Command {
   // 检查是否已安装commitlint
   async checkCommitlint() {
     log.info("检查当前项目中是否已安装commitlint");
-    const { devDependencies } = this.projectInfo;
+    let { devDependencies } = this.projectInfo;
     log.verbose("devDependencies", devDependencies);
+
+    // 初始化devDependencies
+    if (!devDependencies) {
+      devDependencies = {};
+    }
 
     // 包存在则认为已安装相关包
     if (devDependencies["@commitlint/cli"]) {

@@ -21,6 +21,7 @@ const SETTINGS = {
   add: "@cjp-cli-dev/add",
   rollback: "@cjp-cli-dev/rollback",
   husky: "@cjp-cli-dev/husky",
+  codelint: "@cjp-cli-dev/codelint",
   commitlint: "@cjp-cli-dev/commitlint",
   release: "@cjp-cli-dev/release",
   gitflow: "@cjp-cli-dev/gitflow",
