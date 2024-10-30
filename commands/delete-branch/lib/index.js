@@ -77,13 +77,14 @@ class DeleteBranchCommand extends Command {
       const commandOptions = this.commandOptions.map((item) => ({
         flag: item.flags,
         description: item.description,
+        defaultValue: item.defaultValue
       }));
 
       // 删除单个分支
       if (!this.branchName) {
         log.warn(
           `请指定您想删除的分支名称，支持以下参数：\n\n${commandOptions
-            .map((option) => `['${option.flag}'：${option.description}]`)
+            .map((option) => `['${option.flag}'：${option.description}，默认值：${option.defaultValue}]`)
             .join(
               "\n"
             )}\n\n您可以输入 ${CLI_NAME} ${COMMAND_NAME} -h 查看使用帮助`

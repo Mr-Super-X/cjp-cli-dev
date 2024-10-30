@@ -11,11 +11,13 @@ const {
   simpleGit,
   prompt,
   spawnAsync,
+  isBoolean,
   isCommandAvailable,
   CLI_NAME,
 } = require("@cjp-cli-dev/utils"); // 工具方法
 
 const GIT_ROOT_DIR = ".git"; // git根目录
+const COMMAND_NAME = "gitflow"; // 命令名称
 const CWD = process.cwd(); // 当前项目目录
 const git = simpleGit(CWD);
 
@@ -33,12 +35,16 @@ class GitFlowCommand extends Command {
   init() {
     // 获取参数保存到this中
     this.force = this._args[1].force || false;
+    this.options = this._args[0] || {};
+    this.commandOptions = this._args[1].options || [];
     // debug模式下输出以下变量
     log.verbose("force", this.force);
   }
 
   async exec() {
     try {
+      // 准备工作
+      await this.prepare();
       // 1. 检查是否安装git-flow工具
       await this.checkGitFlowTool();
       // 2. 检查是否为git仓库
@@ -54,6 +60,47 @@ class GitFlowCommand extends Command {
       if (process.env.LOG_LEVEL === "verbose") {
         console.log(err);
       }
+    }
+  }
+
+  async prepare() {
+    // 检查必传参数
+    await this.checkRequiredKeys();
+  }
+
+  // 检查必传参数
+  async checkRequiredKeys() {
+    const requireKeys = ["install"];
+
+    // 检查是否没传参数
+    function checkKeys(keys, obj) {
+      let result = false;
+
+      keys.forEach((key) => {
+        if (isBoolean(obj[key]) && obj[key] === true) {
+          result = true;
+        }
+      });
+
+      return result;
+    }
+
+    // 找出所需要的参数
+    const commandOptions = this.commandOptions.map((item) => ({
+      flag: item.flags,
+      description: item.description,
+      defaultValue: item.defaultValue
+    }));
+
+    if (!checkKeys(requireKeys, this.options)) {
+      log.warn(
+        `请指定参数，支持以下参数：\n\n${commandOptions
+          .map((option) => `['${option.flag}'：${option.description}，默认值：${option.defaultValue}]`)
+          .join(
+            "\n"
+          )}\n\n您可以输入 ${CLI_NAME} ${COMMAND_NAME} -h 查看使用帮助`
+      );
+      process.exit(1);
     }
   }
 

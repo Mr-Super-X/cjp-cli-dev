@@ -162,6 +162,7 @@ function registerCommander() {
   program
     .command("gitflow")
     .description("初始化Git Flow分支模型")
+    .option("-i, --install", "为当前项目初始化Git Flow分支模型", false)
     .option("-f, --force", "是否强制初始化分支模型", false)
     .action(exec);
 

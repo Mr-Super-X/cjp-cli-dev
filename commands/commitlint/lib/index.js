@@ -283,12 +283,13 @@ class CommitlintCommand extends Command {
     const commandOptions = this.commandOptions.map((item) => ({
       flag: item.flags,
       description: item.description,
+      defaultValue: item.defaultValue
     }));
 
     if (!checkKeys(requireKeys, this.options)) {
       log.warn(
         `请指定参数，支持以下参数：\n\n${commandOptions
-          .map((option) => `['${option.flag}'：${option.description}]`)
+          .map((option) => `['${option.flag}'：${option.description}，默认值：${option.defaultValue}]`)
           .join(
             "\n"
           )}\n\n您可以输入 ${CLI_NAME} ${COMMAND_NAME} -h 查看使用帮助`
