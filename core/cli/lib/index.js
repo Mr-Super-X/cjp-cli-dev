@@ -110,7 +110,7 @@ function registerCommander() {
   // 添加复用代码
   program
     .command("add [templateName]")
-    .description("添加组件代码片段模板、页面标准模板、自定义页面模板到本地项目")
+    .description("添加组件代码片段模板、页面标准模板、自定义页面模板")
     .option("-reg, --registry <registry>", "指定npm源地址", "")
     .action(exec);
 

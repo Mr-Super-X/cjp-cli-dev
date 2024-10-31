@@ -100,7 +100,7 @@ class CommitlintCommand extends Command {
   async modifyPackageScripts() {
     log.info("开始为当前项目package.json添加汉化commitizen相关scripts配置");
 
-    let { scripts, config } = this.projectInfo;
+    let { scripts, config, type } = this.projectInfo;
 
     // 当前package.json中没有script属性
     if (!scripts) {
@@ -138,6 +138,12 @@ class CommitlintCommand extends Command {
     const targetFile = path.resolve(CWD, "package.json");
     fse.writeFileSync(targetFile, JSON.stringify(this.projectInfo, null, 2));
     log.success("添加汉化commitizen配置成功");
+
+    // 检查type，如果指定type为module会报错
+    // require() of Es Module /Users/.cz-config.js from /Users/xxx/find-config/src/find-config.js not supported.
+    if(type && type === "module") {
+      log.warn("检测到package.json中已配置type属性为module，如无必要请去掉该属性，否则汉化commitizen工具将不可用")
+    }
   }
 
   // 生成工具配置
