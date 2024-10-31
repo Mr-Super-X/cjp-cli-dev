@@ -11,10 +11,13 @@ const {
   semver,
   spawnAsync,
   prompt,
+  writeFile,
   CLI_NAME,
 } = require("@cjp-cli-dev/utils"); // 工具方法
+const gitignoreTemplate = require("./gitignoreTemplate");
 
 const GIT_ROOT_DIR = ".git"; // git根目录
+const GIT_IGNORE_FILE = ".gitignore"; // .gitignore缓存文件
 const HUSKY_ROOT_DIR = ".husky"; // git根目录
 const COMMAND_NAME = "husky"; // 命令名称
 const CWD = process.cwd(); // 当前项目目录
@@ -64,6 +67,8 @@ class HuskyCommand extends Command {
       await this.prepare();
       // 检查当前项目是否为git仓库
       await this.checkIsGitRepo();
+      // 检查.gitignore文件是否存在
+      await this.checkGitIgnore();
       // 检查当前项目中是否安装husky
       await this.checkHusky();
 
@@ -102,17 +107,11 @@ class HuskyCommand extends Command {
         await optionStrategy["install"]();
       }
 
-      if (
-        this.options["install"] === false &&
-        this.options["add"].length > 1
-      ) {
+      if (this.options["install"] === false && this.options["add"].length > 1) {
         await optionStrategy["add"]();
       }
 
-      if (
-        this.options["install"] === false &&
-        this.options["set"].length > 1
-      ) {
+      if (this.options["install"] === false && this.options["set"].length > 1) {
         await optionStrategy["set"]();
       }
     } catch (err) {
@@ -469,13 +468,16 @@ class HuskyCommand extends Command {
     const commandOptions = this.commandOptions.map((item) => ({
       flag: item.flags,
       description: item.description,
-      defaultValue: item.defaultValue
+      defaultValue: item.defaultValue,
     }));
 
     if (!checkKeys(this.options)) {
       log.warn(
         `请指定您想执行的操作，支持以下参数：\n\n${commandOptions
-          .map((option) => `['${option.flag}'：${option.description}，默认值：${option.defaultValue}]`)
+          .map(
+            (option) =>
+              `['${option.flag}'：${option.description}，默认值：${option.defaultValue}]`
+          )
           .join(
             "\n"
           )}\n\n您可以输入 ${CLI_NAME} ${COMMAND_NAME} -h 查看使用帮助`
@@ -554,6 +556,19 @@ class HuskyCommand extends Command {
     log.success(
       "git init初始化成功，稍后您可以执行 git remote add origin 手动关联远程仓库"
     );
+  }
+
+  // 检查并创建.gitignore
+  async checkGitIgnore() {
+    log.info(`检查项目中是否存在 ${GIT_IGNORE_FILE} 文件`);
+    const ignorePath = path.resolve(CWD, GIT_IGNORE_FILE);
+    // 文件不存在则写入一个默认模板
+    if (!fs.existsSync(ignorePath)) {
+      writeFile(ignorePath, gitignoreTemplate);
+      log.success(`自动写入 ${GIT_IGNORE_FILE} 文件成功`);
+    } else {
+      log.success(`${GIT_IGNORE_FILE} 文件已存在`);
+    }
   }
 }
 
