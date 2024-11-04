@@ -22,7 +22,8 @@
     "url": "git@gitee.com:Mr_Mikey/cjp-cli-dev.git"
   },
   "scripts": {
-    "test": "node ./__tests__/@cjp-cli-dev/resume.test.js"
+    "test": "node ./__tests__/@cjp-cli-dev/resume.test.js",
+    "install": "npm install puppeteer@21.11.0 --ignore-scripts"
   },
   "dependencies": {
     "@cjp-cli-dev/command": "file:../../models/command",
