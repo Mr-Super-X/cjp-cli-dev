@@ -25,6 +25,7 @@ const SETTINGS = {
   commitlint: "@cjp-cli-dev/commitlint",
   release: "@cjp-cli-dev/release",
   gitflow: "@cjp-cli-dev/gitflow",
+  resume: "@cjp-cli-dev/resume",
   "delete-branch": "@cjp-cli-dev/delete-branch",
 };
 

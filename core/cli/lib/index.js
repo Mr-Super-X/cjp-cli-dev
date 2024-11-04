@@ -174,6 +174,14 @@ function registerCommander() {
     .option("-m, --multiple", "是否删除多个分支", false)
     .action(exec);
 
+  // 创建简历
+  program
+    .command("resume")
+    .description("创建markdown简历，支持转为PDF")
+    .option("-i, --install", "下载markdown简历模板", false)
+    .option("-e, --export", "将markdown简历转为PDF", false)
+    .action(exec);
+
   // 清除缓存
   program
     .command("clean")
