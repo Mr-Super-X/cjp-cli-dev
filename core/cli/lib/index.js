@@ -180,6 +180,7 @@ function registerCommander() {
     .description("创建markdown简历，支持转为PDF")
     .option("-i, --install", "下载markdown简历模板", false)
     .option("-e, --export", "将markdown简历转为PDF", false)
+    .option("-rcp, --resetChromePath", "重置chrome浏览器安装路径缓存", false)
     .action(exec);
 
   // 清除缓存

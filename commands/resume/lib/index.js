@@ -6,12 +6,12 @@ const puppeteer = require("puppeteer"); // 用于导出pdf npm i puppeteer@21.11
 const marked = require("marked"); // 用于解析markdown
 // 内置库
 const path = require("path");
+const os = require("os");
 const fs = require("fs");
 // 自建库
 const Command = require("@cjp-cli-dev/command");
 const log = require("@cjp-cli-dev/log");
 const {
-  spawnAsync,
   prompt,
   isBoolean,
   fse,
@@ -19,11 +19,14 @@ const {
   ejs,
   EJS_DEFAULT_IGNORE,
   CLI_NAME,
+  DEFAULT_CLI_HOME,
 } = require("@cjp-cli-dev/utils");
 const genHtmlContent = require("./htmlTemplate.js");
 
 const COMMAND_NAME = "resume"; // 命令名称
 const CWD = process.cwd(); // 当前进程执行所在目录
+const USER_HOME = os.homedir(); // 用户主目录
+const CHROME_INSTALL_PATH = ".chrome_install_path"; // chrome安装路径
 
 // 支持的证件照格式
 const imageExtensions = [".jpg", ".jpeg", ".png"];
@@ -50,7 +53,7 @@ class ResumeCommand extends Command {
   async exec() {
     try {
       // 准备工作
-      await this.prepare();
+      // await this.prepare();
 
       // 命令选项策略
       const optionStrategy = {
@@ -63,6 +66,11 @@ class ResumeCommand extends Command {
         export: async () => {
           // 导出pdf简历
           await this.exportPDF();
+        },
+        // --resetChromePath
+        resetChromePath: async () => {
+          // 重置chrome路径
+          await this.resetChromePath();
         },
       };
 
@@ -82,32 +90,62 @@ class ResumeCommand extends Command {
     }
   }
 
+  async resetChromePath() {
+    log.info("开始重置chrome缓存安装路径");
+    // 获取chrome路径
+    const chromeInstallPath = await this.getChromeInstallPath();
+    // 创建缓存文件
+    await this.createChromePathCache(chromeInstallPath);
+    log.success("chrome缓存安装路径重置成功");
+  }
+
   // 导出pdf
   async exportPDF() {
     log.info("开始将markdown简历导出为PDF格式");
-    log.notice(
-      "导出功能依赖chrome浏览器，请先指定chrome浏览器安装路径（如：C:/Program Files/Google/Chrome/Application/chrome.exe）"
-    );
     // 读取 Markdown 文件
     const mdFiles = await this.getMdFiles();
     if (mdFiles && mdFiles.length > 0) {
       // 用户选择markdown
       const selectMarkdown = await this.getSelectMd(mdFiles);
       // 更新选中的简历名称
-      this.resumeFilename = path.basename(selectMarkdown);
+      this.resumeFilename = path.basename(selectMarkdown, path.extname(selectMarkdown));
       // 读取markdown内容
       const markdownContent = fs.readFileSync(selectMarkdown, "utf-8");
       log.verbose("markdownContent", markdownContent);
       // 生成html内容
       const htmlContent = genHtmlContent(marked, markdownContent);
       log.verbose("htmlContent", htmlContent);
-      // 获取chrome路径
-      const chromeInstallPath = await this.getChromeInstallPath();
-      const chromeDir = path.dirname(chromeInstallPath)
-      const chromeBaseName = path.basename(chromeInstallPath)
-      const chromePath = path.join(chromeDir, chromeBaseName);
+
+      // 查看缓存是否存在
+      const cachePath = path.resolve(
+        USER_HOME,
+        DEFAULT_CLI_HOME,
+        CHROME_INSTALL_PATH
+      );
+      let chromeInstallPath;
+      if (fs.existsSync(cachePath)) {
+        chromeInstallPath = fs.readFileSync(cachePath, "utf-8");
+      } else {
+        log.notice("导出功能依赖chrome浏览器，请先指定chrome浏览器安装路径");
+        log.notice(
+          "路径必须使用引号包裹，如:",
+          '"C:/Program Files/Google/Chrome/Application/chrome.exe"'
+        );
+        // 获取chrome路径
+        chromeInstallPath = await this.getChromeInstallPath();
+        // 创建缓存文件
+        await this.createChromePathCache(chromeInstallPath);
+      }
+
+      // 如果路径包含引号，去除它们
+      const cleanedPath = chromeInstallPath.replace(/^"|"$/g, "");
+      log.verbose("去除引号后的路径", cleanedPath);
+      // 将反斜杠替换为正斜杠
+      const correctedPath = cleanedPath.replace(/\\/g, "/");
+      log.verbose("修正后的路径", correctedPath);
       // 启动chrome浏览器，导出pdf
-      await this.startPuppeteer(htmlContent, chromePath);
+      await this.startPuppeteer(htmlContent, correctedPath);
+      log.success(`已将简历 ${this.resumeFilename} 导出为PDF格式`);
     } else {
       log.error("当前目录中没有可供导出的markdown简历模板");
       process.exit(1);
@@ -152,6 +190,16 @@ class ResumeCommand extends Command {
 
     // 关闭浏览器实例
     await browser.close();
+  }
+
+  // 缓存用户输入的chrome安装路径
+  async createChromePathCache(data) {
+    // 在用户主目录下生成缓存文件
+    const rootDir = path.resolve(USER_HOME, DEFAULT_CLI_HOME);
+    const filePath = path.resolve(rootDir, CHROME_INSTALL_PATH);
+
+    // 写入缓存
+    fs.writeFileSync(filePath, data);
   }
 
   // 获取chrome浏览器安装路径
