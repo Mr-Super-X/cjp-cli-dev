@@ -108,7 +108,10 @@ class ResumeCommand extends Command {
       // 用户选择markdown
       const selectMarkdown = await this.getSelectMd(mdFiles);
       // 更新选中的简历名称
-      this.resumeFilename = path.basename(selectMarkdown, path.extname(selectMarkdown));
+      this.resumeFilename = path.basename(
+        selectMarkdown,
+        path.extname(selectMarkdown)
+      );
       // 读取markdown内容
       const markdownContent = fs.readFileSync(selectMarkdown, "utf-8");
       log.verbose("markdownContent", markdownContent);
@@ -298,8 +301,14 @@ class ResumeCommand extends Command {
       // 使用ejs渲染目标路径中的文件
       await this.ejsRender({ targetPath: CWD, ignore: EJS_DEFAULT_IGNORE });
       log.success("markdown简历模板已创建", `=> ${resumeFilename}.md`);
+      log.success(
+        "模板内容仅供参考，请根据自己的情况调整简历内容，可通过脚手架命令导出PDF文件"
+      );
+      log.success(
+        `markdown语法基本要素查阅参考文档：\n\nhttps://shd101wyy.github.io/markdown-preview-enhanced/#/zh-cn/markdown-basics\nhttps://docs.github.com/zh/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax`
+      );
     } else {
-      log.warn(`当前项目中已存在${resumeFilename}.md`);
+      log.warn(`当前项目中已存在简历模板 ${resumeFilename}.md`);
     }
   }
 
