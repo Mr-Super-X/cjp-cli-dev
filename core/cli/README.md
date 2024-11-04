@@ -233,7 +233,7 @@ cjp-cli-dev delete-branch [branchName]
 强制删除本地和远程分支
 
 ```bash
-cjp-cli-dev delete-branch --force
+cjp-cli-dev delete-branch [branchName] --force
 ```
 
 删除多个分支
