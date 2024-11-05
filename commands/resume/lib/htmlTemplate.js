@@ -6,7 +6,8 @@ module.exports = function(marked, markdownContent) {
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>Markdown to PDF</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>CLI Markdown to PDF</title>
       <style>
         /* 可以在这定义pdf的样式 */
         html body {

@@ -2,7 +2,7 @@
 
 // 第三方库
 const imageToBase64 = require("image-to-base64");
-const puppeteer = require("puppeteer"); // 用于导出pdf npm i puppeteer@21.11.0 -S --ignore-scripts
+const puppeteer = require("puppeteer-core"); // 用于导出pdf
 const marked = require("marked"); // 用于解析markdown
 // 内置库
 const path = require("path");
@@ -26,7 +26,7 @@ const genHtmlContent = require("./htmlTemplate.js");
 const COMMAND_NAME = "resume"; // 命令名称
 const CWD = process.cwd(); // 当前进程执行所在目录
 const USER_HOME = os.homedir(); // 用户主目录
-const CHROME_INSTALL_PATH = ".chrome_install_path"; // chrome安装路径
+const CHROME_INSTALL_PATH = "chrome_install_path"; // chrome安装路径
 
 // 支持的证件照格式
 const imageExtensions = [".jpg", ".jpeg", ".png"];
@@ -129,11 +129,12 @@ class ResumeCommand extends Command {
       if (fs.existsSync(cachePath)) {
         chromeInstallPath = fs.readFileSync(cachePath, "utf-8");
       } else {
-        log.notice("导出功能依赖chrome浏览器，请先指定chrome浏览器安装路径");
+        log.notice("导出功能依赖chrome浏览器，首次使用请先指定chrome浏览器安装路径");
         log.notice(
           "路径必须使用引号包裹，如:",
           '"C:/Program Files/Google/Chrome/Application/chrome.exe"'
         );
+        await this.checkPlatform(); // 检查平台，生成提示
         // 获取chrome路径
         chromeInstallPath = await this.getChromeInstallPath();
         // 创建缓存文件
@@ -148,10 +149,38 @@ class ResumeCommand extends Command {
       log.verbose("修正后的路径", correctedPath);
       // 启动chrome浏览器，导出pdf
       await this.startPuppeteer(htmlContent, correctedPath);
-      log.success(`已将简历 ${this.resumeFilename} 导出为PDF格式`);
+      log.success(`导出完成，已将简历 ${this.resumeFilename} 导出为PDF格式`);
     } else {
       log.error("当前目录中没有可供导出的markdown简历模板");
       process.exit(1);
+    }
+  }
+
+  // 检查平台，生成不同提示
+  async checkPlatform() {
+    const platform = os.platform();
+    // 平台策略
+    const strategy = {
+      // window系统
+      win32: () => {
+        log.notice(
+          "可通过以下方式查找chrome安装路径：\n\n1. 启动chrome浏览器，在地址栏输入 chrome://version/ 复制【可执行文件路径】 \n2. 在桌面或系统搜索中找到chrome应用图标，鼠标右键打开文件所在位置，复制并输入包含chrome.exe在内的完整路径\n"
+        );
+      },
+      // macOS系统
+      darwin: () => {
+        log.notice(
+          "可通过以下方式查找chrome安装路径：\n\n1. 启动chrome浏览器，在地址栏输入 chrome://version/ 复制【可执行文件路径】 \n2. 使用命令如：find /Applications -name 'Google Chrome.app' -type d 进行查找\n"
+        );
+        process.exit(0);
+      },
+    };
+
+    if (strategy[platform]) {
+      strategy[platform]();
+    } else {
+      log.error("暂不支持当前操作系统");
+      process.exit(0);
     }
   }
 
@@ -578,7 +607,7 @@ class ResumeCommand extends Command {
   }
   // 检查必传参数
   async checkRequiredKeys() {
-    const requireKeys = ["install", "export"];
+    const requireKeys = ["install", "export", "resetChromePath"];
 
     // 检查是否没传参数
     function checkKeys(keys, obj) {

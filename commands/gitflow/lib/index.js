@@ -176,7 +176,7 @@ class GitFlowCommand extends Command {
       if (strategy[platform]) {
         strategy[platform]();
       } else {
-        log.error("当前操作系统暂不支持");
+        log.error("暂不支持当前操作系统");
         process.exit(0);
       }
     } else {
