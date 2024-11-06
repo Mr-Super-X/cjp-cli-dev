@@ -183,6 +183,13 @@ function registerCommander() {
     .option("-rcp, --resetChromePath", "重置chrome浏览器安装路径缓存", false)
     .action(exec);
 
+  // 静态资源预览服务
+  program
+    .command("server")
+    .description("启动本地静态资源托管服务，支持配置http请求代理")
+    .option("-p, --port", "指定服务端口", 3000)
+    .action(exec);
+
   // 清除缓存
   program
     .command("clean")

@@ -1,0 +1,258 @@
+"use strict";
+
+// 第三方库
+const express = require("express"); // 服务器
+const { createProxyMiddleware } = require("http-proxy-middleware"); // 代理中间件
+// 内置库
+const path = require("path");
+const fs = require("fs");
+// 自建库
+const Command = require("@cjp-cli-dev/command");
+const log = require("@cjp-cli-dev/log");
+const {
+  fse,
+  semver,
+  spawnAsync,
+  prompt,
+  writeFile,
+  CLI_NAME,
+} = require("@cjp-cli-dev/utils"); // 工具方法
+
+const STATIC_PATH = "./"; // 设置当前目录为静态资源目录
+const INDEX_FILE = "index.html"; // 入口文件
+const CWD = process.cwd();
+const PORT = 3000;
+
+class ServerCommand extends Command {
+  init() {
+    const { port } = this._args[0];
+    // 获取参数保存到this中
+    this.port = port;
+    this.publicPath = null;
+    this.origin = null;
+    this.proxyConfirm = null; // 是否需要代理
+    this.apiPrefix = null; // 代理接口的前缀
+    this.pathRewrite = null; // 重写代理地址
+    // debug模式下输出以下变量
+    log.verbose("port", this.port);
+  }
+
+  async exec() {
+    try {
+      // 准备工作
+      await this.prepare();
+      // 获取publicPath、origin、apiPrefix、pathRewrite等参数
+      await this.getPublicPath();
+      await this.getProxyConfirm();
+      if (this.proxyConfirm) {
+        await this.getOrigin();
+        await this.getProxyApiPrefix();
+        await this.getPathRewrite();
+      }
+      // 启动服务
+      await this.startExpress();
+    } catch (err) {
+      log.error(err.message);
+
+      // debug模式下打印执行栈，便于调试
+      if (process.env.LOG_LEVEL === "verbose") {
+        console.log(err);
+      }
+    }
+  }
+
+  // 启动服务
+  async startExpress() {
+    const app = express();
+
+    // 禁用缓存
+    app.use((req, res, next) => {
+      res.setHeader(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate"
+      );
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      next();
+    });
+
+    // 设置静态资源目录为当前目录（托管静态文件）
+    const staticDirectory = path.join(CWD, STATIC_PATH);
+    app.use(this.publicPath, express.static(staticDirectory));
+
+    if (this.proxyConfirm) {
+      // 单个代理
+      const proxy = await this.createSingleProxyMiddleware();
+
+      // 使用代理中间件处理所有请求（只会对匹配的请求进行代理）
+      app.use(`${this.apiPrefix}/*`, proxy);
+    }
+
+    // 让所有路由都指向当前目录中的index.html
+    app.get(`*`, (req, res) => {
+      if (req.originalUrl.startsWith(this.publicPath)) {
+        res.sendFile(path.join(staticDirectory, "index.html"));
+      } else {
+        res.status(404).send("Not Found");
+      }
+    });
+
+    const ip = await this.getLocalWalnIPv4();
+    const port = PORT || this.port;
+
+    // 启动服务
+    app.listen(port, ip, () => {
+      log.success(
+        `预览服务器已启动，复制链接到浏览器地址栏进行访问\n\nhttp://${ip}:${port}${this.publicPath}\n`
+      );
+    });
+  }
+
+  async createSingleProxyMiddleware() {
+    log.info("开始生成代理服务配置");
+    // 代理配置
+    const proxyOptions = {
+      target: this.origin, // 目标服务器地址
+      changeOrigin: true, // 改变源地址
+      pathRewrite: {
+        [`^${this.apiPrefix}`]: this.pathRewrite, // 重写路径
+      },
+    };
+
+    const proxy = createProxyMiddleware(proxyOptions, {
+      router: function (req) {
+        const regex = new RegExp(`^${this.apiPrefix}`);
+        // 使用正则表达式检查请求路径是否以publicPath开头
+        if (regex.test(req.originalUrl)) {
+          // 如果匹配，则返回代理选项对象（或修改后的对象）
+          return proxyOptions;
+        }
+      },
+    });
+
+    log.success("代理服务配置生成成功");
+    return proxy;
+  }
+
+  // 获取本机WALN IPv4地址
+  async getLocalWalnIPv4() {
+    var ipv4 = "";
+    var ifaces = os.networkInterfaces(); // 所有类型的适配器和全部内容
+
+    for (var dev in ifaces) {
+      ifaces[dev].forEach(function (details, alias) {
+        if (dev === "WLAN") {
+          // 判断需要获取IP的适配器
+          if (details.family == "IPv4") {
+            // 判断是IPV4还是IPV6 还可以通过alias去判断
+            ipv4 = details.address; // 取addressIP地址
+            return;
+          }
+        }
+      });
+    }
+
+    return ipv4 || "127.0.0.1";
+  }
+
+  async prepare() {
+    log.info(`开始检查是否存在入口文件 ${INDEX_FILE}`);
+    // 检查index.html
+    const targetPath = path.resolve(CWD, INDEX_FILE);
+
+    if (!fs.existsSync(targetPath)) {
+      log.error(`当前目录中入口文件 ${INDEX_FILE} 不存在`);
+      process.exit(1);
+    }
+    log.success("入口文件检查通过");
+  }
+
+  async getPublicPath() {
+    log.notice(
+      `publicPath的作用是指定打包后静态资源的访问路径，默认使用绝对路径 /`
+    );
+    log.notice(
+      "如您的项目中已指定publicPath，请复制publicPath的值粘贴到此处，否则将加载不到静态资源文件"
+    );
+    const { publicPath } = await prompt({
+      type: "input",
+      name: "publicPath",
+      message: "请输入您项目构建配置中 publicPath 的值：",
+      default: "/", // 默认为/
+    });
+
+    this.publicPath = publicPath.trim();
+    log.verbose("publicPath", publicPath);
+  }
+
+  async getProxyConfirm() {
+    const { proxyConfirm } = await prompt({
+      type: "confirm",
+      name: "proxyConfirm",
+      message: "是否需要代理http请求？",
+      default: false, // 按回车默认为否
+    });
+
+    this.proxyConfirm = proxyConfirm;
+  }
+
+  async getOrigin() {
+    log.notice(
+      "注意服务器地址后面不需要加 / 结尾，示例：http://example.com:38800"
+    );
+    const { origin } = await prompt({
+      type: "input",
+      name: "origin",
+      message: "请输入要代理的目标服务器地址：",
+      default: "",
+      validate(value) {
+        const done = this.async();
+        if (!value || !value.trim()) {
+          done("目标服务器地址不能为空");
+          return;
+        }
+        done(null, true);
+      },
+    });
+
+    this.origin = origin.trim();
+    log.verbose("origin", origin);
+  }
+
+  async getProxyApiPrefix() {
+    log.notice(
+      `请求前缀（apiPrefix）匹配到的请求路径将被代理，示例：\n\n1. 输入/api：请求 /api/users 将被代理为 ${this.origin}/api/users\n`
+    );
+    const { apiPrefix } = await prompt({
+      type: "input",
+      name: "apiPrefix",
+      message: "请输入接口请求前缀：",
+      default: "", // 默认 ''
+    });
+
+    this.apiPrefix = apiPrefix.trim();
+    log.verbose("apiPrefix", apiPrefix);
+  }
+
+  async getPathRewrite() {
+    log.notice(
+      `重写请求路径（pathRewrite）的作用是修改代理请求路径，示例：\n\n1. 输入空字符串：请求 /api/users 将被代理为 ${this.origin}/users\n2. 输入/test：请求 /api/users 将被代理为 ${this.origin}/test/users\n3. 输入/abc/def：请求 /api/users 将被代理为 ${this.origin}/abc/def/users\n\n查看更多文档：https://github.com/chimurai/http-proxy-middleware?tab=readme-ov-file#pathrewrite-objectfunction\n`
+    );
+    const { pathRewrite } = await prompt({
+      type: "input",
+      name: "pathRewrite",
+      message: "请输入重写请求路径的值：",
+      default: "", // 默认 ''
+    });
+
+    this.pathRewrite = pathRewrite.trim();
+    log.verbose("pathRewrite", pathRewrite);
+  }
+}
+
+function init(args) {
+  return new ServerCommand(args);
+}
+
+module.exports = init;
+module.exports.ServerCommand = ServerCommand;
