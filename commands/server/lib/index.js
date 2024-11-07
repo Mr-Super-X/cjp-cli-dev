@@ -9,16 +9,8 @@ const fs = require("fs");
 // 自建库
 const Command = require("@cjp-cli-dev/command");
 const log = require("@cjp-cli-dev/log");
-const {
-  fse,
-  semver,
-  spawnAsync,
-  prompt,
-  writeFile,
-  CLI_NAME,
-} = require("@cjp-cli-dev/utils"); // 工具方法
+const { prompt } = require("@cjp-cli-dev/utils"); // 工具方法
 
-const STATIC_PATH = "./"; // 设置当前目录为静态资源目录
 const INDEX_FILE = "index.html"; // 入口文件
 const CWD = process.cwd();
 const PORT = 3000;
@@ -29,9 +21,8 @@ class ServerCommand extends Command {
     // 获取参数保存到this中
     this.port = port;
     this.publicPath = null;
-    this.origin = null;
     this.proxyConfirm = null; // 是否需要代理
-    this.apiPrefix = null; // 代理接口的前缀
+    this.origin = null; // 代理地址
     this.pathRewrite = null; // 重写代理地址
     // debug模式下输出以下变量
     log.verbose("port", this.port);
@@ -77,24 +68,32 @@ class ServerCommand extends Command {
     });
 
     // 设置静态资源目录为当前目录（托管静态文件）
-    const staticDirectory = path.join(CWD, STATIC_PATH);
-    app.use(this.publicPath, express.static(staticDirectory));
+    const staticDirectory = path.join(CWD, ".");
+
+    // 中间件：重写publicPath，让html正确拿到publicPath引用的静态资源
+    app.use((req, res, next) => {
+      if (req.originalUrl.startsWith(`${this.publicPath}`)) {
+        const pattern = new RegExp(`^${this.publicPath}`)
+        // 将publicPath匹配到的资源替换成./当前目录
+        req.url = req.originalUrl.replace(pattern, "./");
+      }
+      next();
+    });
+
+    // 使用 express.static 中间件来提供静态文件服务
+    app.use(express.static(staticDirectory));
 
     if (this.proxyConfirm) {
       // 单个代理
       const proxy = await this.createSingleProxyMiddleware();
 
       // 使用代理中间件处理所有请求（只会对匹配的请求进行代理）
-      app.use(`${this.apiPrefix}/*`, proxy);
+      app.use(proxy);
     }
 
     // 让所有路由都指向当前目录中的index.html
     app.get(`*`, (req, res) => {
-      if (req.originalUrl.startsWith(this.publicPath)) {
-        res.sendFile(path.join(staticDirectory, "index.html"));
-      } else {
-        res.status(404).send("Not Found");
-      }
+      res.sendFile(path.join(staticDirectory, "index.html"));
     });
 
     const ip = await this.getLocalWalnIPv4();
@@ -103,32 +102,34 @@ class ServerCommand extends Command {
     // 启动服务
     app.listen(port, ip, () => {
       log.success(
-        `预览服务器已启动，复制链接到浏览器地址栏进行访问\n\nhttp://${ip}:${port}${this.publicPath}\n`
+        `本地预览服务器已启动，复制链接到浏览器地址栏进行访问\n\nhttp://${ip}:${port}${this.publicPath}/\n`
       );
     });
   }
 
   async createSingleProxyMiddleware() {
     log.info("开始生成代理服务配置");
+
+    if (!this.origin) {
+      log.error("代理目标服务器地址不存在，请重试");
+      process.exit(1);
+    }
+
     // 代理配置
     const proxyOptions = {
       target: this.origin, // 目标服务器地址
       changeOrigin: true, // 改变源地址
-      pathRewrite: {
-        [`^${this.apiPrefix}`]: this.pathRewrite, // 重写路径
-      },
+      ws: true, // 代理websocket请求
+      logLevel: "debug", // 日志级别
     };
 
-    const proxy = createProxyMiddleware(proxyOptions, {
-      router: function (req) {
-        const regex = new RegExp(`^${this.apiPrefix}`);
-        // 使用正则表达式检查请求路径是否以publicPath开头
-        if (regex.test(req.originalUrl)) {
-          // 如果匹配，则返回代理选项对象（或修改后的对象）
-          return proxyOptions;
-        }
-      },
-    });
+    // if (this.apiPrefix && this.pathRewrite) {
+    //   proxyOptions.pathRewrite = {
+    //     [`^${this.apiPrefix}`]: this.pathRewrite, // 重写路径
+    //   };
+    // }
+
+    const proxy = createProxyMiddleware(proxyOptions);
 
     log.success("代理服务配置生成成功");
     return proxy;
@@ -168,11 +169,11 @@ class ServerCommand extends Command {
   }
 
   async getPublicPath() {
-    log.notice(
+    log.info(
       `publicPath的作用是指定打包后静态资源的访问路径，默认使用绝对路径 /`
     );
-    log.notice(
-      "如您的项目中已指定publicPath，请复制publicPath的值粘贴到此处，否则将加载不到静态资源文件"
+    log.info(
+      "如您的项目中已指定publicPath，请复制publicPath的值粘贴到此处，否则将加载不到静态资源文件\n"
     );
     const { publicPath } = await prompt({
       type: "input",
@@ -197,13 +198,10 @@ class ServerCommand extends Command {
   }
 
   async getOrigin() {
-    log.notice(
-      "注意服务器地址后面不需要加 / 结尾，示例：http://example.com:38800"
-    );
     const { origin } = await prompt({
       type: "input",
       name: "origin",
-      message: "请输入要代理的目标服务器地址：",
+      message: "请输入要代理的目标服务器地址（示例：http://example.com:8888）：",
       default: "",
       validate(value) {
         const done = this.async();
@@ -219,23 +217,8 @@ class ServerCommand extends Command {
     log.verbose("origin", origin);
   }
 
-  async getProxyApiPrefix() {
-    log.notice(
-      `请求前缀（apiPrefix）匹配到的请求路径将被代理，示例：\n\n1. 输入/api：请求 /api/users 将被代理为 ${this.origin}/api/users\n`
-    );
-    const { apiPrefix } = await prompt({
-      type: "input",
-      name: "apiPrefix",
-      message: "请输入接口请求前缀：",
-      default: "", // 默认 ''
-    });
-
-    this.apiPrefix = apiPrefix.trim();
-    log.verbose("apiPrefix", apiPrefix);
-  }
-
   async getPathRewrite() {
-    log.notice(
+    log.info(
       `重写请求路径（pathRewrite）的作用是修改代理请求路径，示例：\n\n1. 输入空字符串：请求 /api/users 将被代理为 ${this.origin}/users\n2. 输入/test：请求 /api/users 将被代理为 ${this.origin}/test/users\n3. 输入/abc/def：请求 /api/users 将被代理为 ${this.origin}/abc/def/users\n\n查看更多文档：https://github.com/chimurai/http-proxy-middleware?tab=readme-ov-file#pathrewrite-objectfunction\n`
     );
     const { pathRewrite } = await prompt({
