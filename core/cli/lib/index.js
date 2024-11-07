@@ -187,7 +187,7 @@ function registerCommander() {
   program
     .command("server")
     .description("启动本地静态资源托管服务，支持配置http请求代理")
-    .option("-p, --port", "指定服务端口", 3000)
+    .option("-p, --port <port>", "指定启动服务的端口", 3000)
     .action(exec);
 
   // 清除缓存

@@ -37,7 +37,6 @@ class ServerCommand extends Command {
       await this.getProxyConfirm();
       if (this.proxyConfirm) {
         await this.getOrigin();
-        await this.getProxyApiPrefix();
         await this.getPathRewrite();
       }
       // 启动服务
@@ -73,7 +72,7 @@ class ServerCommand extends Command {
     // 中间件：重写publicPath，让html正确拿到publicPath引用的静态资源
     app.use((req, res, next) => {
       if (req.originalUrl.startsWith(`${this.publicPath}`)) {
-        const pattern = new RegExp(`^${this.publicPath}`)
+        const pattern = new RegExp(`^${this.publicPath}`);
         // 将publicPath匹配到的资源替换成./当前目录
         req.url = req.originalUrl.replace(pattern, "./");
       }
@@ -97,7 +96,7 @@ class ServerCommand extends Command {
     });
 
     const ip = await this.getLocalWalnIPv4();
-    const port = PORT || this.port;
+    const port = this.port || PORT;
 
     // 启动服务
     app.listen(port, ip, () => {
@@ -123,11 +122,16 @@ class ServerCommand extends Command {
       logLevel: "debug", // 日志级别
     };
 
-    // if (this.apiPrefix && this.pathRewrite) {
-    //   proxyOptions.pathRewrite = {
-    //     [`^${this.apiPrefix}`]: this.pathRewrite, // 重写路径
-    //   };
-    // }
+    if (this.pathRewrite) {
+      const keyArr = this.pathRewrite.split(" : ");
+      const apiPrefix = keyArr[0].trim();
+      const rewritePath = keyArr[1].trim();
+      log.verbose("apiPrefix", apiPrefix);
+      log.verbose("rewritePath", rewritePath);
+      proxyOptions.pathRewrite = {
+        [apiPrefix]: rewritePath,
+      };
+    }
 
     const proxy = createProxyMiddleware(proxyOptions);
 
@@ -170,7 +174,7 @@ class ServerCommand extends Command {
 
   async getPublicPath() {
     log.info(
-      `publicPath的作用是指定打包后静态资源的访问路径，默认使用绝对路径 /`
+      `publicPath的作用是指定打包后静态资源的访问路径前缀，默认使用绝对路径 /`
     );
     log.info(
       "如您的项目中已指定publicPath，请复制publicPath的值粘贴到此处，否则将加载不到静态资源文件\n"
@@ -201,7 +205,8 @@ class ServerCommand extends Command {
     const { origin } = await prompt({
       type: "input",
       name: "origin",
-      message: "请输入要代理的目标服务器地址（示例：http://example.com:8888）：",
+      message:
+        "请输入要代理的目标服务器地址（示例：http://example.com:8888）：",
       default: "",
       validate(value) {
         const done = this.async();
@@ -219,16 +224,38 @@ class ServerCommand extends Command {
 
   async getPathRewrite() {
     log.info(
-      `重写请求路径（pathRewrite）的作用是修改代理请求路径，示例：\n\n1. 输入空字符串：请求 /api/users 将被代理为 ${this.origin}/users\n2. 输入/test：请求 /api/users 将被代理为 ${this.origin}/test/users\n3. 输入/abc/def：请求 /api/users 将被代理为 ${this.origin}/abc/def/users\n\n查看更多文档：https://github.com/chimurai/http-proxy-middleware?tab=readme-ov-file#pathrewrite-objectfunction\n`
+      `pathRewrite的作用是修改代理请求路径，以【空格加冒号加空格】进行分隔，且只能分隔一次\n\n以请求 /api/user 为例：\n\n1. 输入 【/api : ""】 请求路径将被重写为 => /users\n2. 输入 【/api : /test】 请求路径将被重写为 => /test/user\n3. 输入 【/api : /abc/def】 请求路径将被重写为 => /abc/def/user\n`
     );
     const { pathRewrite } = await prompt({
       type: "input",
       name: "pathRewrite",
-      message: "请输入重写请求路径的值：",
+      message:
+        "请输入pathRewrite配置：",
       default: "", // 默认 ''
+      validate(value) {
+        const done = this.async();
+        // 支持跳过输入
+        if (!value) {
+          done(null, true);
+        }
+
+        function match(input) {
+          // 使用全局正则表达式匹配所有空格加冒号加空格的实例
+          const matches = input.match(/\s:\s/g);
+          // 检查匹配到的次数是否为1
+          return matches && matches.length === 1;
+        }
+        // 匹配空格加冒号加空格
+        // 如果已输入则检查是否合法
+        if (value && !match(value)) {
+          done("输入的pathRewrite不合法，正确格式：以 [空格加冒号加空格] 隔离前缀和重写路径，且只能分隔一次");
+          return;
+        }
+        done(null, true);
+      },
     });
 
-    this.pathRewrite = pathRewrite.trim();
+    this.pathRewrite = pathRewrite;
     log.verbose("pathRewrite", pathRewrite);
   }
 }
