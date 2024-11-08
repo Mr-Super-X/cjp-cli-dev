@@ -8,14 +8,14 @@
 2. publish：发布项目或组件库，包括测试发布和正式发布、支持自动在github/gitee创建远程仓库和提交代码、Git Flow自动化处理。 支持项目云构建、云发布，采用Redis管理云构建任务数据，发布完成自动清除Redis缓存，静态资源自动上传OSS、自动同步代码和创建版本Tag。
 3. add：支持快速添加组件代码片段模板、标准页面模板、自定义页面模板到本地项目（暂时仅支持vue项目）。支持自动写入组件到指定代码位置，自动导入并注册局部组件，自动合并项目依赖等。
 4. rollback：支持快速回滚生产版本，支持回滚master分支到指定release tag，自动本地构建回滚版本。
-5. husky：支持快速为项目安装可用的Git Hooks配置工具，兼容稳定版和最新版。
+5. husky：支持快速为项目安装可用的Git Hooks配置工具，兼容husky稳定版和最新版。
 6. codelint：支持快速为项目安装统一代码规范和代码格式校验工具，支持仅校验暂存文件，包含eslint、prettier、lint-staged功能，优先使用prettier美化和格式化代码。
 7. commitlint：支持快速为项目安装统一提交信息规范校验工具，使用Angular提交规范，配套汉化版终端交互工具，终端调用命令选择规范提交类型和输入提交信息。
-8. release：支持快速自动升级项目版本，自动生成git变更记录文档。
+8. release：支持release-it快速自动升级项目版本，自动生成git变更记录文档。
 9. gitflow：支持快速为项目创建Git Flow分支模型，自动检查系统是否安装对应工具并返回帮助文档。
 10. delete-branch：支持快速删除本地和远端分支，可多选删除。
 11. clean：支持清除脚手架依赖缓存或全部缓存文件。
-12. resume：支持创建markdown简历，提供前端简历模板，支持导出one-light主题样式PDF。
+12. resume：支持创建markdown简历，提供前端简历模板，支持驱动chrome浏览器导出one-light主题样式PDF。
 13. server：通过express启动本地页面预览服务，支持http请求代理，支持代理多个服务器。
 
 ## Getting Started
