@@ -1,6 +1,6 @@
 {
   "name": "@cjp-cli-dev/utils",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "description": "cjp-cli-dev utils",
   "author": "v_jpch <v_jpch.digitalgd.com>",
   "homepage": "",
@@ -33,7 +33,8 @@
     "glob": "^10.4.5",
     "inquirer": "^8.2.4",
     "path-exists": "^4.0.0",
-    "semver": "^7.6.3"
+    "semver": "^7.6.3",
+    "simple-git": "^3.27.0"
   },
   "gitHead": "b67c081a8c62b824b50db061b9e25c272c72db09"
 }

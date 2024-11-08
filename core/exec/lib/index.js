@@ -15,11 +15,19 @@ const {
 
 // 全局变量
 const SETTINGS = {
-  // 命令配置表，已发布到npm的包名（如需本地调试可以指定targetPath，这里的配置就会被忽略）
+  // 命令配置表，已发布到npm的包名（如需本地调试可以指定targetPath）
   init: "@cjp-cli-dev/init",
   publish: "@cjp-cli-dev/publish",
   add: "@cjp-cli-dev/add",
   rollback: "@cjp-cli-dev/rollback",
+  husky: "@cjp-cli-dev/husky",
+  codelint: "@cjp-cli-dev/codelint",
+  commitlint: "@cjp-cli-dev/commitlint",
+  release: "@cjp-cli-dev/release",
+  gitflow: "@cjp-cli-dev/gitflow",
+  resume: "@cjp-cli-dev/resume",
+  server: "@cjp-cli-dev/server",
+  "delete-branch": "@cjp-cli-dev/delete-branch",
 };
 
 const USER_HOME = os.homedir(); // 用户主目录

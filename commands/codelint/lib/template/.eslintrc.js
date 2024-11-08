@@ -1,0 +1,53 @@
+// http://eslint.cn/
+module.exports = {
+  // 默认情况下，ESLint 会在所有父级目录里寻找配置文件，一直到根目录。
+  // 如果你想要你所有项目都遵循一个特定的约定时，这将会很有用，但有时候会导致意想不到的结果。
+  // 为了将 ESLint 限制到一个特定的项目，在你项目根目录下的 package.json 文件
+  // 或者 .eslintrc.* 文件里的 eslintConfig 字段下设置 "root": true。
+  // ESLint 一旦发现配置文件中有 "root": true，它就会停止在父级目录中寻找。
+  root: true,
+  // 指定你想启用的环境
+  env: {
+    node: true,
+    browser: true,
+    es2021: true,
+  },
+  // 指定继承的规则
+  // plugin:prettier/recommended 作用是解决prettier和eslint冲突，需要安装eslint-plugin-prettier
+  extends: ['plugin:prettier/recommended'],
+  // 指定你想要支持的 JavaScript 语言选项。
+  // 默认情况下，ESLint 支持 ECMAScript 5 语法。你可以覆盖该设置，以启用对 ECMAScript 其它版本和 JSX 的支持
+  parserOptions: {
+    parser: '@babel/eslint-parser', // 需安装@babel/eslint-parser
+    ecmaVersion: 2020,
+    sourceType: 'module',
+  },
+  // rules 属性可以做下面的任何事情以扩展（或覆盖）规则：
+  // 启用额外的规则
+  // 改变继承的规则级别而不改变它的选项
+  // 覆盖基础配置中的规则的选项
+  rules: {
+    // 生产环境使用console报警告，开发环境关闭
+    'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+    // 生产环境使用debugger报警告，开发环境关闭
+    'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+    // 关闭使用symbol时一定要传入描述
+    'symbol-description': 'off',
+    // 未使用变量报警告
+    "no-unused-vars": 'warn',
+  },
+  // 解决使用未导入的全局变量报错
+  globals: {
+    // 如vue3中使用defineProps，可按以下方式设置
+    // defineProps: 'readonly',
+  },
+  // 禁用一组文件的配置文件中的规则
+  overrides: [
+    {
+      files: ['**/__tests__/*.{j,t}s?(x)', '**/tests/unit/**/*.spec.{j,t}s?(x)'],
+      env: {
+        jest: true,
+      },
+    },
+  ],
+}

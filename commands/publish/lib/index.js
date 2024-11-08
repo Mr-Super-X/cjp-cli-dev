@@ -53,7 +53,8 @@ class PublishCommand extends Command {
       this.prepare();
       // 2. git flow 自动化
       const git = new Git(this.projectInfo, this.options);
-      await git.prepare(); // 自动化提交准备和代码仓库初始化
+      await git.prepare(); // git自动化准备
+      await git.init(); // 代码仓库初始化
       await git.commit(); // 代码自动化提交
       // 3. 云构建和云发布
       await git.publish(); // 代码云构建+云发布
@@ -75,7 +76,7 @@ class PublishCommand extends Command {
     const pkgPath = path.join(projectPath, "package.json");
     log.verbose("package.json路径：", pkgPath);
     if (!fs.existsSync(pkgPath)) {
-      throw new Error("package.json不存在！");
+      throw new Error("package.json不存在！这不是一个标准的node项目");
     }
     // 2. 确认是否包含name、version、build命令
     const pkg = fse.readJsonSync(pkgPath);

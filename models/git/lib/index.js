@@ -173,11 +173,23 @@ class Git {
     await this.checkRepo(); // 检查并创建远程仓库
     await this.checkGitIgnore(); // 检查并创建.gitignore
     await this.checkComponent(); // 检查组件合法性
-    await this.init(); // 完成本地git仓库初始化
   }
 
   // 回滚
   async rollback() {
+    // 检查并生成回滚tag版本选项
+    await this.checkRollbackTag();
+    // 检查并创建回滚备份分支
+    await this.checkRollbackBranch();
+    // 回滚代码构建新的静态资源包
+    await this.localBuild();
+    log.success(
+      `回滚 ${this.rollbackTag} 版本成功，请修复bug后将代码合并到 master 并删除 ${this.rollbackBackupMasterBranch} 分支再次发布新版本`
+    );
+  }
+
+  // 检查并创建回滚备份分支
+  async checkRollbackBranch() {
     // 创建master分支上回滚版本之后的提交存储分支，如backup/master/rollback-release/1.0.0
     const rollbackBackupMasterBranch = `backup/master/${ROLLBACK_VERSION}-${this.rollbackTag}`;
     this.rollbackBackupMasterBranch = rollbackBackupMasterBranch; // 缓存到this上
@@ -194,11 +206,9 @@ class Git {
 
     if (!rollbackConfirm) {
       log.notice("回滚操作已取消");
-      return;
+      process.exit(0); // 结束进程，后面代码不会执行
     }
 
-    // 检查当前分支有没有未提交代码，进行提交
-    await this.checkNotCommitted();
     // 切换本地master分支
     await this.checkoutLocalBranch("master");
     // 同步远程master分支代码
@@ -213,28 +223,41 @@ class Git {
     await this.checkoutLocalBranch("master");
     // 强制回退master分支
     await this.resetHardTagForce("master", this.rollbackTag);
-    // 构建新的静态资源包
-    await this.localBuild();
-    // 上传到静态资源服务器
-    await this.uploadDistToServer();
-    log.success(`回滚 ${this.rollbackTag} 版本成功，请修复bug后再次发布新版本`);
   }
 
   // 回滚版本预检查
-  async prepareRollback() {
+  async rollbackPrepare() {
     log.info("开始进行版本回滚前预检查");
-    // 拉取远端最新信息
+    // 1. 检查 .git 目录是否存在，不存在表示这不是一个git仓库，中断并提示
+    await this.checkIsGitRepo();
+    // 2. 检查当前分支有没有未提交代码，进行提交
+    await this.checkNotCommitted();
+    // 3. 拉取远端最新信息
     await this.checkRemoteAllUpdate();
-
-    // 检查回滚备份分支是否存在，存在则停止本次回滚操作
+    // 4. 检查回滚备份分支是否存在，存在则停止本次回滚操作
     await this.checkLocalRollbackBranch(); // 检查本地
     await this.checkRemoteRollbackBranch(); // 检查远程
+    log.success("回滚前预检查通过");
+  }
 
+  // 检查是不是一个git仓库
+  async checkIsGitRepo() {
+    log.info(`检查 ${GIT_ROOT_DIR} 目录是否存在`);
+    const gitPath = path.resolve(this.dir, GIT_ROOT_DIR);
+    if (!fs.existsSync(gitPath)) {
+      throw new Error(
+        `检测到 ${GIT_ROOT_DIR} 目录不存在，当前项目不是一个git仓库`
+      );
+    } else {
+      log.success(`检测到 ${GIT_ROOT_DIR} 目录存在，当前项目是一个git仓库`);
+    }
+  }
+
+  // 检查并生成回滚tag
+  async checkRollbackTag() {
     // 检查release/tag是否存在
     const tagList = await this.checkReleaseTags();
     log.verbose("tagList", tagList);
-
-    log.success("回滚前预检查通过");
 
     // 拿到用户选择的tag
     const tag = await this.getChoicesTag(
@@ -245,22 +268,7 @@ class Git {
     this.rollbackTag = tag;
   }
 
-  // 上传打包结果到服务器
-  async uploadDistToServer() {
-    // 没指定这三个参数时会跳过上传
-    if (this.sshUser && this.sshIp && this.sshPath) {
-      log.info("开始上传构建结果至模板服务器");
-      const templateFilePath = path.resolve(this.dir, "dist");
-      // 上传dist
-      const uploadCmd = `scp -r ${templateFilePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`;
-      log.verbose("uploadCmd", uploadCmd);
-      const result = cp.execSync(uploadCmd);
-      console.log(result.toString()); // 打印服务端日志
-      log.success("上传构建结果至模板服务器成功");
-    }
-  }
-
-  // 回退代码
+  // 回退分支
   async resetHardTagForce(branchName, tag) {
     log.info(`开始回滚 ${branchName} 分支代码`);
     // 2、基于master分支的commit id，进行reset --hard回退
@@ -287,7 +295,7 @@ class Git {
       item.includes(`backup/master/${ROLLBACK_VERSION}-`)
     );
 
-    if (hasRollback.length > 0) {
+    if (hasRollback) {
       log.error(
         `检测到本地存在回滚备份分支：${hasRollback} ，请合并并删除该分支后重试`
       );
@@ -306,7 +314,7 @@ class Git {
       item.includes(`backup/master/${ROLLBACK_VERSION}-`)
     );
 
-    if (hasRollback.length > 0) {
+    if (hasRollback) {
       log.error(
         `检测到远程存在回滚备份分支：${hasRollback} ，请合并并删除该分支后重试`
       );
@@ -702,21 +710,12 @@ class Git {
     // 2. 提示用户手动操作构建结果
     log.info("开始进行本地构建");
 
-    // 如果没有配置构建命令则默认npm run build
-    if (!this.buildCmd) {
-      const defaultBuildCmd = "npm run build";
-      log.info(
-        `当前没有指定构建命令，将使用默认 ${defaultBuildCmd} 命令进行构建`
-      );
-      this.buildCmd = defaultBuildCmd;
-    }
-
     cp.execSync(`${this.buildCmd}`, {
       cwd: this.dir, // 在当前源码目录下执行
       stdio: "inherit",
     });
 
-    log.success("本地构建成功，请您手动处理构建结果进行发布");
+    log.success("本地构建成功");
     // 上一步execSync报错会终止程序运行，如果没报错表示执行成功，返回true告知当前步骤成功
     return true;
   }

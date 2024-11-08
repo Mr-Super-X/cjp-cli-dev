@@ -1,6 +1,6 @@
 {
   "name": "@cjp-cli-dev/core",
-  "version": "1.1.1",
+  "version": "1.7.2",
   "description": "cjp-cli-dev core",
   "author": "v_jpch <v_jpch.digitalgd.com>",
   "homepage": "",
@@ -36,7 +36,6 @@
     "commander": "^11.0.0",
     "dotenv": "^16.4.5",
     "import-local": "^3.2.0",
-    "npmlog": "^7.0.1",
     "root-check": "^1.0.0"
   },
   "gitHead": "b67c081a8c62b824b50db061b9e25c272c72db09"

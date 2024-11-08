@@ -1,7 +1,6 @@
 "use strict";
 
 // 内置库
-const fs = require("fs"); // 用于文件操作
 const os = require("os"); // 用于获取系统信息
 const path = require("path"); // 用于获取路径
 // 第三方库
@@ -15,15 +14,14 @@ const exec = require("@cjp-cli-dev/exec"); // 用于执行动态初始化命令
 const { getNpmSemverVersion } = require("@cjp-cli-dev/get-npm-info"); // 用于获取npm包信息
 const {
   pathExists,
-  prompt,
   semver,
-  fse,
   colors,
   CLI_NAME,
   DEFAULT_CLI_HOME,
-  DEPENDENCIES_CACHE_DIR,
 } = require("@cjp-cli-dev/utils"); // 工具方法
-const pkg = require("../package.json");
+const pkg = require("../package.json"); // 脚手架package.json
+const execClean = require("./execClean"); // 执行清除缓存命令
+const description = require("./description"); // 脚手架描述模板
 
 // 全局变量
 const homedir = os.homedir(); // 用户主目录
@@ -57,9 +55,7 @@ function registerCommander() {
     // 提示这个工具怎么用
     .usage("<command> [options]")
     // 程序描述
-    .description(
-      "前端通用脚手架，支持以下功能：\n1.快速创建各种项目或组件模板，包括默认项目模板创建、自定义项目模板创建、组件库模板创建、模板自动安装和启动。\n2.发布项目或组件，包括测试发布和正式发布、自动在代码托管平台创建仓库、Git Flow自动化、自动构建、自动发布。 \n3.支持项目云构建、云发布（采用Redis管理构建任务数据，发布完成自动清除Redis缓存）、静态资源上传OSS、自动Git Flow分支管理、自动同步代码并创建版本Tag。 \n4.支持快速添加组件代码片段模板、页面标准模板、自定义页面模板到本地项目。其中组件支持自动写入代码到指定位置，自动导入并注册局部组件等。"
-    )
+    .description(description)
     // 版本号
     .version(pkg.version)
     // option方法参数说明：1：参数简写和全写，后面加[]表示非必传，加<>表示必传，2：参数描述，3：默认值
@@ -85,7 +81,7 @@ function registerCommander() {
   // 初始化项目
   program
     .command("init [projectName]")
-    .description("快速创建标准项目模板、自定义项目模板、组件库模板")
+    .description("创建标准项目模板、自定义项目模板、组件库模板")
     .option("-reg, --registry <registry>", "指定npm源地址", "")
     .option("-f, --force", "是否强制初始化项目")
     .action(exec);
@@ -98,11 +94,7 @@ function registerCommander() {
     .option("-rgt, --refreshGitToken", "更新Git托管平台token", false)
     .option("-rgo, --refreshGitOwner", "更新Git仓库登录类型", false)
     // 命令中间有空格需使用引号包裹
-    .option(
-      "-bc, --buildCmd <buildCmd>",
-      "指定自定义构建命令",
-      "npm run build"
-    )
+    .option("-bc, --buildCmd <buildCmd>", "指定自定义构建命令", "npm run build")
     .option("-prod, --production", "是否正式发布", false)
     .option("-cnd, --componentNoDb", "发布组件库信息不写入数据库", false)
     .option("-ncb, --noCloudBuild", "发布项目不开启云构建", false)
@@ -114,71 +106,95 @@ function registerCommander() {
       exec(...args); // 这种写法也可以
     });
 
-  // 发布回滚
-  program
-    .command("rollback")
-    .description("快速创建标准项目模板、自定义项目模板、组件库模板")
-    // 命令中间有空格需使用引号包裹
-    .option(
-      "-bc, --buildCmd <buildCmd>",
-      "指定自定义构建命令",
-      "npm run build"
-    )
-    .option("-su, --sshUser <sshUser>", "指定模板服务器用户名", "")
-    .option("-si, --sshIp <sshIp>", "指定模板服务器IP或域名", "")
-    .option("-sp, --sshPath <sshPath>", "指定模板服务器上传路径", "")
-    .action(exec);
-
   // 添加复用代码
   program
     .command("add [templateName]")
-    .description("添加组件代码片段模板、页面标准模板、自定义页面模板到本地项目")
+    .description("添加组件代码片段模板、页面标准模板、自定义页面模板")
     .option("-reg, --registry <registry>", "指定npm源地址", "")
+    .action(exec);
+
+  // 回滚版本
+  program
+    .command("rollback")
+    .description("回滚生产版本代码")
+    // 命令中间有空格需使用引号包裹
+    .option("-bc, --buildCmd <buildCmd>", "指定自定义构建命令", "npm run build")
+    .action(exec);
+
+  // 项目Git Hooks脚本配置
+  program
+    .command("husky")
+    .description("Git Hooks脚本配置工具")
+    .option("-i, --install", "为当前项目安装husky功能", false)
+    // option支持传递多个值，用...表示，接收的内容为数组格式
+    .option("-a, --add <hook...>", "添加新的Git Hook脚本", [])
+    .option("-s, --set <hook...>", "设置Git Hook脚本内容", [])
+    .action(exec);
+
+  // 代码规范校验工具
+  program
+    .command("codelint")
+    .description("创建统一代码规范")
+    .option("-i, --install", "为项目安装代码规范校验工具", false)
+    .action(exec);
+
+  // 提交规范校验工具
+  program
+    .command("commitlint")
+    .description("创建统一提交规范")
+    .option("-i, --install", "为项目安装Git提交信息Angular规范校验工具", false)
+    .action(exec);
+
+  // 升级版本&自动生成CHANGELOG.md
+  program
+    .command("release")
+    .description("自动升级项目版本、自动生成Git版本变更记录文档")
+    .option("-i, --install", "为当前项目安装release-it功能", false)
+    .option("-pa, --patch", "自动升级patch版本，示例：1.0.0 => 1.0.1", false)
+    .option("-mi, --minor", "自动升级minor版本，示例：1.0.0 => 1.1.0", false)
+    .option("-ma, --major", "自动升级major版本，示例：1.0.0 => 2.0.0", false)
+    .action(exec);
+
+  // 初始化Git Flow分支模型
+  program
+    .command("gitflow")
+    .description("初始化Git Flow分支模型")
+    .option("-i, --install", "为当前项目初始化Git Flow分支模型", false)
+    .option("-f, --force", "是否强制初始化分支模型", false)
+    .action(exec);
+
+  // 快速删除本地和远程分支
+  program
+    .command("delete-branch [branchName]")
+    .description("删除本地和远程分支")
+    .option("-f, --force", "是否强制删除分支", false)
+    .option("-m, --multiple", "是否删除多个分支", false)
+    .action(exec);
+
+  // 创建简历
+  program
+    .command("resume")
+    .description("创建markdown简历，支持转为PDF")
+    .option("-i, --install", "下载markdown简历模板", false)
+    .option("-e, --export", "将markdown简历转为PDF", false)
+    .option("-rcp, --resetChromePath", "重置chrome浏览器安装路径缓存", false)
+    .action(exec);
+
+  // 静态资源预览服务
+  program
+    .command("server")
+    .description("启动本地静态资源托管服务，支持配置http请求代理")
+    .option("-p, --port <port>", "指定启动服务的端口", 3000)
     .action(exec);
 
   // 清除缓存
   program
     .command("clean")
-    .description("清空缓存文件")
+    .description("清空脚手架缓存文件")
     .option("-a, --all", "清空全部缓存", false)
     .option("-d, --dep", "仅清空依赖缓存", false)
     .action((options, command) => {
-      const requireKeys = ["all", "dep"];
-
-      // 检查是否没传参数
-      function checkKeys(keys, obj) {
-        let result = false;
-
-        keys.forEach((key) => {
-          if (obj[key] === true) {
-            result = true;
-          }
-        });
-
-        return result;
-      }
-
-      // 找出所需要的参数
-      const commandOptions = command.options.map((item) => ({
-        flag: item.flags,
-        description: item.description,
-      }));
-
-      if (!checkKeys(requireKeys, options)) {
-        log.warn(
-          `请指定参数确认您想清除的内容，支持以下参数：\n\n${commandOptions
-            .map((option) => `['${option.flag}'：${option.description}]`)
-            .join(
-              "\n"
-            )}\n\n您可以输入 ${CLI_NAME} ${command.name()} -h 查看使用帮助`
-        );
-      }
-
-      if (options.all) {
-        cleanAll();
-      } else if (options.dep) {
-        cleanDep();
-      }
+      execClean(options, command);
     });
 
   // 高级功能：监听debug事件，开启debug模式
@@ -265,7 +281,7 @@ async function checkGlobalUpdate() {
     log.warn(
       "更新提示",
       colors.yellow(
-        `检测到npm包 ${npmName} 有新版本，当前安装版本为：${lastVersion}，最新版本为：${lastVersion}，请在终端手动输入 npm install ${npmName} -g 命令进行更新`
+        `检测到脚手架有新版本：${lastVersion}，请运行 npm install -g ${npmName} 命令进行更新`
       )
     );
   }
@@ -326,55 +342,4 @@ function checkRoot() {
 
 function checkCliVersion() {
   log.info("cli版本", pkg.version);
-}
-
-async function getConfirmClean(msg) {
-  // 二次确认
-  const { confirmClean } = await prompt({
-    type: "confirm",
-    name: "confirmClean",
-    default: false,
-    message: msg,
-  });
-
-  return confirmClean;
-}
-
-// 清空所有缓存
-async function cleanAll() {
-  if (!fs.existsSync(process.env.CLI_HOME_PATH)) {
-    log.warn("缓存路径不存在", process.env.CLI_HOME_PATH);
-    return;
-  }
-
-  const confirmClean = await getConfirmClean(
-    "确认要清除所有缓存吗？（注意：此操作将删除所有缓存数据）"
-  );
-
-  // 用户选择不确认，中断执行
-  if (!confirmClean) return;
-  log.info("开始清除所有缓存");
-  fse.emptyDirSync(process.env.CLI_HOME_PATH);
-  log.success("清除所有缓存成功", process.env.CLI_HOME_PATH);
-}
-
-// 清空依赖文件
-async function cleanDep() {
-  const depPath = path.resolve(
-    process.env.CLI_HOME_PATH,
-    DEPENDENCIES_CACHE_DIR
-  );
-  if (!fs.existsSync(depPath)) {
-    log.success("依赖缓存路径不存在", depPath);
-    return;
-  }
-  const confirmClean = await getConfirmClean(
-    "确认要清除依赖缓存吗？（注意：此操作将删除所有依赖缓存数据）"
-  );
-
-  // 用户选择不确认，中断执行
-  if (!confirmClean) return;
-  log.info("开始清除依赖缓存文件");
-  fse.emptyDirSync(depPath);
-  log.success("清除依赖缓存文件成功", depPath);
 }

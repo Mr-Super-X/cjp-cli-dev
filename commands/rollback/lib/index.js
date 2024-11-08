@@ -14,14 +14,11 @@ class RollbackCommand extends Command {
     log.verbose("rollback", this._cmd, this._args);
 
     // rollback命令的参数
-    const { buildCmd, sshUser, sshIp, sshPath } = this._args[0];
+    const { buildCmd } = this._args[0];
 
     // 保存用户输入的参数
     this.options = {
       buildCmd,
-      sshUser,
-      sshIp,
-      sshPath,
     };
 
     log.verbose("options", this.options);
@@ -34,7 +31,7 @@ class RollbackCommand extends Command {
       await this.prepare();
       // 2. git 回滚自动化
       const git = new Git(this.projectInfo, this.options);
-      await git.prepareRollback(); // 回滚前预检查
+      await git.rollbackPrepare(); // 回滚前预检查
       await git.rollback(); // 执行回滚操作
       const endTime = new Date().getTime();
       log.info("本次回滚耗时：", Math.floor(endTime - startTime) / 1000 + "秒");
@@ -55,7 +52,7 @@ class RollbackCommand extends Command {
     log.verbose("package.json路径：", pkgPath);
     if (!fs.existsSync(pkgPath)) {
       throw new Error(
-        "这不是一个标准的node项目，可能不是通过脚手架publish命令发布的"
+        "package.json不存在！这不是一个标准的node项目"
       );
     }
 

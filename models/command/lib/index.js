@@ -4,10 +4,7 @@
 const colors = require("colors/safe"); // 用于给log信息添加颜色
 // 自建库
 const log = require("@cjp-cli-dev/log");
-const { semver, CLI_NAME } = require("@cjp-cli-dev/utils"); // 工具方法
-
-// 全局变量
-const LOWEST_NODE_VERSION = "16.0.0";
+const { semver, CLI_NAME, LOWEST_NODE_VERSION } = require("@cjp-cli-dev/utils"); // 工具方法
 
 /**
  * 核心命令的父类
