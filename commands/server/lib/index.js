@@ -15,6 +15,17 @@ const INDEX_FILE = "index.html"; // 入口文件
 const CWD = process.cwd();
 const PORT = 3000;
 
+/**
+ * 实现cjp-cli-dev server启动express预览vue打包出来的静态页面，支持代理后端接口（单服务器或多服务器），支持指定代理端口
+ * 1. 检查index.html是否存在
+ * 2. 用户输入publicPath
+ * 3. 询问是否有代理需求，是则进入3.1，否则直接到4.
+ * 3.1. 询问代理多服务器还是单服务器
+ * 3.1.1. 是，填写多服务代理配置
+ * 3.1.2. 否，填写单服务器代理地址和重写规则
+ * 3.2. 生成代理中间件，启动proxy中间件代理
+ * 4. 启动express预览服务
+ */
 class ServerCommand extends Command {
   init() {
     const { port } = this._args[0];
@@ -37,9 +48,9 @@ class ServerCommand extends Command {
       // 获取publicPath
       await this.getPublicPath();
       await this.getProxyConfirm();
-      await this.getMultipleConfirm();
       // 是否需要代理
       if (this.proxyConfirm) {
+        await this.getMultipleConfirm();
         // 代理多个服务器
         if (this.proxyMultipleConfirm) {
           await this.getMultipleProxy();
@@ -92,6 +103,29 @@ class ServerCommand extends Command {
     // 使用 express.static 中间件来提供静态文件服务
     app.use(express.static(staticDirectory));
 
+    // 启动代理（注意启动代理要在所有路由指向index.html之前调用，否则会失败）
+    await this.startProxy(app);
+
+    // 让所有路由都指向当前目录中的index.html（在proxy代理之后设置）
+    app.get(`*`, (req, res) => {
+      res.sendFile(path.join(staticDirectory, "index.html"));
+    });
+
+    const ip = await this.getLocalWalnIPv4();
+    const port = this.port || PORT;
+
+    // 启动服务
+    app.listen(port, ip, () => {
+      const publicPath = this.publicPath === "./" ? "/" : this.publicPath;
+      log.success(
+        `本地预览服务启动成功，复制链接到浏览器地址栏进行访问\n\nhttp://${ip}:${port}${publicPath}\n`
+      );
+    });
+  }
+
+  async startProxy(app) {
+    log.info("开始启动代理功能");
+
     if (this.proxyConfirm) {
       if (this.proxyMultipleConfirm) {
         // 多个代理
@@ -108,21 +142,7 @@ class ServerCommand extends Command {
       }
     }
 
-    // 让所有路由都指向当前目录中的index.html
-    app.get(`*`, (req, res) => {
-      res.sendFile(path.join(staticDirectory, "index.html"));
-    });
-
-    const ip = await this.getLocalWalnIPv4();
-    const port = this.port || PORT;
-
-    // 启动服务
-    app.listen(port, ip, () => {
-      const publicPath = this.publicPath === "./" ? "/" : this.publicPath;
-      log.success(
-        `本地预览服务启动成功，复制链接到浏览器地址栏进行访问\n\nhttp://${ip}:${port}${publicPath}\n`
-      );
-    });
+    log.success("代理功能启动成功");
   }
 
   // 生成多个代理服务中间件配置

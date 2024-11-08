@@ -31,6 +31,24 @@ const CHROME_INSTALL_PATH = "chrome_install_path"; // chrome安装路径
 // 支持的证件照格式
 const imageExtensions = [".jpg", ".jpeg", ".png"];
 
+/**
+ * 实现下载markdown简历模板，支持导出pdf文件
+ * --install
+ * 1. 输入姓名、手机号、邮箱、职位、年龄、工龄、求职地点等基础信息
+ * 2. 询问是否需要证件照，提示将证件照拷贝到当前目录，支持jpg/png
+ * 2.1. 列出当前目录中的图片文件供用户选择
+ * 2.2. 将选择的证件照转为base64
+ * 3. 生成markdown简历模板到当前目录，并通过ejs渲染
+ * 3.1. 提示用户可通过脚手架命令导出pdf
+ * 3.2. 返回markdown基础语法文档查阅地址
+ *
+ * --export
+ * 1. 获取当前目录中的md文件并列出选项
+ * 2. 首次使用导出提示用户依赖chrome浏览器，需提供chrome安装路径
+ * 2.1. 将用户输入的chrome安装路径写入脚手架缓存
+ * 3. 读取用户选择导出的md文件，通过marked转为html格式
+ * 4. 调用puppeteer驱动chrome浏览器导出html为pdf
+ */
 class ResumeCommand extends Command {
   init() {
     // 获取命令参数
