@@ -211,13 +211,13 @@ cjp-cli-dev commitlint --install
 初始化Git Flow分支模型
 
 ```bash
-cjp-cli-dev gitflow
+cjp-cli-dev gitflow --install
 ```
 
 强制初始化Git Flow分支模型
 
 ```bash
-cjp-cli-dev gitflow --force
+cjp-cli-dev gitflow --install --force
 ```
 
 ### 自动升级项目版本、生成git版本变更记录
