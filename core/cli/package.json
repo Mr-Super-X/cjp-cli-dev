@@ -3,7 +3,7 @@
   "version": "1.7.2",
   "description": "cjp-cli-dev core",
   "author": "v_jpch <v_jpch.digitalgd.com>",
-  "homepage": "",
+  "homepage": "https://mr-super-x.github.io/cjp-cli-dev-docs/",
   "license": "ISC",
   "main": "lib/index.js",
   "bin": {
