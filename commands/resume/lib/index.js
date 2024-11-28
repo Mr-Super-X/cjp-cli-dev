@@ -351,14 +351,6 @@ class ResumeCommand extends Command {
       // 如果在当前路径中找到证件照了，则让用户选择
       if (imageFiles && imageFiles.length > 0) {
         await this.getPhoto(imageFiles);
-
-        // 判断照片路径是否存在，转为base64存储
-        // if (fs.existsSync(this.photo)) {
-        //   const base64 = await imageToBase64(this.photo);
-        //   this.photo = base64;
-        // } else {
-        //   log.verbose("证件照路径有误或不存在");
-        // }
       } else {
         log.error(
           `请先将证件照存放到项目根路径中，支持 ${imageExtensions.join(
@@ -367,6 +359,9 @@ class ResumeCommand extends Command {
         );
         process.exit(1);
       }
+    } else {
+      // 用户未选择证件照时设置默认提示，防止ejs渲染报错
+      this.photo = "如您需要证件照，请手动将完整照片路径粘贴到此处";
     }
 
     const resumeFilename = `${this.position}-${this.name}-${this.seniority}年经验-${this.location}-简历`;
