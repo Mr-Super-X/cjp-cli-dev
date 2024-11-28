@@ -1,6 +1,6 @@
 # 前端工程化统一研发脚手架
 
-> 查看详细使用说明：<https://mr-super-x.github.io/cjp-cli-dev-docs/>
+> 查看详细文档：<https://mr-super-x.github.io/cjp-cli-dev-docs/>
 
 ## About
 
@@ -296,4 +296,4 @@ cjp-cli-dev resume --install
 cjp-cli-dev resume --export
 ```
 
-> 查看详细使用说明：<https://mr-super-x.github.io/cjp-cli-dev-docs/>
+> 查看详细文档：<https://mr-super-x.github.io/cjp-cli-dev-docs/>
