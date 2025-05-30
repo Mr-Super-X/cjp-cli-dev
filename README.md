@@ -23,6 +23,22 @@ cjp-cli-dev                # 脚手架的名字
 └─ lerna.json              # 采用lerna进行多包管理，目前用的6.6.2版本，高了会有问题
 ```
 
+## 启动步骤
+
+```bash
+# 安装依赖
+lerna bootstrap
+# 本地调试
+cd core/cli
+npm link
+ # 清除依赖
+lerna clean -y
+# 创建包，如core包
+lerna create core
+# 添加包到指定目录下，如在core目录下添加package-name包
+lerna create @cjp-cli-dev/package-name ./core/
+```
+
 ## 已注册的环境变量
 
 | 名称                             | 说明                                          |
