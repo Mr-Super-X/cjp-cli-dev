@@ -31,7 +31,9 @@ lerna bootstrap
 # 本地调试
 cd core/cli
 npm link
- # 清除依赖
+# 检查全局软链接
+npm ls -g @cjp-cli-dev/core
+# 清除依赖
 lerna clean -y
 # 创建包，如core包
 lerna create core
