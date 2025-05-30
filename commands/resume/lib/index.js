@@ -131,8 +131,40 @@ class ResumeCommand extends Command {
         path.extname(selectMarkdown)
       );
       // 读取markdown内容
-      const markdownContent = fs.readFileSync(selectMarkdown, "utf-8");
-      log.verbose("markdownContent", markdownContent);
+      let markdownContent = fs.readFileSync(selectMarkdown, "utf-8");
+      log.verbose("markdownContent证件照转Base64前", markdownContent);
+
+      // 正则表达式，用于匹配 id 为 "photo" 的 img 标签的 src 属性
+      const regex = /<img\s+[^>]*id="photo"[^>]*src="([^"]*)"[^>]*>/;
+      // 提取匹配到的 src 属性值，并转换为Base64（异步操作）
+      async function replaceImageSrcWithBase64(content, regex, cwd) {
+        // 查找匹配项
+        const match = content.match(regex);
+        if (!match) {
+          return content; // 没有匹配项，直接返回原始内容
+        }
+
+        // 提取原始src属性值
+        const originalSrc = match[1];
+        // 读取图片路径
+        const imgPath = path.resolve(cwd, originalSrc);
+        // 获取图片后缀，去除点
+        const imgExt = path.extname(imgPath).slice(1);
+
+        // 将图片路径转换为Base64
+        const base64 = await imageToBase64(imgPath);
+
+        // 替换匹配到的 src 属性值
+        const newContent = content.replace(regex, (m, p1) => {
+          // 注意：这里不需要再次使用await，因为base64已经是处理后的结果了
+          return m.replace(p1, `data:image/${imgExt};base64,${base64}`); // 根据实际图片类型调整MIME类型
+        });
+
+        return newContent;
+      }
+      // 将证件照Base64处理后的文本内容交给marked渲染
+      markdownContent = await replaceImageSrcWithBase64(markdownContent, regex, process.cwd());
+      log.verbose("markdownContent证件照转Base64后", markdownContent);
       // 生成html内容
       const htmlContent = genHtmlContent(marked, markdownContent);
       log.verbose("htmlContent", htmlContent);
@@ -147,7 +179,9 @@ class ResumeCommand extends Command {
       if (fs.existsSync(cachePath)) {
         chromeInstallPath = fs.readFileSync(cachePath, "utf-8");
       } else {
-        log.notice("导出功能依赖chrome浏览器，首次使用请先指定chrome浏览器安装路径");
+        log.notice(
+          "导出功能依赖chrome浏览器，首次使用请先指定chrome浏览器安装路径"
+        );
         log.notice(
           "路径必须使用引号包裹，如:",
           '"C:/Program Files/Google/Chrome/Application/chrome.exe"'
@@ -317,14 +351,6 @@ class ResumeCommand extends Command {
       // 如果在当前路径中找到证件照了，则让用户选择
       if (imageFiles && imageFiles.length > 0) {
         await this.getPhoto(imageFiles);
-
-        // 判断照片路径是否存在，转为base64存储
-        if (fs.existsSync(this.photo)) {
-          const base64 = await imageToBase64(this.photo);
-          this.photo = base64;
-        } else {
-          log.verbose("证件照路径有误或不存在");
-        }
       } else {
         log.error(
           `请先将证件照存放到项目根路径中，支持 ${imageExtensions.join(
@@ -333,6 +359,9 @@ class ResumeCommand extends Command {
         );
         process.exit(1);
       }
+    } else {
+      // 用户未选择证件照时设置默认提示，防止ejs渲染报错
+      this.photo = "如您需要证件照，请手动将完整照片路径粘贴到此处";
     }
 
     const resumeFilename = `${this.position}-${this.name}-${this.seniority}年经验-${this.location}-简历`;

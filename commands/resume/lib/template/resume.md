@@ -22,8 +22,8 @@
     <div style="width: 400px;">
         技术博客：https://juejin.cn/user/237150241041912/posts
     </div>
-    <div style="position: absolute; right: 20px; top: -30px;" class="photo">
-        <img style="width: 100px;" src="data:image/jpeg;base64,<%= photo %>" alt="" />
+    <div style="position: absolute; right: 20px; top: -30px;" class="photo-container">
+        <img id="photo" style="width: 100px;" src="<%= photo %>" alt="" />
     </div>
 </div>
 

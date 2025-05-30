@@ -1,5 +1,7 @@
 # 前端工程化统一研发脚手架
 
+> 查看详细文档：<https://mr-super-x.github.io/cjp-cli-dev-docs/>
+
 ## About
 
 前端工程化统一研发脚手架，支持以下功能：
@@ -293,3 +295,5 @@ cjp-cli-dev resume --install
 ```bash
 cjp-cli-dev resume --export
 ```
+
+> 查看详细文档：<https://mr-super-x.github.io/cjp-cli-dev-docs/>
