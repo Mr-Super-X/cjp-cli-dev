@@ -33,6 +33,8 @@ cd core/cli
 npm link
 # 检查全局软链接
 npm ls -g @cjp-cli-dev/core
+# 取消脚手架全局软链接
+npm unlink -g @cjp-cli-dev/core
 # 清除依赖
 lerna clean -y
 # 创建包，如core包
