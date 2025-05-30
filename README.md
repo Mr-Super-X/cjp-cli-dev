@@ -64,8 +64,10 @@ lerna create @cjp-cli-dev/package-name ./core/
 
 ```bash
 # 登录npm
-npm login
-# 自动发布
+npm login --registry https://registry.npmjs.com/
+# 更新版本号
+lerna version
+# 发布
 lerna publish
 ```
 
