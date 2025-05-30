@@ -26,15 +26,15 @@ cjp-cli-dev                # 脚手架的名字
 ## 启动步骤
 
 ```bash
-# 安装依赖
-lerna bootstrap
+# 安装依赖（不能用 lerna bootstrap 命令安装，会导致软链失败）
+# 临时解决方案为手动进入各个包下，执行 npm install
 # 本地调试
 cd core/cli
 npm link
-# 检查全局软链接
-npm ls -g @cjp-cli-dev/core
 # 取消脚手架全局软链接
 npm unlink -g @cjp-cli-dev/core
+# 检查全局软链接
+npm ls -g @cjp-cli-dev/core
 # 清除依赖
 lerna clean -y
 # 创建包，如core包
