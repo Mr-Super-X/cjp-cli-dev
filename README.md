@@ -41,6 +41,8 @@ lerna clean -y
 lerna create core
 # 添加包到指定目录下，如在core目录下添加package-name包
 lerna create @cjp-cli-dev/package-name ./core/
+# 查看系统环境变量
+/usr/bin/env
 ```
 
 ## 已注册的环境变量
