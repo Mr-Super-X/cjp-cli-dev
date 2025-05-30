@@ -40,6 +40,17 @@ cjp-cli-dev -v
 
 在已通过 `npm run reinstall` 命令安装好依赖的前提下，如果你不小心调用了 `lerna bootstrap` 命令，需要重新进入 core/cli 目录下，执行 `npm link` 命令，将脚手架软链到全局。
 
+## 发布
+
+前置条件为登录npm账号，通过 `npm login --registry https://registry.npmjs.com/` 命令登录，最好指定要发布的npm源，防止自己在使用nrm时，忘记切换源导致发布失败。
+
+```bash
+# 更新版本号
+lerna version
+# 发布
+lerna publish
+```
+
 ## 其它命令
 
 ```bash
@@ -58,17 +69,6 @@ lerna create core
 lerna create @cjp-cli-dev/package-name ./core/
 # 查看系统环境变量
 /usr/bin/env
-```
-
-## 发布
-
-```bash
-# 登录npm
-npm login --registry https://registry.npmjs.com/
-# 更新版本号
-lerna version
-# 发布
-lerna publish
 ```
 
 ## 已注册的环境变量
