@@ -23,12 +23,27 @@ cjp-cli-dev                # 脚手架的名字
 └─ lerna.json              # 采用lerna进行多包管理，目前用的6.6.2版本，高了会有问题
 ```
 
-## 启动步骤
+## 启动
 
 ```bash
-# 安装依赖（不能用 lerna bootstrap 命令安装，会导致软链失败）
-# 临时解决方案为手动进入各个包下，执行 npm install
-# 本地调试
+# 安装依赖并软链命令到全局
+npm run reinstall
+# 查看是否成功
+cjp-cli-dev -v
+```
+
+## 注意事项
+
+不能用 lerna bootstrap 命令安装依赖，会导致软链失败，暂未找到解决办法，需要手动进入各个包下，执行 npm install。
+
+**因此做了个脚本，执行 npm run reinstall 命令，会自动进入各个包下，执行 npm install，并自动将脚手架软链到全局。**
+
+在已通过 `npm run reinstall` 命令安装好依赖的前提下，如果你不小心调用了 `lerna bootstrap` 命令，需要重新进入 core/cli 目录下，执行 `npm link` 命令，将脚手架软链到全局。
+
+## 其它命令
+
+```bash
+# 本地软链调试
 cd core/cli
 npm link
 # 取消脚手架全局软链接
@@ -43,6 +58,15 @@ lerna create core
 lerna create @cjp-cli-dev/package-name ./core/
 # 查看系统环境变量
 /usr/bin/env
+```
+
+## 发布
+
+```bash
+# 登录npm
+npm login
+# 自动发布
+lerna publish
 ```
 
 ## 已注册的环境变量

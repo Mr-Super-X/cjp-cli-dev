@@ -1,6 +1,9 @@
 {
   "name": "root",
   "private": true,
+  "scripts": {
+    "reinstall": "node scripts/install-deps.js"
+  },
   "devDependencies": {
     "lerna": "^6.6.2"
   }
