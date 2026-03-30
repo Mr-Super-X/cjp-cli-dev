@@ -27,6 +27,7 @@ const SETTINGS = {
   gitflow: "@cjp-cli-dev/gitflow",
   resume: "@cjp-cli-dev/resume",
   server: "@cjp-cli-dev/server",
+  doctor: "@cjp-cli-dev/doctor",
   "delete-branch": "@cjp-cli-dev/delete-branch",
 };
 

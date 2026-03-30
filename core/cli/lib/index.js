@@ -187,6 +187,13 @@ function registerCommander() {
     .option("-p, --port <port>", "指定启动服务的端口", 3000)
     .action(exec);
 
+  // 项目体检
+  program
+    .command("doctor")
+    .description("对当前项目进行全面体检，输出健康报告")
+    .option("-f, --fix", "检查后逐项确认并自动修复可修复的问题", false)
+    .action(exec);
+
   // 清除缓存
   program
     .command("clean")
@@ -268,22 +275,27 @@ async function prepare() {
 }
 
 async function checkGlobalUpdate() {
-  // log.verbose(`检查 ${CLI_NAME} 最新版本`);
-  // 1. 获取当前版本号和模块名
-  const currentVersion = pkg.version;
-  const npmName = pkg.name;
-  // 2. 调用npm API，获取所有版本号（过程封装在@cjp-cli-dev/get-npm-info中）
-  // 3. 找到最新的版本号，并与当前版本号进行对比
-  // 4. 如果有新版本，则提示用户更新
-  const lastVersion = await getNpmSemverVersion(currentVersion, npmName);
-  // log.verbose("最新版本为", lastVersion);
-  if (lastVersion && semver.gt(lastVersion, currentVersion)) {
-    log.warn(
-      "更新提示",
-      colors.yellow(
-        `检测到脚手架有新版本：${lastVersion}，请运行 npm install -g ${npmName} 命令进行更新`
-      )
-    );
+  try {
+    // log.verbose(`检查 ${CLI_NAME} 最新版本`);
+    // 1. 获取当前版本号和模块名
+    const currentVersion = pkg.version;
+    const npmName = pkg.name;
+    // 2. 调用npm API，获取所有版本号（过程封装在@cjp-cli-dev/get-npm-info中）
+    // 3. 找到最新的版本号，并与当前版本号进行对比
+    // 4. 如果有新版本，则提示用户更新
+    const lastVersion = await getNpmSemverVersion(currentVersion, npmName);
+    // log.verbose("最新版本为", lastVersion);
+    if (lastVersion && semver.gt(lastVersion, currentVersion)) {
+      log.warn(
+        "更新提示",
+        colors.yellow(
+          `检测到脚手架有新版本：${lastVersion}，请运行 npm install -g ${npmName} 命令进行更新`
+        )
+      );
+    }
+  } catch (error) {
+    // 网络错误捕获后静默处理或仅在debug模式打印，避免阻断后续主流程
+    log.verbose("checkGlobalUpdate Error:", error.message);
   }
 }
 
