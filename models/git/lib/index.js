@@ -1565,6 +1565,18 @@ class Git {
         sshKeyType === OLD_GIT_SSH_KEY_FILE ? oldCmd : newCmd;
 
       log.info(`自动执行：${createKeyCmd}，中间过程一路按回车确定即可`);
+      // 前置检测：检查 ssh-keygen 命令是否可用（Windows 需启用 OpenSSH 功能）
+      try {
+        cp.execSync("ssh-keygen --help", { stdio: ["pipe", "pipe", "pipe"] });
+      } catch (e) {
+        throw new Error(
+          `未找到 ssh-keygen 命令，无法自动生成 SSH Key。\n` +
+          `Windows 用户请通过以下方式安装：\n` +
+          `  1. 在"设置 > 应用 > 可选功能"中安装 OpenSSH 客户端\n` +
+          `  2. 或安装 Git for Windows（自带 ssh-keygen）：https://git-scm.com/download/win\n` +
+          `  安装后请重启终端，确保 ssh-keygen 命令已加入系统 PATH`
+        );
+      }
       cp.execSync(createKeyCmd, {
         cwd: this.dir, // 在当前源码目录下执行
         stdio: "inherit",
