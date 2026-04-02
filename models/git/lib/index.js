@@ -341,7 +341,7 @@ class Git {
 
     // 对返回版本列表进行处理
     return remotes
-      .split("\n")
+      .split(/\r?\n/)
       .map((remote) => {
         const match = reg.exec(remote);
         reg.lastIndex = 0; // 有多个版本的情况下置为0才会重新进行匹配
@@ -734,7 +734,7 @@ class Git {
     if (dirs.includes("dist")) {
       componentExamplePath = path.resolve(componentExamplePath, "dist");
       dirs = fs.readdirSync(componentExamplePath);
-      componentFile.examplePath = `${componentFile.examplePath}/dist`;
+      componentFile.examplePath = path.join(componentFile.examplePath, "dist");
     }
     // 拿到所有的index.html
     dirs = dirs.filter((dir) => dir.match(/^index(\d)*.html$/));
@@ -1291,7 +1291,7 @@ class Git {
 
   // 同步写入版本到package.json
   async writeVersionToPackageSync() {
-    const pkgPath = `${this.dir}/package.json`;
+    const pkgPath = path.resolve(this.dir, "package.json");
     const pkg = fse.readJsonSync(pkgPath);
     if (pkg && pkg.version && pkg.version !== this.version) {
       pkg.version = this.version;
@@ -1322,7 +1322,7 @@ class Git {
 
     // 对返回版本列表进行处理
     return remotes
-      .split("\n")
+      .split(/\r?\n/)
       .map((remote) => {
         const match = reg.exec(remote);
         reg.lastIndex = 0; // 有多个版本的情况下置为0才会重新进行匹配

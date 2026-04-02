@@ -69,7 +69,7 @@ module.exports = {
       }).trim();
 
       if (statusOutput) {
-        const changedFiles = statusOutput.split("\n").length;
+        const changedFiles = statusOutput.split(/\r?\n/).filter(Boolean).length;
         items.push({
           label: "未提交更改",
           status: "warn",
