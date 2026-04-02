@@ -997,6 +997,18 @@ class Git {
 
         // 上传模板文件
         log.info("开始上传模板文件至服务器");
+        // 前置检测：检查 scp 命令是否可用（Windows 默认不自带 scp）
+        try {
+          cp.execSync("scp -V", { stdio: ["pipe", "pipe", "pipe"] });
+        } catch (e) {
+          throw new Error(
+            `未找到 scp 命令，无法上传模板文件至服务器。\n` +
+            `Windows 用户请通过以下方式安装：\n` +
+            `  1. 安装 Git for Windows（自带 scp）：https://git-scm.com/download/win\n` +
+            `  2. 或在"设置 > 应用 > 可选功能"中安装 OpenSSH 客户端\n` +
+            `  3. 安装后请重启终端，确保 scp 命令已加入系统 PATH`
+          );
+        }
         const uploadCmd = `scp -r ${templateFilePath} ${this.sshUser}@${this.sshIp}:${this.sshPath}`;
         log.verbose("uploadCmd", uploadCmd);
         const result = cp.execSync(uploadCmd);
@@ -1598,19 +1610,29 @@ class Git {
   // 检查能否正确使用ssh协议连接到gitee/github
   async checkGitSSHConnection() {
     try {
-      const stdout = cp.execSync(`ssh -T git@${this.gitServer.type}.com`);
-      log.verbose("checkGitSSHConnection stdout", stdout.toString());
-      if (stdout.toString().includes("Hi")) {
-        log.success("Git SSH连接测试通过");
-        return true;
-      } else {
+      // ssh -T 的成功响应会输出到 stderr（GitHub/Gitee 均如此），且返回非零退出码
+      // 因此需要在 catch 中解析 stderr 来判断是否连接成功
+      cp.execSync(`ssh -T git@${this.gitServer.type}.com`, {
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      // 如果没有抛出异常（极少数情况），认为连接成功
+      log.success("Git SSH连接测试通过");
+      return true;
+    } catch (error) {
+      // 判断是否为命令不存在（Windows 未安装 OpenSSH 的情况）
+      if (error.code === "ENOENT") {
         throw new Error(
-          `Git SSH连接测试失败，请检查您的公钥和网络，确认您已将公钥添加到${
-            this.gitServer.type
-          }托管平台中。链接：\n${this.gitServer.getSshKeyUrl()}`
+          `未找到 ssh 命令，Windows 用户请确认已启用 OpenSSH 功能。\n` +
+          `您可以在"设置 > 应用 > 可选功能"中安装 OpenSSH 客户端，\n` +
+          `或安装 Git for Windows（自带 ssh 命令）：https://git-scm.com/download/win`
         );
       }
-    } catch (error) {
+      // ssh -T 连接成功时 GitHub/Gitee 返回非零退出码，但会在 stderr 中输出包含 "Hi" 或 "successfully" 的欢迎信息
+      const output = (error.stderr || "").toString();
+      if (output.includes("Hi") || output.includes("successfully")) {
+        log.success("Git SSH连接测试通过");
+        return true;
+      }
       throw new Error(
         `Git SSH连接测试失败，请检查您的公钥和网络，确认您已将公钥添加到${
           this.gitServer.type
