@@ -10,6 +10,33 @@ const {
   DEPENDENCIES_CACHE_DIR,
 } = require("@cjp-cli-dev/utils"); // 工具方法
 
+// 计算目录大小（递归）
+function getDirSize(dirPath) {
+  let totalSize = 0;
+  try {
+    const files = fs.readdirSync(dirPath);
+    for (const file of files) {
+      const filePath = path.join(dirPath, file);
+      const stat = fs.statSync(filePath);
+      if (stat.isDirectory()) {
+        totalSize += getDirSize(filePath);
+      } else {
+        totalSize += stat.size;
+      }
+    }
+  } catch (e) {
+    // 权限不足或路径不存在时忽略
+  }
+  return totalSize;
+}
+
+// 格式化文件大小
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
+  return (bytes / 1024 / 1024).toFixed(2) + " MB";
+}
+
 module.exports = function (options, command) {
   const requireKeys = ["all", "dep"];
 
@@ -72,6 +99,10 @@ async function cleanAll() {
     return;
   }
 
+  // 显示缓存目录大小
+  const dirSize = getDirSize(process.env.CLI_HOME_PATH);
+  log.info("缓存目录大小", formatSize(dirSize));
+
   const confirmClean = await getConfirmClean(
     "确认要清除所有缓存吗？（注意：此操作将删除所有缓存数据）"
   );
@@ -93,6 +124,11 @@ async function cleanDep() {
     log.success("依赖缓存路径不存在", depPath);
     return;
   }
+
+  // 显示依赖缓存目录大小
+  const dirSize = getDirSize(depPath);
+  log.info("依赖缓存大小", formatSize(dirSize));
+
   const confirmClean = await getConfirmClean(
     "确认要清除依赖缓存吗？（注意：此操作将删除所有依赖缓存数据）"
   );

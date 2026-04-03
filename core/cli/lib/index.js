@@ -222,10 +222,23 @@ function registerCommander() {
 
   // 高级功能：对未知命令进行监听
   program.on("command:*", function (cmdObj) {
+    const inputCmd = cmdObj[0];
     const availableCommands = program.commands.map((cmd) => ({
       command: cmd.name(),
       description: cmd.description(),
     }));
+
+    // 模糊匹配：找出与用户输入相似的命令
+    const similar = availableCommands.filter(
+      (item) => item.command.includes(inputCmd) || inputCmd.includes(item.command)
+    );
+    if (similar.length > 0) {
+      log.info(
+        colors.yellow(
+          `您是不是想输入：${similar.map((item) => item.command).join(" / ")}？`
+        )
+      );
+    }
 
     // 抽取一条搞笑语录
     log.error(colors.red(getCommandRandomFunnyQuote()));
@@ -270,8 +283,8 @@ async function prepare() {
   // 5. 检查输入参数
   // 6. 检查环境变量
   checkEnv();
-  // 7. 检查脚手架最新版本
-  await checkGlobalUpdate();
+  // 7. 检查脚手架最新版本（异步不阻塞，避免网络慢时影响命令启动速度）
+  checkGlobalUpdate().catch(() => {});
 }
 
 async function checkGlobalUpdate() {
