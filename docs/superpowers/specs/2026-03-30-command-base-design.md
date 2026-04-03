@@ -73,8 +73,14 @@ constructor(args) {
   let chain = Promise.resolve();
   chain = chain.then(() => this.checkNodeVersion());
   chain = chain.then(() => this.initArgs());
+  chain = chain.then(() => { this._startTime = new Date().getTime(); });
   chain = chain.then(() => this.init());   // 子类实现
   chain = chain.then(() => this.exec());   // 子类实现
+  chain = chain.then(() => {
+    // 执行时间超过3秒才输出耗时，避免简单命令也显示
+    const duration = Math.floor((new Date().getTime() - this._startTime) / 1000);
+    if (duration >= 3) log.info("本次执行耗时", duration + "秒");
+  });
   chain.catch((err) => { log.error(err.message); });
 }
 ```
@@ -95,6 +101,21 @@ constructor(args)
     │     └─ 不满足 → throw Error（红色提示）
     │
     ├─ 2. initArgs()             ← 基类实现（通用）
+    │     ├─ this._cmd = args 最后一个元素（Commander 命令对象）
+    │     └─ this._otherArgs = args 除最后一个外的所有元素
+    │
+    ├─ 3. 记录开始时间            ← 基类实现（耗时统计）
+    │     └─ this._startTime = new Date().getTime()
+    │
+    ├─ 4. init()                 ← 子类必须实现
+    │     └─ 基类中 throw Error("子类中 init 方法必须实现！")
+    │
+    ├─ 5. exec()                 ← 子类必须实现
+    │     └─ 基类中 throw Error("子类中 exec 方法必须实现！")
+    │
+    └─ 6. 耗时统计                ← 基类实现（自动）
+          └─ 执行超过 3 秒时输出 "本次执行耗时 X 秒"
+```
     │     ├─ this._cmd = args 最后一个元素（Commander 命令对象）
     │     └─ this._otherArgs = args 除最后一个外的所有元素
     │

@@ -198,6 +198,9 @@ log.headingStyle = { fg: "white", bg: "green" };
 log.addLevel("success", 2000, { fg: "green", bg: "", bold: true });
 log.addLevel("notice", 2000, { fg: "blue", bg: "black" });
 
+// 添加debug别名，方便开发者使用log.debug()替代log.verbose()
+log.debug = log.verbose;
+
 module.exports = log;
 ```
 
@@ -293,10 +296,11 @@ npx lerna create @cjp-cli-dev/get-npm-info ./utils/
 ```javascript
 // 通过 npm Registry API 获取包信息
 // 原理：访问 https://registry.npmmirror.com/@cjp-cli-dev/core 获取 JSON
-function getNpmInfo(npmName, registry) {
+// 支持自定义超时时间（第三个参数），默认 30 秒
+function getNpmInfo(npmName, registry, timeout) {
   const registryUrl = registry || getDefaultRegistry();
   const npmInfoUrl = urlJoin(registryUrl, npmName);
-  return axios.get(npmInfoUrl).then((res) => {
+  return axios.get(npmInfoUrl, { timeout: timeout || 30000 }).then((res) => {
     if (res.status === 200) return res.data;
     return null;
   });
@@ -352,7 +356,8 @@ async function prepare() {
   checkRoot();          // 2. 检查 root 权限并降级
   checkUserHome();      // 3. 检查用户主目录是否存在
   checkEnv();           // 4. 加载 ~/.env 环境变量
-  await checkGlobalUpdate(); // 5. 检查脚手架是否有新版本
+  // 5. 检查脚手架是否有新版本（异步不阻塞，避免网络慢时影响命令启动速度）
+  checkGlobalUpdate().catch(() => {});
 }
 ```
 

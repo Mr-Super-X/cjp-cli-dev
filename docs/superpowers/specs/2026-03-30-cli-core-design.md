@@ -122,11 +122,13 @@ prepare()
 │           ├─ 计算 CLI_HOME_PATH = <homedir>/<CLI_HOME || .cjp-cli-dev>
 │           └─ 挂载到 process.env.CLI_HOME_PATH
 │
-└─ 5. checkGlobalUpdate()（异步）
+└─ 5. checkGlobalUpdate()（异步，不阻塞命令启动）
       ├─ 获取当前版本号和包名
       ├─ 调用 getNpmSemverVersion() 查询 npm 上大于当前版本的最新版本
-      └─ 有新版本 → log.warn("更新提示 检测到脚手架有新版本...")
-      └─ 无新版本 → 静默跳过
+      ├─ 有新版本 → log.warn("更新提示 检测到脚手架有新版本...")
+      ├─ 无新版本 → 静默跳过
+      ├─ 网络异常 → 静默捕获，不阻断主流程（try-catch 保护）
+      └─ 注意：不使用 await，异步执行不阻塞后续命令注册和执行
 ```
 
 #### 4.2.2 registerCommander() — 命令注册
@@ -164,7 +166,7 @@ registerCommander()
 ├─ 全局事件监听
 │     ├─ option:debug     — 动态设置 LOG_LEVEL 为 verbose
 │     ├─ option:targetPath — 更新 process.env.CLI_TARGET_PATH
-│     └─ command:*         — 未知命令监听，输出搞笑语录 + 可用命令列表
+│     └─ command:*         — 未知命令监听，模糊匹配提示 + 搞笑语录 + 可用命令列表
 │
 ├─ program.parse(process.argv)
 │
@@ -178,7 +180,7 @@ registerCommander()
 |------|----------|------|
 | `option:debug` | 用户传入 `--debug` | 设置 `process.env.LOG_LEVEL = "verbose"` 并同步 `log.level`，开启详细日志 |
 | `option:targetPath` | 用户传入 `--targetPath <path>` | 设置 `process.env.CLI_TARGET_PATH`，exec 模块据此跳过 npm 缓存直接加载本地包 |
-| `command:*` | 用户输入了未注册的命令 | 输出一条随机搞笑语录（`getCommandRandomFunnyQuote()`）+ 所有可用命令列表 |
+| `command:*` | 用户输入了未注册的命令 | 先模糊匹配提示"您是不是想输入：xxx？"，再输出搞笑语录 + 所有可用命令列表 |
 
 ### 4.3 lib/execClean.js — clean 命令实现
 
@@ -191,11 +193,13 @@ execClean(options, command)
 │
 ├─ [--all] cleanAll()
 │     ├─ 检查 CLI_HOME_PATH 是否存在
+│     ├─ 计算并显示缓存目录大小（递归统计，格式化为 KB/MB）
 │     ├─ 二次确认 "确认要清除所有缓存吗？"
 │     └─ fse.emptyDirSync(CLI_HOME_PATH)
 │
 └─ [--dep] cleanDep()
       ├─ 计算依赖缓存路径 = CLI_HOME_PATH / dependencies
+      ├─ 计算并显示依赖缓存目录大小
       ├─ 二次确认 "确认要清除依赖缓存吗？"
       └─ fse.emptyDirSync(depPath)
 ```

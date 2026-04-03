@@ -257,14 +257,14 @@ Package 模型是对 npm 包生命周期的完整封装，包括下载、缓存�
 
 **A：**
 
-日志系统基于 `npmlog` 进行定制，增加了 `success`、`notice` 等自定义级别，并通过颜色区分。
+日志系统基于 `npmlog` 进行定制，增加了 `success`、`notice` 等自定义级别，并通过颜色区分。同时添加了 `log.debug` 作为 `log.verbose` 的别名，方便开发者使用更习惯的调用方式。
 
 **debug 模式的实现原理：**
 
 1. Commander.js 监听 `--debug` 全局参数
 2. 触发时将 `process.env.LOG_LEVEL` 设置为 `verbose`
 3. `npmlog` 的 level 属性同步更新
-4. 此后所有通过 `log.verbose()` 输出的调试信息都会显示
+4. 此后所有通过 `log.verbose()` 或 `log.debug()` 输出的调试信息都会显示
 
 ```javascript
 program.on("option:debug", function () {
@@ -346,7 +346,7 @@ Node.js 原生的 `child_process.spawn` 在 Windows 上对 `.cmd`、`.bat` 文�
 [warn] 更新提示 检测到脚手架有新版本：1.8.0，请运行 npm install -g @cjp-cli-dev/core 命令进行更新
 ```
 
-**设计思路：** 只提示不强制，不打断用户的工作流。这是参考了 npm 自身的更新提示策略。检查过程是异步的，不会影响命令的启动速度。
+**设计思路：** 只提示不强制，不打断用户的工作流。这是参考了 npm 自身的更新提示策略。检查过程是异步的，不会占用主线程阻塞命令启动。同时，针对版本检查的网络请求做了完善的异常捕获（如断网或 npm 源故障时静默处理），在保证体验的同时体现了**防御性编程**的思想，确保在任何恶劣网络环境下脚手架的核心功能都能稳定运行。
 
 ---
 

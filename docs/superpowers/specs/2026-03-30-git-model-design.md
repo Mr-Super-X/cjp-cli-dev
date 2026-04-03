@@ -113,8 +113,8 @@ Git 类的 ~50 个方法按职责可分为 7 个功能组：
 | `initAndAddRemote()` | 执行 git init + git remote add origin |
 | `initCloneType()` | 确定使用 HTTPS 还是 SSH |
 | `getCloneType()` | 交互式选择克隆方式 |
-| `checkSSHKey()` | 检查 SSH 公钥是否存在 |
-| `checkGitSSHConnection()` | 测试 SSH 连接可用性 |
+| `checkSSHKey()` | 检查 SSH 公钥是否存在（含 ssh-keygen 命令前置可用性检测） |
+| `checkGitSSHConnection()` | 测试 SSH 连接可用性（修复 stderr 判断 + Windows ENOENT 保护） |
 | `initCommit()` | 首次提交并推送 master |
 | `checkRemoteMaster()` | 检查远程是否存在 master 分支 |
 
@@ -146,7 +146,7 @@ Git 类的 ~50 个方法按职责可分为 7 个功能组：
 | `deleteLocalBranch()` | 删除本地开发分支 |
 | `deleteRemoteBranch()` | 删除远程开发分支 |
 | `localBuild()` | 本地构建（非云构建模式） |
-| `uploadTemplate()` | 从 OSS 下载 HTML 模板并 scp 到服务器 |
+| `uploadTemplate()` | 从 OSS 下载 HTML 模板并 scp 到服务器（含 scp 命令前置可用性检测） |
 | `checkComponent()` | 检查组件合法性 |
 | `uploadComponentToNpm()` | npm publish 发布组件 |
 | `saveComponentToDB()` | 将组件信息写入 MySQL |
@@ -288,8 +288,11 @@ Git 模型在用户主目录下维护缓存文件，避免重复输入：
 checkSSHKey()
 ├─ 检查 ~/.ssh/id_rsa.pub（旧版 RSA）
 ├─ 检查 ~/.ssh/id_ed25519.pub（新版 Ed25519）
-├─ 都不存在 → 提示用户生成 SSH Key 并给出帮助链接
+├─ 都不存在 → 前置检测 ssh-keygen 命令可用性（ENOENT 保护）→ 提示用户生成 SSH Key
 └─ 存在 → checkGitSSHConnection() 测试 SSH 连接
+      ├─ 前置检测 ssh 命令可用性（Windows ENOENT 保护，提示安装 OpenSSH 或 Git for Windows）
+      ├─ 执行 ssh -T，从 stderr 解析响应（GitHub/Gitee 的成功响应在 stderr）
+      └─ stderr 包含 "Hi" 或 "successfully" → 连接成功
 ```
 
 ### 6.4 版本号管理
