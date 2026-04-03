@@ -1569,13 +1569,16 @@ class Git {
       try {
         cp.execSync("ssh-keygen --help", { stdio: ["pipe", "pipe", "pipe"] });
       } catch (e) {
-        throw new Error(
-          `未找到 ssh-keygen 命令，无法自动生成 SSH Key。\n` +
-          `Windows 用户请通过以下方式安装：\n` +
-          `  1. 在"设置 > 应用 > 可选功能"中安装 OpenSSH 客户端\n` +
-          `  2. 或安装 Git for Windows（自带 ssh-keygen）：https://git-scm.com/download/win\n` +
-          `  安装后请重启终端，确保 ssh-keygen 命令已加入系统 PATH`
-        );
+        // ssh-keygen --help 会退出 code 1，只要不是 ENOENT 或者没有报错找不到命令，就说明命令存在
+        if (e.code === "ENOENT" || (e.message && e.message.includes("ENOENT"))) {
+          throw new Error(
+            `未找到 ssh-keygen 命令，无法自动生成 SSH Key。\n` +
+            `Windows 用户请通过以下方式安装：\n` +
+            `  1. 在"设置 > 应用 > 可选功能"中安装 OpenSSH 客户端\n` +
+            `  2. 或安装 Git for Windows（自带 ssh-keygen）：https://git-scm.com/download/win\n` +
+            `  安装后请重启终端，确保 ssh-keygen 命令已加入系统 PATH`
+          );
+        }
       }
       cp.execSync(createKeyCmd, {
         cwd: this.dir, // 在当前源码目录下执行
