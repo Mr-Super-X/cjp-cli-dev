@@ -29,8 +29,19 @@ class Command {
     let chain = Promise.resolve();
     chain = chain.then(() => this.checkNodeVersion());
     chain = chain.then(() => this.initArgs());
+    chain = chain.then(() => {
+      this._startTime = new Date().getTime();
+    });
     chain = chain.then(() => this.init());
     chain = chain.then(() => this.exec());
+    chain = chain.then(() => {
+      const endTime = new Date().getTime();
+      const duration = Math.floor((endTime - this._startTime) / 1000);
+      // 执行时间超过3秒才输出耗时，避免简单命令也显示
+      if (duration >= 3) {
+        log.info("本次执行耗时", duration + "秒");
+      }
+    });
 
     // 监听所有的异常
     chain.catch((err) => {

@@ -278,7 +278,12 @@ class InitCommand extends Command {
       if (!(await npmPackage.exists())) {
         spinner = spinners("正在下载模板...");
         await sleep();
+        // 设置下载超时提醒（60秒）
+        const downloadTimer = setTimeout(() => {
+          log.warn("模板下载时间较长，请检查网络连接。您可以通过 --registry 参数指定其他 npm 源");
+        }, 60 * 1000);
         await npmPackage.install();
+        clearTimeout(downloadTimer);
         successMsg = "下载模板成功";
       } else {
         spinner = spinners("正在更新模板...");

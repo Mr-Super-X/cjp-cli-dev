@@ -6,13 +6,15 @@ const urlJoin = require("url-join"); // 用于拼接url
 // 自建库
 const { semver } = require("@cjp-cli-dev/utils");
 
-function getNpmInfo(npmName, registry) {
+const DEFAULT_TIMEOUT = 30000; // 默认请求超时时间30秒
+
+function getNpmInfo(npmName, registry, timeout) {
   if (!npmName) return;
   const registryUrl = registry || getDefaultRegistry();
   // 官方提供了这个功能，通过npm仓库地址加上包名可以获取当前包的所有信息。
   const npmInfoUrl = urlJoin(registryUrl, npmName);
   return axios
-    .get(npmInfoUrl)
+    .get(npmInfoUrl, { timeout: timeout || DEFAULT_TIMEOUT }) // 支持用户自定义超时时间，默认30秒，避免网络异常时长时间挂起
     .then((res) => {
       // TODO 简单判断一下（可以优化更友好的错误处理）
       if (res.status === 200) {

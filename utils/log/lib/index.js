@@ -13,4 +13,7 @@ log.headingStyle = { fg: "white", bg: "green" };
 log.addLevel("success", 2000, { fg: "green", bg: "", bold: true }); // 自定义success日志
 log.addLevel('notice', 2000, { fg: 'blue', bg: 'black' }) // 自定义notice日志
 
+// 添加debug别名，方便开发者使用log.debug()替代log.verbose()
+log.debug = log.verbose;
+
 module.exports = log;
