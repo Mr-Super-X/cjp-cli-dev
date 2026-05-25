@@ -1,0 +1,414 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1779695386000,
+  "projectRoot": "D:\\personal\\cli\\cjp-cli-dev",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": "16.20.2",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "npm",
+    "runtime": "Node.js 16.20.2"
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {
+      "reinstall": "node scripts/install-deps.js"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "develop",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "commands": {
+      "path": "commands",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1779695385948,
+      "keyFiles": []
+    },
+    "core": {
+      "path": "core",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1779695385962,
+      "keyFiles": []
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 9,
+      "lastAccessed": 1779695385963,
+      "keyFiles": [
+        "architecture.md",
+        "build-from-scratch.md",
+        "commands.md",
+        "development.md",
+        "environment.md"
+      ]
+    },
+    "models": {
+      "path": "models",
+      "purpose": "Data models",
+      "fileCount": 0,
+      "lastAccessed": 1779695385963,
+      "keyFiles": []
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1779695385964,
+      "keyFiles": [
+        "install-deps.js"
+      ]
+    },
+    "utils": {
+      "path": "utils",
+      "purpose": "Utility functions",
+      "fileCount": 0,
+      "lastAccessed": 1779695385966,
+      "keyFiles": []
+    },
+    "utils\\utils": {
+      "path": "utils\\utils",
+      "purpose": "Utility functions",
+      "fileCount": 3,
+      "lastAccessed": 1779695385973,
+      "keyFiles": [
+        "package-lock.json",
+        "package.json",
+        "README.md"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "",
+      "accessCount": 1,
+      "lastAccessed": 1779695726632,
+      "type": "directory"
+    },
+    {
+      "path": ".claude\\CLAUDE.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695727266,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1779695727921,
+      "type": "file"
+    },
+    {
+      "path": "lerna.json",
+      "accessCount": 1,
+      "lastAccessed": 1779695734738,
+      "type": "file"
+    },
+    {
+      "path": ".claude\\memory.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695735444,
+      "type": "file"
+    },
+    {
+      "path": "core\\exec\\lib\\index.js",
+      "accessCount": 1,
+      "lastAccessed": 1779695737410,
+      "type": "file"
+    },
+    {
+      "path": "core\\cli\\lib\\index.js",
+      "accessCount": 1,
+      "lastAccessed": 1779695737593,
+      "type": "file"
+    },
+    {
+      "path": "models\\command\\lib\\index.js",
+      "accessCount": 1,
+      "lastAccessed": 1779695738250,
+      "type": "file"
+    },
+    {
+      "path": "AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695771773,
+      "type": "file"
+    },
+    {
+      "path": ".claude\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695782694,
+      "type": "file"
+    },
+    {
+      "path": "core\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695791607,
+      "type": "file"
+    },
+    {
+      "path": "commands\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695804394,
+      "type": "file"
+    },
+    {
+      "path": "models\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695814906,
+      "type": "file"
+    },
+    {
+      "path": "utils\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695825154,
+      "type": "file"
+    },
+    {
+      "path": "docs\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695833022,
+      "type": "file"
+    },
+    {
+      "path": "scripts\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695837296,
+      "type": "file"
+    },
+    {
+      "path": "commands\\init\\lib\\index.js",
+      "accessCount": 1,
+      "lastAccessed": 1779695845893,
+      "type": "file"
+    },
+    {
+      "path": "commands\\publish\\lib\\index.js",
+      "accessCount": 1,
+      "lastAccessed": 1779695847020,
+      "type": "file"
+    },
+    {
+      "path": "commands\\doctor\\lib\\index.js",
+      "accessCount": 1,
+      "lastAccessed": 1779695847675,
+      "type": "file"
+    },
+    {
+      "path": "models\\package\\lib\\index.js",
+      "accessCount": 1,
+      "lastAccessed": 1779695849062,
+      "type": "file"
+    },
+    {
+      "path": "models\\git\\lib\\index.js",
+      "accessCount": 1,
+      "lastAccessed": 1779695850207,
+      "type": "file"
+    },
+    {
+      "path": "utils\\utils\\lib\\index.js",
+      "accessCount": 1,
+      "lastAccessed": 1779695850773,
+      "type": "file"
+    },
+    {
+      "path": "core\\cli\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695866213,
+      "type": "file"
+    },
+    {
+      "path": "core\\exec\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695874585,
+      "type": "file"
+    },
+    {
+      "path": "models\\command\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695881518,
+      "type": "file"
+    },
+    {
+      "path": "models\\package\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695888767,
+      "type": "file"
+    },
+    {
+      "path": "models\\git\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695898771,
+      "type": "file"
+    },
+    {
+      "path": "utils\\log\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695908529,
+      "type": "file"
+    },
+    {
+      "path": "utils\\format-path\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695912370,
+      "type": "file"
+    },
+    {
+      "path": "utils\\get-npm-info\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695917690,
+      "type": "file"
+    },
+    {
+      "path": "utils\\request\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695921901,
+      "type": "file"
+    },
+    {
+      "path": "utils\\utils\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695931360,
+      "type": "file"
+    },
+    {
+      "path": ".claude\\agents\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695934847,
+      "type": "file"
+    },
+    {
+      "path": "commands\\init\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695951362,
+      "type": "file"
+    },
+    {
+      "path": "commands\\publish\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695956804,
+      "type": "file"
+    },
+    {
+      "path": "commands\\add\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695961191,
+      "type": "file"
+    },
+    {
+      "path": "commands\\rollback\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695964620,
+      "type": "file"
+    },
+    {
+      "path": "commands\\husky\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695968242,
+      "type": "file"
+    },
+    {
+      "path": "commands\\codelint\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695973262,
+      "type": "file"
+    },
+    {
+      "path": "commands\\commitlint\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695977375,
+      "type": "file"
+    },
+    {
+      "path": "commands\\release\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695981444,
+      "type": "file"
+    },
+    {
+      "path": "commands\\gitflow\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695985082,
+      "type": "file"
+    },
+    {
+      "path": "commands\\delete-branch\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695988947,
+      "type": "file"
+    },
+    {
+      "path": "commands\\resume\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695993821,
+      "type": "file"
+    },
+    {
+      "path": "commands\\server\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779695997104,
+      "type": "file"
+    },
+    {
+      "path": "commands\\doctor\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779696005037,
+      "type": "file"
+    },
+    {
+      "path": "docs\\superpowers\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779696018764,
+      "type": "file"
+    },
+    {
+      "path": "docs\\superpowers\\plans\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779696020812,
+      "type": "file"
+    },
+    {
+      "path": "docs\\superpowers\\specs\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779696023413,
+      "type": "file"
+    },
+    {
+      "path": "commands\\doctor\\lib\\checkers\\AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1779696028746,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
